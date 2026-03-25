@@ -1987,6 +1987,19 @@
             hide('home-view'); hide('list-view'); show('detail-view');
             window.scrollTo(0, 0);
             renderDetail(type, id); // async — runs in background, no need to await here
+
+            if (data.effects && data.effects.length > 0) {
+                // Add a header for the effects section
+                html += `<div class="detail-section-header">Item Effects</div>`;
+
+                // Loop through each effect (Equip, Use, etc.) and add it to the HTML
+                html += `<div class="effects-container">`;
+                data.effects.forEach(effect => {
+                    // We wrap it in a div and apply a specific class for styling
+                    html += `<div class="item-effect">${effect}</div>`;
+                });
+                html += `</div>`;
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -2544,6 +2557,42 @@
                 console.warn('Could not load stats:', err);
             }
         }
+
+     // Logic to handle the file upload
+     const modalSubmit = document.querySelector('.modal-submit');
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file'; // Hidden file input
+
+        // Trigger file picker when clicking the dashed zone
+        document.querySelector('.upload-zone').onclick = () => fileInput.click();
+
+        modalSubmit.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) return alert("Please select a file first!");
+
+            const formData = new FormData();
+            formData.append('luaFile', file);
+
+            const status = document.getElementById('upload-status');
+            status.style.display = 'block';
+            status.innerText = "Uploading and parsing...";
+
+            try {
+                const response = await fetch('http://localhost:5000/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    status.innerText = "Success! Database updated.";
+                    setTimeout(() => location.reload(), 1500); // Reload to show new stats
+                } else {
+                    status.innerText = "Upload failed. Check server logs.";
+                }
+            } catch (err) {
+                status.innerText = "Error: Could not connect to server.";
+            }
+        });
 
         showHome();
         loadStats();

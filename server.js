@@ -18,6 +18,7 @@ const RecordSchema = new mongoose.Schema({
     name: String,
     quality: Number, // 0-6 for items
     level: Number,
+    effects: [String], // This tells MongoDB to expect an array of strings
     data: Object,   // Extra info like kills, stats, drop rates
     timestamp: { type: Date, default: Date.now }
 });
