@@ -22,7 +22,7 @@ const RecordSchema = new mongoose.Schema({
 const Record = mongoose.model('Record', RecordSchema);
 
 // 2. CONNECT TO DATABASE
-mongoose.connect('mongodb://localhost:27017/epochdb')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/epochdb')
     .then(() => console.log("Successfully connected to MongoDB"))
     .catch(err => console.error("Database connection error:", err));
 
