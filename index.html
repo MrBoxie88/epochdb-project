@@ -126,6 +126,22 @@
                 height: 100%
             }
 
+        .effect-line {
+            color: #1eff00; /* Standard green for Equip/Use effects */
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+            font-family: 'Crimson Text', serif;
+        }
+
+        .section-label {
+            color: var(--gold);
+            font-family: 'Cinzel', serif;
+            font-size: 0.8rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 8px;
+            padding-bottom: 2px;
+        }
+
         .logo-text {
             font-family: 'Cinzel',serif;
             font-weight: 900;
@@ -2226,6 +2242,16 @@
                 document.getElementById('detail-title-block').innerHTML =
                     `<div style="padding:1.5rem;color:var(--red-bright)">Record not found.</div>`;
                 return;
+            }
+
+            if (data.effects && data.effects.length > 0) {
+                html += `
+                <div class="detail-section">
+                    <div class="section-label">Effects</div>
+                    <div class="effects-list">
+                        ${data.effects.map(eff => `<div class="effect-line">${eff}</div>`).join('')}
+                    </div>
+                </div>`;
             }
 
             // Everything below is identical to before
