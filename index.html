@@ -1,1201 +1,2526 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EpochDB — Project Epoch Database</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --gold:#c8a84b;--gold-light:#e8cc7a;--gold-dark:#8a6f2e;--gold-bg:rgba(200,168,75,0.06);
-  --red:#8b1a1a;--red-bright:#c0392b;
-  --bg-deep:#0a0a0c;--bg-panel:#0f0f14;--bg-card:#131318;--bg-hover:#1a1a24;
-  --border:#252530;--border-gold:#3a2e10;
-  --text:#c8c0a8;--text-dim:#6a6458;--text-bright:#e8dfc8;
-  --blue-light:#6ab4e8;--green-light:#6abf6a;--purple-light:#a87ae8;--orange-light:#e8a84a;
-  --q0:#9d9d9d;--q1:#e8dfc8;--q2:#1eff00;--q3:#0070dd;--q4:#a335ee;--q5:#ff8000;--q6:#e6cc80;
-}
-html{font-size:13px}
-body{background:var(--bg-deep);color:var(--text);font-family:'Crimson Text',Georgia,serif;min-height:100vh;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
-a{color:var(--gold);text-decoration:none;cursor:pointer}
-a:hover{color:var(--gold-light);text-decoration:underline}
-button{cursor:pointer;font-family:inherit}
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:var(--bg-deep)}
-::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EpochDB — Project Epoch Database</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
 
-/* ── TOPBAR ── */
-#topbar{background:linear-gradient(180deg,#0d0d10 0%,rgba(10,10,12,.95) 100%);border-bottom:1px solid var(--border-gold);padding:0 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:200;backdrop-filter:blur(14px);height:52px}
-.logo{display:flex;align-items:center;gap:.7rem;flex-shrink:0;cursor:pointer}
-.logo-icon{width:36px;height:36px}
-.logo-icon svg{width:100%;height:100%}
-.logo-text{font-family:'Cinzel',serif;font-weight:900;font-size:1.15rem;letter-spacing:.15em;color:var(--gold);text-shadow:0 0 18px rgba(200,168,75,.4);line-height:1}
-.logo-sub{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.3em;color:var(--text-dim);margin-top:2px}
-#search-wrap{flex:1;max-width:500px;position:relative}
-#search-input{width:100%;background:var(--bg-card);border:1px solid var(--border);color:var(--text);font-family:'Crimson Text',serif;font-size:.95rem;padding:6px 34px 6px 10px;outline:none;transition:border-color .15s}
-#search-input:focus{border-color:var(--gold-dark)}
-#search-input::placeholder{color:var(--text-dim);font-style:italic}
-#search-go{position:absolute;right:0;top:0;height:100%;width:32px;background:var(--gold-dark);border:none;color:var(--gold-light);font-size:.85rem;transition:background .15s}
-#search-go:hover{background:var(--gold)}
-#suggestions{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--bg-panel);border:1px solid var(--border-gold);z-index:300;display:none;max-height:320px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.7)}
-#suggestions.open{display:block}
-.sug-group-label{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.25em;text-transform:uppercase;color:var(--text-dim);padding:6px 10px 3px;border-top:1px solid var(--border)}
-.sug-group-label:first-child{border-top:none}
-.sug-item{display:flex;align-items:center;gap:8px;padding:6px 10px;cursor:pointer;transition:background .1s;font-size:.9rem}
-.sug-item:hover{background:var(--bg-hover)}
-.sug-icon{width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
-.sug-meta{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-dim)}
-#topnav{display:flex;gap:.1rem;margin-left:auto;align-items:center;flex-shrink:0}
-.tnav-btn{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.12em;color:var(--text-dim);background:none;border:none;padding:.4rem .75rem;transition:color .15s;text-transform:uppercase}
-.tnav-btn:hover,.tnav-btn.active{color:var(--gold)}
-.upload-btn{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.1em;background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--bg-deep);border:none;padding:.4rem 1rem;font-weight:600;transition:all .15s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
-.upload-btn:hover{filter:brightness(1.12);box-shadow:0 0 14px rgba(200,168,75,.35)}
+        :root {
+            --gold: #c8a84b;
+            --gold-light: #e8cc7a;
+            --gold-dark: #8a6f2e;
+            --gold-bg: rgba(200,168,75,0.06);
+            --red: #8b1a1a;
+            --red-bright: #c0392b;
+            --bg-deep: #0a0a0c;
+            --bg-panel: #0f0f14;
+            --bg-card: #131318;
+            --bg-hover: #1a1a24;
+            --border: #252530;
+            --border-gold: #3a2e10;
+            --text: #c8c0a8;
+            --text-dim: #6a6458;
+            --text-bright: #e8dfc8;
+            --blue-light: #6ab4e8;
+            --green-light: #6abf6a;
+            --purple-light: #a87ae8;
+            --orange-light: #e8a84a;
+            --q0: #9d9d9d;
+            --q1: #e8dfc8;
+            --q2: #1eff00;
+            --q3: #0070dd;
+            --q4: #a335ee;
+            --q5: #ff8000;
+            --q6: #e6cc80;
+        }
 
-/* ── MAIN NAV ── */
-#mainnav{background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;padding:0 1.5rem;gap:0;overflow-x:auto;position:relative;z-index:1}
-.mnav-tab{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.14em;color:var(--text-dim);background:none;border:none;border-bottom:2px solid transparent;padding:.65rem 1rem;text-transform:uppercase;transition:all .15s;white-space:nowrap;margin-bottom:-1px}
-.mnav-tab:hover{color:var(--text)}
-.mnav-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+        html {
+            font-size: 13px
+        }
 
-/* ── PAGE ── */
-#page{max-width:1200px;margin:0 auto;padding:0 1.5rem;position:relative;z-index:1}
-.hidden{display:none!important}
+        body {
+            background: var(--bg-deep);
+            color: var(--text);
+            font-family: 'Crimson Text',Georgia,serif;
+            min-height: 100vh;
+            overflow-x: hidden
+        }
 
-/* ── HOME ── */
-#home-view{padding:2.5rem 0 4rem}
-.hero{text-align:center;padding:1.5rem 0 2rem;position:relative}
-.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(139,26,26,.12) 0%,transparent 70%),radial-gradient(ellipse 50% 40% at 50% 100%,rgba(200,168,75,.05) 0%,transparent 70%);pointer-events:none}
-.hero-title{font-family:'Cinzel',serif;font-size:clamp(1.8rem,4vw,3rem);font-weight:900;color:var(--gold);text-shadow:0 0 36px rgba(200,168,75,.3),0 2px 0 rgba(0,0,0,.8);letter-spacing:.08em;line-height:1;position:relative}
-.hero-sub{color:var(--text-dim);font-style:italic;font-size:1rem;margin-top:.4rem;position:relative}
-.hero-divider{width:260px;height:1px;background:linear-gradient(90deg,transparent,var(--gold-dark),var(--gold),var(--gold-dark),transparent);margin:1.2rem auto;position:relative}
-.hero-divider::before{content:'⚔';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--gold);font-size:.9rem;background:var(--bg-deep);padding:0 .5rem}
-.home-search-wrap{max-width:560px;margin:0 auto;position:relative}
-.home-search{width:100%;background:var(--bg-card);border:1px solid var(--border);color:var(--text);font-family:'Crimson Text',serif;font-size:1.05rem;padding:.75rem 44px .75rem 12px;outline:none;transition:border-color .15s}
-.home-search:focus{border-color:var(--gold-dark)}
-.home-search::placeholder{color:var(--text-dim);font-style:italic}
-.home-search-btn{position:absolute;right:0;top:0;bottom:0;width:42px;background:var(--gold-dark);border:none;color:var(--gold-light);font-size:.9rem;transition:background .15s}
-.home-search-btn:hover{background:var(--gold)}
-.stats-bar{display:flex;justify-content:center;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg-panel);margin:2rem 0;overflow:hidden}
-.stat-item{flex:1;max-width:180px;text-align:center;padding:.9rem;border-right:1px solid var(--border)}
-.stat-item:last-child{border-right:none}
-.stat-num{font-family:'Share Tech Mono',monospace;font-size:1.5rem;color:var(--gold);display:block;text-shadow:0 0 10px rgba(200,168,75,.25)}
-.stat-label{font-family:'Cinzel',serif;font-size:.52rem;letter-spacing:.2em;color:var(--text-dim);text-transform:uppercase;margin-top:.15rem}
-.home-cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:2rem}
-.cat-card{background:var(--bg-panel);border:1px solid var(--border);padding:1.2rem 1rem;text-align:center;cursor:pointer;transition:all .15s}
-.cat-card:hover{border-color:var(--border-gold);background:var(--bg-card)}
-.cat-card:hover .cat-name{color:var(--gold)}
-.cat-icon{font-size:1.8rem;margin-bottom:.5rem}
-.cat-name{font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.1em;color:var(--text-bright);text-transform:uppercase;margin-bottom:.2rem}
-.cat-count{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--text-dim)}
-.home-panels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.home-panel{background:var(--bg-panel);border:1px solid var(--border);overflow:hidden}
-.panel-hdr{background:var(--bg-card);border-bottom:1px solid var(--border);padding:.5rem .9rem;display:flex;justify-content:space-between;align-items:center}
-.panel-hdr-title{font-family:'Cinzel',serif;font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-dim)}
-.panel-hdr a{font-size:.7rem;color:var(--gold-dark);font-family:'Crimson Text',serif;letter-spacing:0}
-.panel-hdr a:hover{color:var(--gold)}
-.panel-row{display:flex;align-items:center;gap:.6rem;padding:.5rem .9rem;border-bottom:1px solid rgba(37,37,48,.6);cursor:pointer;transition:background .1s;font-size:.9rem}
-.panel-row:last-child{border-bottom:none}
-.panel-row:hover{background:var(--bg-hover)}
-.panel-row-icon{font-size:.9rem;width:18px;text-align:center;flex-shrink:0}
-.panel-row-meta{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--text-dim)}
+            body::before {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+                pointer-events: none;
+                z-index: 0;
+                opacity: .4
+            }
 
-/* ── LIST VIEW ── */
-#list-view{padding:1.2rem 0}
-.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:.6rem;flex-wrap:wrap}
-.list-title{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--text-bright);display:flex;align-items:center;gap:.5rem}
-.list-count{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-dim);font-weight:400}
-.list-controls{display:flex;gap:.4rem;align-items:center}
-.list-search{background:var(--bg-card);border:1px solid var(--border);color:var(--text);font-family:'Crimson Text',serif;font-size:.9rem;padding:.35rem .6rem;outline:none;width:190px;transition:border-color .15s}
-.list-search:focus{border-color:var(--gold-dark)}
-.list-search::placeholder{color:var(--text-dim);font-style:italic}
-.list-select{background:var(--bg-card);border:1px solid var(--border);color:var(--text-dim);font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.08em;padding:.35rem .6rem;outline:none;cursor:pointer}
-.list-body{display:grid;grid-template-columns:188px 1fr;gap:12px;align-items:start}
-.filter-panel{background:var(--bg-panel);border:1px solid var(--border);overflow:hidden}
-.fp-group{border-bottom:1px solid var(--border)}
-.fp-group:last-child{border-bottom:none}
-.fp-title{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text-dim);background:var(--bg-card);padding:.45rem .8rem;border-bottom:1px solid rgba(37,37,48,.6)}
-.fp-item{display:flex;align-items:center;gap:.5rem;padding:.42rem .8rem;font-size:.88rem;cursor:pointer;transition:background .1s;border-top:1px solid rgba(37,37,48,.3);border-left:2px solid transparent;color:var(--text-dim)}
-.fp-item:hover{background:var(--bg-hover);color:var(--text)}
-.fp-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--gold-bg)}
-.fp-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
-.data-wrap{background:var(--bg-panel);border:1px solid var(--border);overflow:hidden}
-table{width:100%;border-collapse:collapse}
-thead tr{background:var(--bg-card);border-bottom:1px solid var(--border-gold)}
-th{padding:.55rem .8rem;text-align:left;font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.18em;color:var(--gold-dark);text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap}
-th:hover{color:var(--gold)}
-tbody tr{border-bottom:1px solid rgba(37,37,48,.5);transition:background .08s;cursor:pointer}
-tbody tr:hover{background:var(--bg-hover)}
-tbody tr:last-child{border-bottom:none}
-td{padding:.55rem .8rem;font-size:.9rem;vertical-align:middle}
-td.mono{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--text-dim)}
-.q0{color:var(--q0)}.q1{color:var(--q1)}.q2{color:var(--q2)}.q3{color:var(--q3)}.q4{color:var(--q4)}.q5{color:var(--q5)}.q6{color:var(--q6)}
-.badge{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.65rem;padding:1px 5px;border-radius:1px;border:1px solid}
-.badge-boss{color:var(--q4);border-color:rgba(163,53,238,.4);background:rgba(163,53,238,.1)}
-.badge-elite{color:var(--orange-light);border-color:rgba(232,168,74,.3);background:rgba(232,168,74,.07)}
-.badge-rare{color:var(--q3);border-color:rgba(0,112,221,.35);background:rgba(0,112,221,.08)}
-.badge-normal{color:var(--text-dim);border-color:var(--border);background:transparent}
-.badge-daily{color:var(--gold);border-color:var(--border-gold);background:var(--gold-bg)}
-.badge-raid{color:#e07070;border-color:rgba(204,51,51,.3);background:rgba(139,26,26,.15)}
-.badge-dungeon{color:var(--blue-light);border-color:rgba(74,143,191,.3);background:rgba(74,143,191,.08)}
-.badge-elite2{color:var(--orange-light);border-color:rgba(232,168,74,.3);background:rgba(232,168,74,.07)}
-.badge-solo{color:var(--text-dim);border-color:var(--border);background:transparent}
-.td-icon{font-size:.9rem;margin-right:.4rem}
-.td-name{display:flex;align-items:center}
-.npc-name{color:var(--red-bright)}
-.npc-name:hover{color:#e05555}
-.rate-wrap{display:flex;align-items:center;gap:6px}
-.rate-bar{flex:1;height:5px;background:var(--bg-card);border-radius:2px;overflow:hidden;min-width:60px}
-.rate-fill{height:100%;border-radius:2px;background:var(--gold-dark)}
-.rate-fill.fill-epic{background:var(--q4)}
-.rate-fill.fill-rare{background:var(--q3)}
-.rate-fill.fill-leg{background:var(--q5)}
-.rate-text{font-family:'Share Tech Mono',monospace;font-size:.68rem;color:var(--text-dim);min-width:36px;text-align:right}
-.paginator{display:flex;align-items:center;justify-content:center;gap:3px;padding:.7rem;border-top:1px solid var(--border);background:var(--bg-card)}
-.pager-btn{background:var(--bg-panel);border:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:.68rem;padding:3px 7px;transition:all .1s}
-.pager-btn:hover,.pager-btn.active{background:var(--gold-dark);color:var(--gold-light);border-color:var(--gold-dark)}
+        a {
+            color: var(--gold);
+            text-decoration: none;
+            cursor: pointer
+        }
 
-/* ── DETAIL VIEW ── */
-#detail-view{padding:1.2rem 0 3rem}
-.breadcrumb{font-size:.78rem;color:var(--text-dim);margin-bottom:.8rem}
-.breadcrumb a{color:var(--text-dim)}
-.breadcrumb a:hover{color:var(--gold)}
-.breadcrumb span{margin:0 .3rem;color:var(--border-gold)}
-.detail-layout{display:grid;grid-template-columns:1fr 268px;gap:14px;align-items:start}
-.detail-title-block{background:var(--bg-panel);border:1px solid var(--border);border-top:2px solid var(--gold-dark);padding:1rem;margin-bottom:10px;display:flex;gap:1rem;align-items:flex-start;position:relative}
-.detail-title-block::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--gold),transparent)}
-.detail-big-icon{font-size:2.6rem;flex-shrink:0;width:52px;text-align:center}
-.detail-info{flex:1}
-.detail-name{font-family:'Cinzel',serif;font-size:1.5rem;font-weight:700;line-height:1.2;margin-bottom:.3rem}
-.detail-subtitle{font-size:.85rem;color:var(--text-dim);font-style:italic;margin-bottom:.6rem}
-.detail-pills{display:flex;flex-wrap:wrap;gap:.4rem}
-.dpill{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.1em;background:var(--bg-card);border:1px solid var(--border);color:var(--text-dim);padding:2px 8px}
-.dpill.gold{border-color:var(--border-gold);color:var(--gold);background:var(--gold-bg)}
-.detail-tabs{display:flex;background:var(--bg-card);border:1px solid var(--border);border-bottom:none;overflow-x:auto}
-.dtab{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);background:none;border:none;border-bottom:2px solid transparent;padding:.6rem 1rem;white-space:nowrap;margin-bottom:-1px;transition:all .15s}
-.dtab:hover{color:var(--text)}
-.dtab.active{color:var(--gold);border-bottom-color:var(--gold)}
-.dtab-count{display:inline-block;font-size:.6rem;background:var(--bg-panel);border-radius:6px;padding:0 4px;margin-left:3px;color:var(--text-dim);font-family:'Share Tech Mono',monospace}
-.detail-tab-content{background:var(--bg-panel);border:1px solid var(--border);border-top:none;overflow:hidden}
-.dtc-panel{display:none}
-.dtc-panel.active{display:block}
-.summary-grid{display:grid;grid-template-columns:1fr 1fr}
-.sg{padding:.8rem 1rem;border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
-.sg:nth-child(even){border-right:none}
-.sg:nth-last-child(-n+2){border-bottom:none}
-.sg-label{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:.3rem}
-.sg-val{font-size:.95rem;color:var(--text-bright)}
-.drop-table{width:100%;border-collapse:collapse}
-.drop-table thead tr{background:var(--bg-card);border-bottom:1px solid var(--border-gold)}
-.drop-table th{padding:.5rem .8rem;font-family:'Cinzel',serif;font-size:.52rem;letter-spacing:.18em;color:var(--gold-dark);text-transform:uppercase;text-align:left}
-.drop-table td{padding:.55rem .8rem;font-size:.88rem;border-bottom:1px solid rgba(37,37,48,.5)}
-.drop-table tr:last-child td{border-bottom:none}
-.drop-table tr:hover td{background:var(--bg-hover);cursor:pointer}
-.comments-wrap{padding:.8rem 1rem}
-.comment{background:var(--bg-card);border:1px solid var(--border);margin-bottom:.6rem;overflow:hidden}
-.comment:last-child{margin-bottom:0}
-.comment-hdr{background:var(--bg-panel);border-bottom:1px solid var(--border);padding:.4rem .8rem;display:flex;justify-content:space-between;align-items:center;font-size:.75rem}
-.comment-author{font-family:'Cinzel',serif;font-size:.68rem}
-.comment-date{color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:.65rem}
-.comment-body{padding:.6rem .8rem;font-size:.88rem;color:var(--text-dim);line-height:1.6}
-.sb-panel{background:var(--bg-panel);border:1px solid var(--border);overflow:hidden;margin-bottom:10px}
-.sb-panel:last-child{margin-bottom:0}
-.sb-title{background:var(--bg-card);border-bottom:1px solid var(--border);padding:.45rem .9rem;font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-dark)}
-.sb-row{display:flex;align-items:center;gap:.55rem;padding:.5rem .9rem;border-bottom:1px solid rgba(37,37,48,.4);font-size:.88rem;cursor:pointer;transition:background .1s}
-.sb-row:last-child{border-bottom:none}
-.sb-row:hover{background:var(--bg-hover)}
-.sb-row-icon{font-size:.85rem;width:16px;text-align:center;flex-shrink:0}
-.sb-row-meta{margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--text-dim)}
+            a:hover {
+                color: var(--gold-light);
+                text-decoration: underline
+            }
 
-/* ── UPLOAD MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:500;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
-.modal-overlay.open{display:flex}
-.modal{background:var(--bg-panel);border:1px solid var(--border-gold);width:520px;max-width:95vw;box-shadow:0 0 60px rgba(200,168,75,.1),0 0 120px rgba(0,0,0,.6)}
-.modal-hdr{background:linear-gradient(135deg,rgba(139,26,26,.3),rgba(200,168,75,.08));border-bottom:1px solid var(--border-gold);padding:.9rem 1.2rem;display:flex;justify-content:space-between;align-items:center}
-.modal-title{font-family:'Cinzel',serif;font-size:.82rem;letter-spacing:.14em;color:var(--gold)}
-.modal-close{background:none;border:none;color:var(--text-dim);font-size:1.1rem;line-height:1;transition:color .15s}
-.modal-close:hover{color:var(--gold)}
-.modal-body{padding:1.2rem}
-.instructions{background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--gold-dark);padding:.8rem;font-size:.88rem;color:var(--text-dim);line-height:1.8;margin-bottom:1rem}
-.instructions code{font-family:'Share Tech Mono',monospace;color:var(--gold);background:rgba(200,168,75,.08);padding:1px 4px;font-size:.78rem}
-.upload-zone{border:2px dashed var(--border);padding:2.5rem;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:1rem}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--gold-dark);background:var(--gold-bg)}
-.upload-icon{font-size:2.2rem;margin-bottom:.6rem;display:block}
-.upload-text{font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim)}
-.upload-sub{font-size:.82rem;color:var(--text-dim);margin-top:.25rem;font-style:italic}
-#upload-status{display:none;margin-bottom:.9rem;padding:.55rem .8rem;background:var(--bg-card);border:1px solid rgba(106,191,106,.4);color:var(--green-light);font-family:'Share Tech Mono',monospace;font-size:.75rem}
-.modal-submit{width:100%;font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.14em;background:linear-gradient(135deg,var(--gold-dark),var(--gold));color:var(--bg-deep);border:none;padding:.75rem;font-weight:600;transition:all .15s}
-.modal-submit:hover{filter:brightness(1.1);box-shadow:0 0 18px rgba(200,168,75,.3)}
+        button {
+            cursor: pointer;
+            font-family: inherit
+        }
 
-/* ── TOAST ── */
-.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--bg-panel);border:1px solid var(--border-gold);border-left:3px solid var(--gold);padding:.7rem 1.1rem;font-size:.88rem;color:var(--text-bright);z-index:600;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:slideIn .25s ease}
-@keyframes slideIn{from{transform:translateX(110%);opacity:0}to{transform:none;opacity:1}}
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px
+        }
 
-/* ── WOW ITEM TOOLTIP ── */
-#wow-tooltip{position:fixed;z-index:9999;pointer-events:none;display:none;width:280px;filter:drop-shadow(0 4px 24px rgba(0,0,0,.9))}
-#wow-tooltip.visible{display:block}
-.tt-frame{background:#0a0a12;border:1px solid #4a3a1a;position:relative;box-shadow:inset 0 0 0 1px #1a1428,0 0 0 1px #000,0 2px 12px rgba(0,0,0,.8)}
-.tt-frame::before,.tt-frame::after{content:'';position:absolute;width:6px;height:6px;border-color:var(--gold-dark);border-style:solid;z-index:1}
-.tt-frame::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
-.tt-frame::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
-.tt-inner{padding:8px 10px}
-.tt-name-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
-.tt-item-icon{width:40px;height:40px;border:2px solid #555;border-radius:3px;background:#1a1428;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.tt-item-icon.ql-0{border-color:#6e6e6e}
-.tt-item-icon.ql-1{border-color:#999}
-.tt-item-icon.ql-2{border-color:#1eff00;box-shadow:0 0 6px rgba(30,255,0,.3)}
-.tt-item-icon.ql-3{border-color:#0070dd;box-shadow:0 0 6px rgba(0,112,221,.4)}
-.tt-item-icon.ql-4{border-color:#a335ee;box-shadow:0 0 8px rgba(163,53,238,.5)}
-.tt-item-icon.ql-5{border-color:#ff8000;box-shadow:0 0 10px rgba(255,128,0,.6)}
-.tt-item-icon.ql-6{border-color:#e6cc80;box-shadow:0 0 10px rgba(230,204,128,.5)}
-.tt-name-info{flex:1}
-.tt-name{font-family:'Crimson Text',serif;font-size:1rem;font-weight:600;line-height:1.2;margin-bottom:1px}
-.tt-binding{font-size:.78rem;color:#c8c0a8}
-.tt-sep{height:1px;background:linear-gradient(90deg,transparent,#4a3a1a 20%,#6a5a2a 50%,#4a3a1a 80%,transparent);margin:5px 0}
-.tt-row-2col{display:flex;justify-content:space-between;font-size:.8rem;color:#c8c0a8;margin:2px 0}
-.tt-line{font-size:.8rem;margin:1px 0;color:#c8c0a8}
-.tt-line.green{color:#1eff00}
-.tt-line.yellow{color:#ffd100}
-.tt-line.blue{color:#88ccff}
-.tt-line.orange{color:#ff8000}
-.tt-line.white{color:#fff}
-.tt-line.grey{color:#888}
-.tt-line.spell{color:#4db5ff;font-size:.78rem}
-.tt-line.flavor{color:#888;font-style:italic;font-size:.76rem}
-.tt-line.indent{padding-left:10px}
-.tt-ilvl{font-size:.72rem;color:#888;text-align:right;margin-top:4px}
-.tt-req{font-size:.78rem;color:#c8c0a8;margin-top:3px}
+        ::-webkit-scrollbar-track {
+            background: var(--bg-deep)
+        }
 
-@media(max-width:768px){.list-body{grid-template-columns:1fr}.filter-panel{display:none}.detail-layout{grid-template-columns:1fr}.home-panels{grid-template-columns:1fr}.summary-grid{grid-template-columns:1fr}}
-</style>
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-gold);
+            border-radius: 2px
+        }
+
+        /* ── TOPBAR ── */
+        #topbar {
+            background: linear-gradient(180deg,#0d0d10 0%,rgba(10,10,12,.95) 100%);
+            border-bottom: 1px solid var(--border-gold);
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            backdrop-filter: blur(14px);
+            height: 52px
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+            flex-shrink: 0;
+            cursor: pointer
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px
+        }
+
+            .logo-icon svg {
+                width: 100%;
+                height: 100%
+            }
+
+        .logo-text {
+            font-family: 'Cinzel',serif;
+            font-weight: 900;
+            font-size: 1.15rem;
+            letter-spacing: .15em;
+            color: var(--gold);
+            text-shadow: 0 0 18px rgba(200,168,75,.4);
+            line-height: 1
+        }
+
+        .logo-sub {
+            font-family: 'Cinzel',serif;
+            font-size: .55rem;
+            letter-spacing: .3em;
+            color: var(--text-dim);
+            margin-top: 2px
+        }
+
+        #search-wrap {
+            flex: 1;
+            max-width: 500px;
+            position: relative
+        }
+
+        #search-input {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'Crimson Text',serif;
+            font-size: .95rem;
+            padding: 6px 34px 6px 10px;
+            outline: none;
+            transition: border-color .15s
+        }
+
+            #search-input:focus {
+                border-color: var(--gold-dark)
+            }
+
+            #search-input::placeholder {
+                color: var(--text-dim);
+                font-style: italic
+            }
+
+        #search-go {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 32px;
+            background: var(--gold-dark);
+            border: none;
+            color: var(--gold-light);
+            font-size: .85rem;
+            transition: background .15s
+        }
+
+            #search-go:hover {
+                background: var(--gold)
+            }
+
+        #suggestions {
+            position: absolute;
+            top: calc(100% + 3px);
+            left: 0;
+            right: 0;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-gold);
+            z-index: 300;
+            display: none;
+            max-height: 320px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,.7)
+        }
+
+            #suggestions.open {
+                display: block
+            }
+
+        .sug-group-label {
+            font-family: 'Cinzel',serif;
+            font-size: .55rem;
+            letter-spacing: .25em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            padding: 6px 10px 3px;
+            border-top: 1px solid var(--border)
+        }
+
+            .sug-group-label:first-child {
+                border-top: none
+            }
+
+        .sug-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: background .1s;
+            font-size: .9rem
+        }
+
+            .sug-item:hover {
+                background: var(--bg-hover)
+            }
+
+        .sug-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .85rem;
+            flex-shrink: 0
+        }
+
+        .sug-meta {
+            margin-left: auto;
+            font-family: 'Share Tech Mono',monospace;
+            font-size: .7rem;
+            color: var(--text-dim)
+        }
+
+        #topnav {
+            display: flex;
+            gap: .1rem;
+            margin-left: auto;
+            align-items: center;
+            flex-shrink: 0
+        }
+
+        .tnav-btn {
+            font-family: 'Cinzel',serif;
+            font-size: .6rem;
+            letter-spacing: .12em;
+            color: var(--text-dim);
+            background: none;
+            border: none;
+            padding: .4rem .75rem;
+            transition: color .15s;
+            text-transform: uppercase
+        }
+
+            .tnav-btn:hover, .tnav-btn.active {
+                color: var(--gold)
+            }
+
+        .upload-btn {
+            font-family: 'Cinzel',serif;
+            font-size: .6rem;
+            letter-spacing: .1em;
+            background: linear-gradient(135deg,var(--gold-dark),var(--gold));
+            color: var(--bg-deep);
+            border: none;
+            padding: .4rem 1rem;
+            font-weight: 600;
+            transition: all .15s;
+            clip-path: polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)
+        }
+
+            .upload-btn:hover {
+                filter: brightness(1.12);
+                box-shadow: 0 0 14px rgba(200,168,75,.35)
+            }
+
+        /* ── MAIN NAV ── */
+        #mainnav {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            padding: 0 1.5rem;
+            gap: 0;
+            overflow-x: auto;
+            position: relative;
+            z-index: 1
+        }
+
+        .mnav-tab {
+            font-family: 'Cinzel',serif;
+            font-size: .62rem;
+            letter-spacing: .14em;
+            color: var(--text-dim);
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: .65rem 1rem;
+            text-transform: uppercase;
+            transition: all .15s;
+            white-space: nowrap;
+            margin-bottom: -1px
+        }
+
+            .mnav-tab:hover {
+                color: var(--text)
+            }
+
+            .mnav-tab.active {
+                color: var(--gold);
+                border-bottom-color: var(--gold)
+            }
+
+        /* ── PAGE ── */
+        #page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+            position: relative;
+            z-index: 1
+        }
+
+        .hidden {
+            display: none !important
+        }
+
+        /* ── HOME ── */
+        #home-view {
+            padding: 2.5rem 0 4rem
+        }
+
+        .hero {
+            text-align: center;
+            padding: 1.5rem 0 2rem;
+            position: relative
+        }
+
+            .hero::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: radial-gradient(ellipse 70% 60% at 50% 0%,rgba(139,26,26,.12) 0%,transparent 70%),radial-gradient(ellipse 50% 40% at 50% 100%,rgba(200,168,75,.05) 0%,transparent 70%);
+                pointer-events: none
+            }
+
+        .hero-title {
+            font-family: 'Cinzel',serif;
+            font-size: clamp(1.8rem,4vw,3rem);
+            font-weight: 900;
+            color: var(--gold);
+            text-shadow: 0 0 36px rgba(200,168,75,.3),0 2px 0 rgba(0,0,0,.8);
+            letter-spacing: .08em;
+            line-height: 1;
+            position: relative
+        }
+
+        .hero-sub {
+            color: var(--text-dim);
+            font-style: italic;
+            font-size: 1rem;
+            margin-top: .4rem;
+            position: relative
+        }
+
+        .hero-divider {
+            width: 260px;
+            height: 1px;
+            background: linear-gradient(90deg,transparent,var(--gold-dark),var(--gold),var(--gold-dark),transparent);
+            margin: 1.2rem auto;
+            position: relative
+        }
+
+            .hero-divider::before {
+                content: '⚔';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%,-50%);
+                color: var(--gold);
+                font-size: .9rem;
+                background: var(--bg-deep);
+                padding: 0 .5rem
+            }
+
+        .home-search-wrap {
+            max-width: 560px;
+            margin: 0 auto;
+            position: relative
+        }
+
+        .home-search {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'Crimson Text',serif;
+            font-size: 1.05rem;
+            padding: .75rem 44px .75rem 12px;
+            outline: none;
+            transition: border-color .15s
+        }
+
+            .home-search:focus {
+                border-color: var(--gold-dark)
+            }
+
+            .home-search::placeholder {
+                color: var(--text-dim);
+                font-style: italic
+            }
+
+        .home-search-btn {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 42px;
+            background: var(--gold-dark);
+            border: none;
+            color: var(--gold-light);
+            font-size: .9rem;
+            transition: background .15s
+        }
+
+            .home-search-btn:hover {
+                background: var(--gold)
+            }
+
+        .stats-bar {
+            display: flex;
+            justify-content: center;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-panel);
+            margin: 2rem 0;
+            overflow: hidden
+        }
+
+        .stat-item {
+            flex: 1;
+            max-width: 180px;
+            text-align: center;
+            padding: .9rem;
+            border-right: 1px solid var(--border)
+        }
+
+            .stat-item:last-child {
+                border-right: none
+            }
+
+        .stat-num {
+            font-family: 'Share Tech Mono',monospace;
+            font-size: 1.5rem;
+            color: var(--gold);
+            display: block;
+            text-shadow: 0 0 10px rgba(200,168,75,.25)
+        }
+
+        .stat-label {
+            font-family: 'Cinzel',serif;
+            font-size: .52rem;
+            letter-spacing: .2em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-top: .15rem
+        }
+
+        .home-cats {
+            display: grid;
+            grid-template-columns: repeat(auto-fill,minmax(160px,1fr));
+            gap: 10px;
+            margin-bottom: 2rem
+        }
+
+        .cat-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            padding: 1.2rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all .15s
+        }
+
+            .cat-card:hover {
+                border-color: var(--border-gold);
+                background: var(--bg-card)
+            }
+
+                .cat-card:hover .cat-name {
+                    color: var(--gold)
+                }
+
+        .cat-icon {
+            font-size: 1.8rem;
+            margin-bottom: .5rem
+        }
+
+        .cat-name {
+            font-family: 'Cinzel',serif;
+            font-size: .7rem;
+            letter-spacing: .1em;
+            color: var(--text-bright);
+            text-transform: uppercase;
+            margin-bottom: .2rem
+        }
+
+        .cat-count {
+            font-family: 'Share Tech Mono',monospace;
+            font-size: .65rem;
+            color: var(--text-dim)
+        }
+
+        .home-panels {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px
+        }
+
+        .home-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            overflow: hidden
+        }
+
+        .panel-hdr {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: .5rem .9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .panel-hdr-title {
+            font-family: 'Cinzel',serif;
+            font-size: .58rem;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: var(--text-dim)
+        }
+
+        .panel-hdr a {
+            font-size: .7rem;
+            color: var(--gold-dark);
+            font-family: 'Crimson Text',serif;
+            letter-spacing: 0
+        }
+
+            .panel-hdr a:hover {
+                color: var(--gold)
+            }
+
+        .panel-row {
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            padding: .5rem .9rem;
+            border-bottom: 1px solid rgba(37,37,48,.6);
+            cursor: pointer;
+            transition: background .1s;
+            font-size: .9rem
+        }
+
+            .panel-row:last-child {
+                border-bottom: none
+            }
+
+            .panel-row:hover {
+                background: var(--bg-hover)
+            }
+
+        .panel-row-icon {
+            font-size: .9rem;
+            width: 18px;
+            text-align: center;
+            flex-shrink: 0
+        }
+
+        .panel-row-meta {
+            margin-left: auto;
+            font-family: 'Share Tech Mono',monospace;
+            font-size: .65rem;
+            color: var(--text-dim)
+        }
+
+        /* ── LIST VIEW ── */
+        #list-view {
+            padding: 1.2rem 0
+        }
+
+        .list-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            gap: .6rem;
+            flex-wrap: wrap
+        }
+
+        .list-title {
+            font-family: 'Cinzel',serif;
+            font-size: 1.1rem;
+            color: var(--text-bright);
+            display: flex;
+            align-items: center;
+            gap: .5rem
+        }
+
+        .list-count {
+            font-family: 'Share Tech Mono',monospace;
+            font-size: .7rem;
+            color: var(--text-dim);
+            font-weight: 400
+        }
+
+        .list-controls {
+            display: flex;
+            gap: .4rem;
+            align-items: center
+        }
+
+        .list-search {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: 'Crimson Text',serif;
+            font-size: .9rem;
+            padding: .35rem .6rem;
+            outline: none;
+            width: 190px;
+            transition: border-color .15s
+        }
+
+            .list-search:focus {
+                border-color: var(--gold-dark)
+            }
+
+            .list-search::placeholder {
+                color: var(--text-dim);
+                font-style: italic
+            }
+
+        .list-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            font-family: 'Cinzel',serif;
+            font-size: .6rem;
+            letter-spacing: .08em;
+            padding: .35rem .6rem;
+            outline: none;
+            cursor: pointer
+        }
+
+        .list-body {
+            display: grid;
+            grid-template-columns: 188px 1fr;
+            gap: 12px;
+            align-items: start
+        }
+
+        .filter-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            overflow: hidden
+        }
+
+        .fp-group {
+            border-bottom: 1px solid var(--border)
+        }
+
+            .fp-group:last-child {
+                border-bottom: none
+            }
+
+        .fp-title {
+            font-family: 'Cinzel',serif;
+            font-size: .55rem;
+            letter-spacing: .22em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            background: var(--bg-card);
+            padding: .45rem .8rem;
+            border-bottom: 1px solid rgba(37,37,48,.6)
+        }
+
+        .fp-item {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .42rem .8rem;
+            font-size: .88rem;
+            cursor: pointer;
+            transition: background .1s;
+            border-top: 1px solid rgba(37,37,48,.3);
+            border-left: 2px solid transparent;
+            color: var(--text-dim)
+        }
+
+            .fp-item:hover {
+                background: var(--bg-hover);
+                color: var(--text)
+            }
+
+            .fp-item.active {
+                color: var(--gold);
+                border-left-color: var(--gold);
+                background: var(--gold-bg)
+            }
+
+        .fp-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            flex-shrink: 0
+        }
+
+        .data-wrap {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            overflow: hidden
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        thead tr {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-gold)
+        }
+
+        th {
+            padding: .55rem .8rem;
+            text-align: left;
+            font-family: 'Cinzel',serif;
+            font-size: .55rem;
+            letter-spacing: .18em;
+            color: var(--gold-dark);
+            text-transform: uppercase;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap
+        }
+
+            th:hover {
+                color: var(--gold)
+            }
+
+        tbody tr {
+            border-bottom: 1px solid rgba(37,37,48,.5);
+            transition: background .08s;
+            cursor: pointer
+        }
+
+            tbody tr:hover {
+                background: var(--bg-hover)
+            }
+
+            tbody tr:last-child {
+                border-bottom: none
+            }
+
+        td {
+            padding: .55rem .8rem;
+            font-size: .9rem;
+            vertical-align: middle
+        }
+
+            td.mono {
+                font-family: 'Share Tech Mono',monospace;
+                font-size: .75rem;
+                color: var(--text-dim)
+            }
+
+        .q0 {
+            color: var(--q0)
+        }
+
+        .q1 {
+            color: var(--q1)
+        }
+
+        .q2 {
+            color: var(--q2)
+        }
+
+        .q3 {
+            color: var(--q3)
+        }
+
+        .q4 {
+            color: var(--q4)
+        }
+
+        .q5 {
+            color: var(--q5)
+        }
+
+        .q6 {
+            color: var(--q6)
+        }
+
+        .badge {
+            display: inline-block;
+            font-family: 'Share Tech Mono',monospace;
+            font-size: .65rem;
+            padding: 1px 5px;
+            border-radius: 1px;
+            border: 1px solid
+        }
+
+        .badge-boss {
+            color: var(--q4);
+            border-color: rgba(163,53,238,.4);
+            background: rgba(163,53,238,.1)
+        }
+
+        .badge-elite {
+            color: var(--orange-light);
+            border-color: rgba(232,168,74,.3);
+            background: rgba(232,168,74,.07)
+        }
+
+        .badge-rare {
+            color: var(--q3);
+            border-color: rgba(0,112,221,.35);
+            background: rgba(0,112,221,.08)
+        }
+
+        .badge-normal {
+            color: var(--text-dim);
+            border-color: var(--border);
+            background: transparent
+        }
+
+        .badge-daily {
+            color: var(--gold);
+            border-color: var(--border-gold);
+            background: var(--gold-bg)
+        }
+
+        .badge-raid {
+            color: #e07070;
+            border-color: rgba(204,51,51,.3);
+            background: rgba(139,26,26,.15)
+        }
+
+        .badge-dungeon {
+            color: var(--blue-light);
+            border-color: rgba(74,143,191,.3);
+            background: rgba(74,143,191,.08)
+        }
+
+        .badge-elite2 {
+            color: var(--orange-light);
+            border-color: rgba(232,168,74,.3);
+            background: rgba(232,168,74,.07)
+        }
+
+        .badge-solo {
+            color: var(--text-dim);
+            border-color: var(--border);
+            background: transparent
+        }
+
+        .td-icon {
+            font-size: .9rem;
+            margin-right: .4rem
+        }
+
+        .td-name {
+            display: flex;
+            align-items: center
+        }
+
+        .npc-name {
+            color: var(--red-bright)
+        }
+
+            .npc-name:hover {
+                color: #e05555
+            }
+
+        .rate-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px
+        }
+
+        .rate-bar {
+            flex: 1;
+            height: 5px;
+            background: var(--bg-card);
+            border-radius: 2px;
+            overflow: hidden;
+            min-width: 60px
+        }
+
+        .rate-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: var(--gold-dark)
+        }
+
+            .rate-fill.fill-epic {
+                background: var(--q4)
+            }
+
+            .rate-fill.fill-rare {
+                background: var(--q3)
+            }
+
+            .rate-fill.fill-leg {
+                background: var(--q5)
+            }
+
+        .rate-text {
+            font-family: 'Share Tech Mono',monospace;
+            font-size: .68rem;
+            color: var(--text-dim);
+            min-width: 36px;
+            text-align: right
+        }
+
+        .paginator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: .7rem;
+            border-top: 1px solid var(--border);
+            background: var(--bg-card)
+        }
+
+        .pager-btn {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            font-family: 'Share Tech Mono',monospace;
+            font-size: .68rem;
+            padding: 3px 7px;
+            transition: all .1s
+        }
+
+            .pager-btn:hover, .pager-btn.active {
+                background: var(--gold-dark);
+                color: var(--gold-light);
+                border-color: var(--gold-dark)
+            }
+
+        /* ── DETAIL VIEW ── */
+        #detail-view {
+            padding: 1.2rem 0 3rem
+        }
+
+        .breadcrumb {
+            font-size: .78rem;
+            color: var(--text-dim);
+            margin-bottom: .8rem
+        }
+
+            .breadcrumb a {
+                color: var(--text-dim)
+            }
+
+                .breadcrumb a:hover {
+                    color: var(--gold)
+                }
+
+            .breadcrumb span {
+                margin: 0 .3rem;
+                color: var(--border-gold)
+            }
+
+        .detail-layout {
+            display: grid;
+            grid-template-columns: 1fr 268px;
+            gap: 14px;
+            align-items: start
+        }
+
+        .detail-title-block {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-top: 2px solid var(--gold-dark);
+            padding: 1rem;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+            position: relative
+        }
+
+            .detail-title-block::before {
+                content: '';
+                position: absolute;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                width: 3px;
+                background: linear-gradient(180deg,var(--gold),transparent)
+            }
+
+        .detail-big-icon {
+            font-size: 2.6rem;
+            flex-shrink: 0;
+            width: 52px;
+            text-align: center
+        }
+
+        .detail-info {
+            flex: 1
+        }
+
+        .detail-name {
+            font-family: 'Cinzel',serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: .3rem
+        }
+
+        .detail-subtitle {
+            font-size: .85rem;
+            color: var(--text-dim);
+            font-style: italic;
+            margin-bottom: .6rem
+        }
+
+        .detail-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .4rem
+        }
+
+        .dpill {
+            font-family: 'Cinzel',serif;
+            font-size: .55rem;
+            letter-spacing: .1em;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 2px 8px
+        }
+
+            .dpill.gold {
+                border-color: var(--border-gold);
+                color: var(--gold);
+                background: var(--gold-bg)
+            }
+
+        .detail-tabs {
+            display: flex;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-bottom: none;
+            overflow-x: auto
+        }
+
+        .dtab {
+            font-family: 'Cinzel',serif;
+            font-size: .6rem;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: .6rem 1rem;
+            white-space: nowrap;
+            margin-bottom: -1px;
+            transition: all .15s
+        }
+
+            .dtab:hover {
+                color: var(--text)
+            }
+
+            .dtab.active {
+                color: var(--gold);
+                border-bottom-color: var(--gold)
+            }
+
+        .dtab-count {
+            display: inline-block;
+            font-size: .6rem;
+            background: var(--bg-panel);
+            border-radius: 6px;
+            padding: 0 4px;
+            margin-left: 3px;
+            color: var(--text-dim);
+            font-family: 'Share Tech Mono',monospace
+        }
+
+        .detail-tab-content {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-top: none;
+            overflow: hidden
+        }
+
+        .dtc-panel {
+            display: none
+        }
+
+            .dtc-panel.active {
+                display: block
+            }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr
+        }
+
+        .sg {
+            padding: .8rem 1rem;
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border)
+        }
+
+            .sg:nth-child(even) {
+                border-right: none
+            }
+
+            .sg:nth-last-child(-n+2) {
+                border-bottom: none
+            }
+
+        .sg-label {
+            font-family: 'Cinzel',serif;
+            font-size: .55rem;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: .3rem
+        }
+
+        .sg-val {
+            font-size: .95rem;
+            color: var(--text-bright)
+        }
+
+        .drop-table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+            .drop-table thead tr {
+                background: var(--bg-card);
+                border-bottom: 1px solid var(--border-gold)
+            }
+
+            .drop-table th {
+                padding: .5rem .8rem;
+                font-family: 'Cinzel',serif;
+                font-size: .52rem;
+                letter-spacing: .18em;
+                color: var(--gold-dark);
+                text-transform: uppercase;
+                text-align: left
+            }
+
+            .drop-table td {
+                padding: .55rem .8rem;
+                font-size: .88rem;
+                border-bottom: 1px solid rgba(37,37,48,.5)
+            }
+
+            .drop-table tr:last-child td {
+                border-bottom: none
+            }
+
+            .drop-table tr:hover td {
+                background: var(--bg-hover);
+                cursor: pointer
+            }
+
+        .comments-wrap {
+            padding: .8rem 1rem
+        }
+
+        .comment {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            margin-bottom: .6rem;
+            overflow: hidden
+        }
+
+            .comment:last-child {
+                margin-bottom: 0
+            }
+
+        .comment-hdr {
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            padding: .4rem .8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: .75rem
+        }
+
+        .comment-author {
+            font-family: 'Cinzel',serif;
+            font-size: .68rem
+        }
+
+        .comment-date {
+            color: var(--text-dim);
+            font-family: 'Share Tech Mono',monospace;
+            font-size: .65rem
+        }
+
+        .comment-body {
+            padding: .6rem .8rem;
+            font-size: .88rem;
+            color: var(--text-dim);
+            line-height: 1.6
+        }
+
+        .sb-panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            margin-bottom: 10px
+        }
+
+            .sb-panel:last-child {
+                margin-bottom: 0
+            }
+
+        .sb-title {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: .45rem .9rem;
+            font-family: 'Cinzel',serif;
+            font-size: .55rem;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: var(--gold-dark)
+        }
+
+        .sb-row {
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            padding: .5rem .9rem;
+            border-bottom: 1px solid rgba(37,37,48,.4);
+            font-size: .88rem;
+            cursor: pointer;
+            transition: background .1s
+        }
+
+            .sb-row:last-child {
+                border-bottom: none
+            }
+
+            .sb-row:hover {
+                background: var(--bg-hover)
+            }
+
+        .sb-row-icon {
+            font-size: .85rem;
+            width: 16px;
+            text-align: center;
+            flex-shrink: 0
+        }
+
+        .sb-row-meta {
+            margin-left: auto;
+            font-family: 'Share Tech Mono',monospace;
+            font-size: .65rem;
+            color: var(--text-dim)
+        }
+
+        /* ── UPLOAD MODAL ── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.8);
+            z-index: 500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px)
+        }
+
+            .modal-overlay.open {
+                display: flex
+            }
+
+        .modal {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-gold);
+            width: 520px;
+            max-width: 95vw;
+            box-shadow: 0 0 60px rgba(200,168,75,.1),0 0 120px rgba(0,0,0,.6)
+        }
+
+        .modal-hdr {
+            background: linear-gradient(135deg,rgba(139,26,26,.3),rgba(200,168,75,.08));
+            border-bottom: 1px solid var(--border-gold);
+            padding: .9rem 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .modal-title {
+            font-family: 'Cinzel',serif;
+            font-size: .82rem;
+            letter-spacing: .14em;
+            color: var(--gold)
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            line-height: 1;
+            transition: color .15s
+        }
+
+            .modal-close:hover {
+                color: var(--gold)
+            }
+
+        .modal-body {
+            padding: 1.2rem
+        }
+
+        .instructions {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--gold-dark);
+            padding: .8rem;
+            font-size: .88rem;
+            color: var(--text-dim);
+            line-height: 1.8;
+            margin-bottom: 1rem
+        }
+
+            .instructions code {
+                font-family: 'Share Tech Mono',monospace;
+                color: var(--gold);
+                background: rgba(200,168,75,.08);
+                padding: 1px 4px;
+                font-size: .78rem
+            }
+
+        .upload-zone {
+            border: 2px dashed var(--border);
+            padding: 2.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all .15s;
+            margin-bottom: 1rem
+        }
+
+            .upload-zone:hover, .upload-zone.drag {
+                border-color: var(--gold-dark);
+                background: var(--gold-bg)
+            }
+
+        .upload-icon {
+            font-size: 2.2rem;
+            margin-bottom: .6rem;
+            display: block
+        }
+
+        .upload-text {
+            font-family: 'Cinzel',serif;
+            font-size: .68rem;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--text-dim)
+        }
+
+        .upload-sub {
+            font-size: .82rem;
+            color: var(--text-dim);
+            margin-top: .25rem;
+            font-style: italic
+        }
+
+        #upload-status {
+            display: none;
+            margin-bottom: .9rem;
+            padding: .55rem .8rem;
+            background: var(--bg-card);
+            border: 1px solid rgba(106,191,106,.4);
+            color: var(--green-light);
+            font-family: 'Share Tech Mono',monospace;
+            font-size: .75rem
+        }
+
+        .modal-submit {
+            width: 100%;
+            font-family: 'Cinzel',serif;
+            font-size: .7rem;
+            letter-spacing: .14em;
+            background: linear-gradient(135deg,var(--gold-dark),var(--gold));
+            color: var(--bg-deep);
+            border: none;
+            padding: .75rem;
+            font-weight: 600;
+            transition: all .15s
+        }
+
+            .modal-submit:hover {
+                filter: brightness(1.1);
+                box-shadow: 0 0 18px rgba(200,168,75,.3)
+            }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-gold);
+            border-left: 3px solid var(--gold);
+            padding: .7rem 1.1rem;
+            font-size: .88rem;
+            color: var(--text-bright);
+            z-index: 600;
+            box-shadow: 0 4px 20px rgba(0,0,0,.5);
+            animation: slideIn .25s ease
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(110%);
+                opacity: 0
+            }
+
+            to {
+                transform: none;
+                opacity: 1
+            }
+        }
+
+        /* ── WOW ITEM TOOLTIP ── */
+        #wow-tooltip {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            display: none;
+            width: 280px;
+            filter: drop-shadow(0 4px 24px rgba(0,0,0,.9))
+        }
+
+            #wow-tooltip.visible {
+                display: block
+            }
+
+        .tt-frame {
+            background: #0a0a12;
+            border: 1px solid #4a3a1a;
+            position: relative;
+            box-shadow: inset 0 0 0 1px #1a1428,0 0 0 1px #000,0 2px 12px rgba(0,0,0,.8)
+        }
+
+            .tt-frame::before, .tt-frame::after {
+                content: '';
+                position: absolute;
+                width: 6px;
+                height: 6px;
+                border-color: var(--gold-dark);
+                border-style: solid;
+                z-index: 1
+            }
+
+            .tt-frame::before {
+                top: -1px;
+                left: -1px;
+                border-width: 2px 0 0 2px
+            }
+
+            .tt-frame::after {
+                bottom: -1px;
+                right: -1px;
+                border-width: 0 2px 2px 0
+            }
+
+        .tt-inner {
+            padding: 8px 10px
+        }
+
+        .tt-name-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 6px
+        }
+
+        .tt-item-icon {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #555;
+            border-radius: 3px;
+            background: #1a1428;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0
+        }
+
+            .tt-item-icon.ql-0 {
+                border-color: #6e6e6e
+            }
+
+            .tt-item-icon.ql-1 {
+                border-color: #999
+            }
+
+            .tt-item-icon.ql-2 {
+                border-color: #1eff00;
+                box-shadow: 0 0 6px rgba(30,255,0,.3)
+            }
+
+            .tt-item-icon.ql-3 {
+                border-color: #0070dd;
+                box-shadow: 0 0 6px rgba(0,112,221,.4)
+            }
+
+            .tt-item-icon.ql-4 {
+                border-color: #a335ee;
+                box-shadow: 0 0 8px rgba(163,53,238,.5)
+            }
+
+            .tt-item-icon.ql-5 {
+                border-color: #ff8000;
+                box-shadow: 0 0 10px rgba(255,128,0,.6)
+            }
+
+            .tt-item-icon.ql-6 {
+                border-color: #e6cc80;
+                box-shadow: 0 0 10px rgba(230,204,128,.5)
+            }
+
+        .tt-name-info {
+            flex: 1
+        }
+
+        .tt-name {
+            font-family: 'Crimson Text',serif;
+            font-size: 1rem;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 1px
+        }
+
+        .tt-binding {
+            font-size: .78rem;
+            color: #c8c0a8
+        }
+
+        .tt-sep {
+            height: 1px;
+            background: linear-gradient(90deg,transparent,#4a3a1a 20%,#6a5a2a 50%,#4a3a1a 80%,transparent);
+            margin: 5px 0
+        }
+
+        .tt-row-2col {
+            display: flex;
+            justify-content: space-between;
+            font-size: .8rem;
+            color: #c8c0a8;
+            margin: 2px 0
+        }
+
+        .tt-line {
+            font-size: .8rem;
+            margin: 1px 0;
+            color: #c8c0a8
+        }
+
+            .tt-line.green {
+                color: #1eff00
+            }
+
+            .tt-line.yellow {
+                color: #ffd100
+            }
+
+            .tt-line.blue {
+                color: #88ccff
+            }
+
+            .tt-line.orange {
+                color: #ff8000
+            }
+
+            .tt-line.white {
+                color: #fff
+            }
+
+            .tt-line.grey {
+                color: #888
+            }
+
+            .tt-line.spell {
+                color: #4db5ff;
+                font-size: .78rem
+            }
+
+            .tt-line.flavor {
+                color: #888;
+                font-style: italic;
+                font-size: .76rem
+            }
+
+            .tt-line.indent {
+                padding-left: 10px
+            }
+
+        .tt-ilvl {
+            font-size: .72rem;
+            color: #888;
+            text-align: right;
+            margin-top: 4px
+        }
+
+        .tt-req {
+            font-size: .78rem;
+            color: #c8c0a8;
+            margin-top: 3px
+        }
+
+        @media(max-width:768px) {
+            .list-body {
+                grid-template-columns: 1fr
+            }
+
+            .filter-panel {
+                display: none
+            }
+
+            .detail-layout {
+                grid-template-columns: 1fr
+            }
+
+            .home-panels {
+                grid-template-columns: 1fr
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
 </head>
 <body>
 
-<div id="topbar">
-  <div class="logo" onclick="showHome()">
-    <div class="logo-icon">
-      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="20" cy="20" r="18" stroke="#c8a84b" stroke-width="1.5" opacity=".4"/>
-        <path d="M20 4L20 36M4 20L36 20" stroke="#c8a84b" stroke-width="1" opacity=".25"/>
-        <path d="M20 8L24 14L30 14L25 18L27 25L20 21L13 25L15 18L10 14L16 14Z" fill="#c8a84b" opacity=".85"/>
-        <circle cx="20" cy="20" r="3" fill="#8b1a1a"/>
-      </svg>
-    </div>
-    <div><div class="logo-text">EPOCHDB</div><div class="logo-sub">Project Epoch · 3.3.5</div></div>
-  </div>
-  <div id="search-wrap">
-    <input id="search-input" type="text" placeholder="Search items, NPCs, quests, zones…" autocomplete="off" oninput="onSearch(this.value)" onkeydown="onSearchKey(event)">
-    <button id="search-go" onclick="doSearch()">🔍</button>
-    <div id="suggestions"></div>
-  </div>
-  <div id="topnav">
-    <button class="tnav-btn" onclick="showList('npcs')">NPCs</button>
-    <button class="tnav-btn" onclick="showList('items')">Items</button>
-    <button class="tnav-btn" onclick="showList('quests')">Quests</button>
-    <button class="tnav-btn" onclick="showList('loot')">Loot</button>
-    <button class="upload-btn" onclick="openUpload()">⬆ Upload Data</button>
-  </div>
-</div>
-
-<div id="mainnav">
-  <button class="mnav-tab active" onclick="showHome()">Home</button>
-  <button class="mnav-tab" onclick="showList('npcs')">NPCs &amp; Mobs</button>
-  <button class="mnav-tab" onclick="showList('items')">Items</button>
-  <button class="mnav-tab" onclick="showList('quests')">Quests</button>
-  <button class="mnav-tab" onclick="showList('loot')">Loot Tables</button>
-  <button class="mnav-tab" onclick="showList('zones')">Zones</button>
-</div>
-
-<div id="page">
-
-  <!-- HOME -->
-  <div id="home-view">
-    <div class="hero">
-      <h1 class="hero-title">EPOCH DATABASE</h1>
-      <p class="hero-sub">Community-powered encyclopedia for Project Epoch — kills, loot, quests &amp; more.</p>
-      <div class="hero-divider"></div>
-      <div class="home-search-wrap">
-        <input class="home-search" type="text" placeholder="Search NPCs, items, quests, zones…" autocomplete="off" oninput="onSearch(this.value)" onkeydown="onSearchKey(event)">
-        <button class="home-search-btn" onclick="doSearch()">🔍</button>
-      </div>
-    </div>
-    <div class="stats-bar">
-      <div class="stat-item"><span class="stat-num" id="sn-kills">0</span><div class="stat-label">Kills Tracked</div></div>
-      <div class="stat-item"><span class="stat-num" id="sn-items">0</span><div class="stat-label">Items</div></div>
-      <div class="stat-item"><span class="stat-num" id="sn-quests">0</span><div class="stat-label">Quests</div></div>
-      <div class="stat-item"><span class="stat-num" id="sn-loot">0</span><div class="stat-label">Loot Drops</div></div>
-      <div class="stat-item"><span class="stat-num" id="sn-players">0</span><div class="stat-label">Contributors</div></div>
-    </div>
-    <div class="home-cats">
-      <div class="cat-card" onclick="showList('npcs')"><div class="cat-icon">👹</div><div class="cat-name">NPCs &amp; Mobs</div><div class="cat-count">24,810 entries</div></div>
-      <div class="cat-card" onclick="showList('items')"><div class="cat-icon">⚔</div><div class="cat-name">Items</div><div class="cat-count">12,447 entries</div></div>
-      <div class="cat-card" onclick="showList('quests')"><div class="cat-icon">📜</div><div class="cat-name">Quests</div><div class="cat-count">4,832 entries</div></div>
-      <div class="cat-card" onclick="showList('loot')"><div class="cat-icon">💰</div><div class="cat-name">Loot Tables</div><div class="cat-count">89,204 records</div></div>
-      <div class="cat-card" onclick="showList('zones')"><div class="cat-icon">🗺</div><div class="cat-name">Zones</div><div class="cat-count">143 zones</div></div>
-      <div class="cat-card" onclick="openUpload()"><div class="cat-icon">⬆</div><div class="cat-name">Contribute</div><div class="cat-count">Upload your .lua</div></div>
-    </div>
-    <div class="home-panels">
-      <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">☠ Most Killed</span><a onclick="showList('npcs')">See all →</a></div><div id="hp-kills"></div></div>
-      <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">💰 Recent Loot</span><a onclick="showList('loot')">See all →</a></div><div id="hp-loot"></div></div>
-      <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">📜 Popular Quests</span><a onclick="showList('quests')">See all →</a></div><div id="hp-quests"></div></div>
-    </div>
-  </div>
-
-  <!-- LIST VIEW -->
-  <div id="list-view" class="hidden">
-    <div class="list-header">
-      <div class="list-title"><span id="list-icon"></span><span id="list-heading"></span><span id="list-count" class="list-count"></span></div>
-      <div class="list-controls">
-        <input class="list-search" id="list-search-box" type="text" placeholder="Filter…" oninput="filterList(this.value)">
-        <select class="list-select" id="list-sort" onchange="sortList(this.value)"><option value="">Sort by…</option></select>
-      </div>
-    </div>
-    <div class="list-body">
-      <div class="filter-panel" id="filter-panel"></div>
-      <div><div class="data-wrap"><table><thead id="list-thead"></thead><tbody id="list-tbody"></tbody></table><div class="paginator" id="paginator"></div></div></div>
-    </div>
-  </div>
-
-  <!-- DETAIL VIEW -->
-  <div id="detail-view" class="hidden">
-    <div class="breadcrumb" id="breadcrumb"></div>
-    <div class="detail-layout">
-      <div>
-        <div class="detail-title-block" id="detail-title-block"></div>
-        <div class="detail-tabs" id="detail-tabs"></div>
-        <div class="detail-tab-content" id="detail-content"></div>
-      </div>
-      <div id="detail-sidebar"></div>
-    </div>
-  </div>
-
-</div>
-
-<!-- UPLOAD MODAL -->
-<div class="modal-overlay" id="upload-modal">
-  <div class="modal">
-    <div class="modal-hdr"><div class="modal-title">⬆ Upload Addon Data</div><button class="modal-close" onclick="closeUpload()">✕</button></div>
-    <div class="modal-body">
-      <div class="instructions">Your data is saved at:<br><code>WoW\WTF\Account\[NAME]\SavedVariables\EpochDB.lua</code><br>Upload after each session to contribute your kills, loot, items, and quests to the community.</div>
-      <div class="upload-zone" id="drop-zone" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)" onclick="document.getElementById('file-input').click()">
-        <span class="upload-icon">📁</span>
-        <div class="upload-text">Drop EpochDB.lua here</div>
-        <div class="upload-sub">or click to browse</div>
-      </div>
-      <input type="file" id="file-input" accept=".lua,.txt" style="display:none" onchange="handleFile(this.files[0])">
-      <div id="upload-status"></div>
-      <button class="modal-submit" onclick="submitUpload()">Submit to Database</button>
-    </div>
-  </div>
-</div>
-
-<!-- WOW TOOLTIP -->
-<div id="wow-tooltip"><div class="tt-frame"><div class="tt-inner" id="tt-inner"></div></div></div>
-
-<script>
-
-    const API = 'https://epochdb-api.onrender.com';
-
-// ═══════════════════════════════════════════════════════════════
-// DATA
-// ═══════════════════════════════════════════════════════════════
-const Q    = ['Poor','Common','Uncommon','Rare','Epic','Legendary','Artifact'];
-const QCLS = ['q0','q1','q2','q3','q4','q5','q6'];
-const QCOL = ['#9d9d9d','#e8dfc8','#1eff00','#0070dd','#a335ee','#ff8000','#e6cc80'];
-const CLS_COLORS = {'Death Knight':'#C41E3A','Priest':'#fff','Warrior':'#C69B3A','Druid':'#FF7C0A','Mage':'#3FC7EB','Paladin':'#F48CBA','Rogue':'#FFF468','Shaman':'#0070DD','Warlock':'#8788EE','Hunter':'#AAD372'};
-
-const NPCS = [
-  {id:1,  name:"The Lich King",         icon:"💀", zone:"Icecrown Citadel",  level:80, type:"boss",  kills:48291,  class:"Undead",    faction:"Scourge"},
-  {id:2,  name:"Lord Marrowgar",        icon:"🦴", zone:"Icecrown Citadel",  level:80, type:"boss",  kills:71032,  class:"Undead",    faction:"Scourge"},
-  {id:3,  name:"Deathbringer Saurfang", icon:"⚔",  zone:"Icecrown Citadel",  level:80, type:"boss",  kills:68441,  class:"Humanoid",  faction:"Scourge"},
-  {id:4,  name:"Professor Putricide",   icon:"🧪", zone:"Icecrown Citadel",  level:80, type:"boss",  kills:52018,  class:"Humanoid",  faction:"Scourge"},
-  {id:5,  name:"Yogg-Saron",            icon:"🌀", zone:"Ulduar",            level:80, type:"boss",  kills:38120,  class:"Aberration",faction:"Old Gods"},
-  {id:6,  name:"Mimiron",               icon:"🤖", zone:"Ulduar",            level:80, type:"boss",  kills:41882,  class:"Mechanical",faction:"Titan"},
-  {id:7,  name:"Sapphiron",             icon:"❄",  zone:"Naxxramas",         level:60, type:"boss",  kills:61024,  class:"Undead",    faction:"Scourge"},
-  {id:8,  name:"Kel'Thuzad",            icon:"☠",  zone:"Naxxramas",         level:60, type:"boss",  kills:58219,  class:"Undead",    faction:"Scourge"},
-  {id:9,  name:"Razorscale",            icon:"🦅", zone:"Ulduar",            level:80, type:"boss",  kills:49820,  class:"Dragonkin", faction:"Iron"},
-  {id:10, name:"Anub'arak",             icon:"🕷",  zone:"Trial of Crusader", level:80, type:"boss",  kills:44210,  class:"Undead",    faction:"Scourge"},
-  {id:11, name:"Icecrown Soldier",      icon:"⚔",  zone:"Icecrown",          level:80, type:"elite", kills:124810, class:"Humanoid",  faction:"Scourge"},
-  {id:12, name:"Ymirjar Deathbringer",  icon:"🪓",  zone:"Storm Peaks",       level:78, type:"elite", kills:72841,  class:"Humanoid",  faction:"Vrykul"},
-  {id:13, name:"Frostbrood Vanquisher", icon:"🐉", zone:"Icecrown",          level:80, type:"elite", kills:61023,  class:"Dragonkin", faction:"Scourge"},
-  {id:14, name:"Cultist Engineer",      icon:"🔧", zone:"Icecrown",          level:79, type:"normal",kills:201384, class:"Humanoid",  faction:"Scourge"},
-  {id:15, name:"General Vezax",         icon:"👹", zone:"Ulduar",            level:80, type:"boss",  kills:44821,  class:"Faceless",  faction:"Old Gods"},
-];
-
-const ITEMS = [
-  {id:101,name:"Shadowmourne",icon:"⚔",slot:"Two-Hand",ilvl:284,quality:5,type:"Weapon",subtype:"Two-Handed Axe",seen:312,source:"The Lich King",
-   tt:{binding:"Binds when picked up",unique:true,slot:"Two-Hand",weaponType:"Axe",dmg:"782 – 1173 Damage",speed:"3.70",dps:"261.5",
-       stats:["+194 Strength","+114 Stamina"],
-       equip:[{cls:"green",t:"Equip: Improves critical strike rating by 78."},{cls:"green",t:"Equip: Improves hit rating by 54."},{cls:"green",t:"Equip: Improves haste rating by 47."}],
-       proc:{cls:"spell",t:"Equip: Your melee attacks have a chance to fill a Shadow Orb. At 10 orbs, you unleash Chaos Bane, dealing 1900–2100 Shadow damage split among nearby enemies and granting 270 Strength for 30 sec."},
-       reqLevel:80,flavor:"Forged from the souls of ten thousand slain by the Lich King."}},
-  {id:102,name:"Bryntroll, the Bone Arbiter",icon:"🪓",slot:"Two-Hand",ilvl:251,quality:4,type:"Weapon",subtype:"Polearm",seen:4821,source:"Lord Marrowgar",
-   tt:{binding:"Binds when picked up",slot:"Two-Hand",weaponType:"Polearm",dmg:"669 – 1003 Damage",speed:"3.60",dps:"231.9",
-       stats:["+165 Strength","+114 Stamina"],
-       equip:[{cls:"green",t:"Equip: Improves critical strike rating by 73."},{cls:"green",t:"Equip: Improves hit rating by 50."}],
-       proc:{cls:"spell",t:"Equip: Your melee attacks have a chance to drain life from your target, dealing 2138–2362 Shadow damage and healing you for the same amount."},
-       reqLevel:80}},
-  {id:103,name:"Bloodsurge, Kel'Thuzad's Blade",icon:"⚔",slot:"One-Hand",ilvl:213,quality:4,type:"Weapon",subtype:"One-Handed Sword",seen:3102,source:"Kel'Thuzad",
-   tt:{binding:"Binds when picked up",slot:"One-Hand",weaponType:"Sword",dmg:"271 – 502 Damage",speed:"1.50",dps:"257.9",
-       stats:["+42 Strength","+60 Stamina"],
-       equip:[{cls:"green",t:"Equip: Improves critical strike rating by 38."},{cls:"green",t:"Equip: Improves haste rating by 32."}],
-       proc:{cls:"spell",t:"Equip: Your melee attacks have a chance to grant Surge of Power, granting 422 attack power for 15 sec."},
-       reqLevel:80}},
-  {id:104,name:"Reign of the Dead",icon:"💎",slot:"Trinket",ilvl:251,quality:4,type:"Accessory",subtype:"Trinket",seen:2841,source:"The Lich King",
-   tt:{binding:"Binds when picked up",slot:"Trinket",stats:["+155 Strength"],equip:[],
-       proc:{cls:"spell",t:"Use: Increases your Strength by 406 for 15 sec. (1 Min, 30 Sec Cooldown)"},reqLevel:80}},
-  {id:105,name:"Dislodged Foreign Object",icon:"💎",slot:"Trinket",ilvl:258,quality:4,type:"Accessory",subtype:"Trinket",seen:2201,source:"Anub'arak",
-   tt:{binding:"Binds when picked up",slot:"Trinket",stats:["+155 Spell Power"],
-       equip:[{cls:"green",t:"Equip: Each time you cast a damaging spell, you have a chance to increase your spell power by 121, stacking up to 6 times."}],
-       proc:{cls:"spell",t:"Use: Increases your spell power by 871 for 20 sec. (2 Min Cooldown)"},reqLevel:80}},
-  {id:106,name:"Tiny Abomination in a Jar",icon:"🫙",slot:"Trinket",ilvl:264,quality:4,type:"Accessory",subtype:"Trinket",seen:1840,source:"Professor Putricide",
-   tt:{binding:"Binds when picked up",slot:"Trinket",stats:[],
-       equip:[{cls:"spell",t:"Equip: Your melee and ranged attacks have a chance to fill a vial. At 8 charges, the abomination attacks for 3696–4304 Physical damage and resets the vial."}],
-       reqLevel:80,flavor:"It wiggles and giggles. Mostly giggles."}},
-  {id:107,name:"Deathbringer's Will",icon:"💎",slot:"Trinket",ilvl:264,quality:4,type:"Accessory",subtype:"Trinket",seen:2118,source:"Deathbringer Saurfang",
-   tt:{binding:"Binds when picked up",slot:"Trinket",stats:["+155 Attack Power","+73 Critical Strike Rating"],
-       equip:[{cls:"spell",t:"Equip: Your melee and ranged attacks have a chance to trigger Agile (522 Agi), Mighty (1512 AP), or Twilight (700 Haste/Crit/Mastery) for 30 sec."}],
-       reqLevel:80}},
-  {id:108,name:"Ashen Band of Endless Destruction",icon:"💍",slot:"Finger",ilvl:277,quality:4,type:"Armor",subtype:"Ring",seen:1024,source:"Ashen Verdict",
-   tt:{binding:"Binds when picked up",slot:"Finger",stats:["+43 Intellect","+59 Stamina"],
-       equip:[{cls:"green",t:"Equip: Improves spell power by 114."},{cls:"green",t:"Equip: Improves critical strike rating by 70."},{cls:"green",t:"Equip: Improves haste rating by 52."}],
-       reqLevel:80,flavor:"Awarded by the Ashen Verdict — Champions of the Icecrown Crusade."}},
-  {id:109,name:"Stormrage Cover",icon:"🪖",slot:"Head",ilvl:264,quality:4,type:"Armor",subtype:"Cloth Armor",seen:3241,source:"Icecrown Citadel",
-   tt:{binding:"Binds when picked up",slot:"Head",armor:"454 Armor",stats:["+98 Intellect","+68 Stamina"],
-       socket:{colors:["red","yellow"],bonus:"+8 Spell Power"},
-       equip:[{cls:"green",t:"Equip: Improves spell power by 120."},{cls:"green",t:"Equip: Improves critical strike rating by 74."},{cls:"green",t:"Equip: Improves haste rating by 58."}],
-       set:{name:"Stormrage Regalia",pieces:["Stormrage Cover","Stormrage Pauldrons","Stormrage Breastplate","Stormrage Gloves","Stormrage Legguards"]},
-       reqLevel:80}},
-  {id:110,name:"Battered Hilt",icon:"🗡",slot:"",ilvl:251,quality:4,type:"Quest",subtype:"Quest Item",seen:2841,source:"Icecrown (Trash)",
-   tt:{binding:"Binds when picked up",unique:true,slot:"Quest Item",stats:[],equip:[],
-       reqLevel:80,flavor:"A broken blade of obvious quality. A skilled weaponsmith might restore it to its former glory."}},
-  {id:111,name:"Frozen Orb",icon:"🔵",slot:"—",ilvl:0,quality:2,type:"Reagent",subtype:"Orb",seen:382041,source:"Heroic Dungeons",
-   tt:{slot:"—",stats:[],equip:[],flavor:"A sphere of arctic energy used by enchanters, tailors, and other craftsmen."}},
-  {id:112,name:"Abyss Crystal",icon:"💠",slot:"—",ilvl:0,quality:2,type:"Reagent",subtype:"Enchanting",seen:148201,source:"Disenchanting",
-   tt:{slot:"Enchanting Reagent",stats:[],equip:[],flavor:"A large crystalline shard pulsing with arcane energy. Required for the most powerful enchantments."}},
-  {id:113,name:"Primordial Saronite",icon:"⬛",slot:"—",ilvl:0,quality:2,type:"Reagent",subtype:"Metal",seen:98204,source:"ICC / ToC",
-   tt:{slot:"Trade Goods",stats:[],equip:[],flavor:"An ore so dense it defies conventional mining. Formed deep within Icecrown over millennia."}},
-];
-
-const QUESTS = [
-  {id:201,name:"The Lich King's Last Stand",  icon:"📜",zone:"Icecrown Citadel",level:80,type:"raid",   completions:48291, xp:"—",      reward:"Achievement"},
-  {id:202,name:"Prepare for Glory",           icon:"📜",zone:"Icecrown",        level:80,type:"daily",  completions:124820,xp:"22,050", reward:"13g 23s"},
-  {id:203,name:"Taking the Battle Upward",    icon:"📜",zone:"Icecrown",        level:77,type:"solo",   completions:98431, xp:"27,600", reward:"18g 50s"},
-  {id:204,name:"A Voice in the Dark",         icon:"📜",zone:"Icecrown",        level:80,type:"solo",   completions:72410, xp:"—",      reward:""},
-  {id:205,name:"Riders on the Storm",         icon:"📜",zone:"Storm Peaks",     level:78,type:"elite2", completions:51024, xp:"25,800", reward:"16g 10s"},
-  {id:206,name:"Norgannon's Shell",           icon:"📜",zone:"Storm Peaks",     level:80,type:"solo",   completions:44810, xp:"22,050", reward:"13g 23s"},
-  {id:207,name:"The Iron Colossus",           icon:"📜",zone:"Ulduar",          level:80,type:"raid",   completions:38201, xp:"—",      reward:"Achievement"},
-  {id:208,name:"Chains of the World-Breaker", icon:"📜",zone:"Dragonblight",    level:74,type:"elite2", completions:62104, xp:"21,150", reward:"12g 40s"},
-  {id:209,name:"The Might of the Horde",      icon:"📜",zone:"Dalaran",         level:80,type:"daily",  completions:88210, xp:"22,050", reward:"13g 23s"},
-];
-
-const LOOT = [
-  {id:301,itemId:101,item:"Shadowmourne",               quality:5,source:"The Lich King",         srcId:1, rate:1.000,drops:312,   samples:312},
-  {id:302,itemId:102,item:"Bryntroll, the Bone Arbiter",quality:4,source:"Lord Marrowgar",         srcId:2, rate:0.120,drops:4821,  samples:40175},
-  {id:303,itemId:107,item:"Deathbringer's Will",        quality:4,source:"Deathbringer Saurfang",  srcId:3, rate:0.180,drops:2118,  samples:11767},
-  {id:304,itemId:106,item:"Tiny Abomination in a Jar", quality:4,source:"Professor Putricide",    srcId:4, rate:0.140,drops:1840,  samples:13143},
-  {id:305,itemId:104,item:"Reign of the Dead",          quality:4,source:"The Lich King",          srcId:1, rate:0.080,drops:2841,  samples:35513},
-  {id:306,itemId:105,item:"Dislodged Foreign Object",   quality:4,source:"Anub'arak",              srcId:10,rate:0.220,drops:2201,  samples:10005},
-  {id:307,itemId:111,item:"Frozen Orb",                 quality:2,source:"Heroic Dungeons",        srcId:0, rate:0.800,drops:382041,samples:477551},
-  {id:308,itemId:112,item:"Abyss Crystal",              quality:2,source:"Disenchanting (ICC)",    srcId:0, rate:0.350,drops:148201,samples:423431},
-  {id:309,itemId:110,item:"Battered Hilt",              quality:4,source:"Icecrown (Trash)",       srcId:0, rate:0.001,drops:2841,  samples:2841000},
-  {id:310,itemId:113,item:"Primordial Saronite",        quality:2,source:"ICC / ToC Bosses",       srcId:0, rate:0.650,drops:98204, samples:151083},
-];
-
-const ZONES = [
-  {id:401,name:"Icecrown Citadel",  icon:"🏰",type:"Raid",levels:"80",    bosses:12,players:28410},
-  {id:402,name:"Ulduar",            icon:"🏛", type:"Raid",levels:"80",    bosses:14,players:21301},
-  {id:403,name:"Naxxramas",         icon:"💀",type:"Raid",levels:"60/80", bosses:15,players:18210},
-  {id:404,name:"Trial of Crusader", icon:"⚔", type:"Raid",levels:"80",    bosses:5, players:15201},
-  {id:405,name:"Icecrown",          icon:"❄", type:"Zone",levels:"77–80", bosses:0, players:31020},
-  {id:406,name:"Storm Peaks",       icon:"⛰", type:"Zone",levels:"77–80", bosses:0, players:24810},
-  {id:407,name:"Dragonblight",      icon:"🐉",type:"Zone",levels:"74–76", bosses:0, players:19401},
-];
-
-// ═══════════════════════════════════════════════════════════════
-// TOOLTIP ENGINE
-// ═══════════════════════════════════════════════════════════════
-const ttEl = document.getElementById('wow-tooltip');
-const ttIn = document.getElementById('tt-inner');
-const SOCK_COL = {red:'#ff4444',yellow:'#ffd100',blue:'#4488ff',meta:'#cc88ff'};
-const SOCK_ICO = {red:'🔴',yellow:'🟡',blue:'🔵',meta:'🟣'};
-
-function buildTooltip(item) {
-  const t = item.tt;
-  if (!t) return '';
-  const qc = QCOL[item.quality];
-  let h = '';
-
-  // name + icon
-  h += `<div class="tt-name-row">
-    <div class="tt-item-icon ql-${item.quality}">${item.icon}</div>
-    <div class="tt-name-info">
-      <div class="tt-name" style="color:${qc}">${item.name}</div>
-      ${t.unique ? `<div class="tt-line white">Unique</div>` : ''}
-      ${t.binding ? `<div class="tt-binding">${t.binding}</div>` : ''}
-    </div>
-  </div>`;
-  if (item.ilvl) h += `<div class="tt-ilvl">Item Level ${item.ilvl}</div>`;
-  h += `<div class="tt-sep"></div>`;
-
-  // slot / weapon type / armor
-  if (t.slot && t.slot !== '—') {
-    if (t.weaponType) {
-      h += `<div class="tt-row-2col"><span>${t.slot}</span><span>${t.weaponType}</span></div>`;
-    } else if (t.armor) {
-      h += `<div class="tt-row-2col"><span>${t.slot}</span><span>${item.subtype}</span></div>`;
-      h += `<div class="tt-line">${t.armor}</div>`;
-    } else {
-      h += `<div class="tt-line">${t.slot}</div>`;
-    }
-  }
-
-  // weapon stats
-  if (t.dmg) {
-    h += `<div class="tt-row-2col"><span>${t.dmg}</span><span>Speed ${t.speed}</span></div>`;
-    h += `<div class="tt-line grey">(${t.dps} damage per second)</div>`;
-  }
-
-  // primary stats
-  if (t.stats && t.stats.length) {
-    h += `<div class="tt-sep"></div>`;
-    t.stats.forEach(s => { h += `<div class="tt-line green">${s}</div>`; });
-  }
-
-  // sockets
-  if (t.socket) {
-    h += `<div class="tt-sep"></div>`;
-    t.socket.colors.forEach(c => {
-      h += `<div class="tt-line" style="color:${SOCK_COL[c]||'#fff'}">${SOCK_ICO[c]||'◆'} ${cap(c)} Socket</div>`;
-    });
-    h += `<div class="tt-line indent" style="color:#999">Socket Bonus: <span style="color:#1eff00">${t.socket.bonus}</span></div>`;
-  }
-
-  // equip lines
-  if (t.equip && t.equip.length) {
-    h += `<div class="tt-sep"></div>`;
-    t.equip.forEach(e => { h += `<div class="tt-line ${e.cls}">${e.t}</div>`; });
-  }
-
-  // use/proc
-  if (t.proc) {
-    h += `<div class="tt-sep"></div>`;
-    h += `<div class="tt-line ${t.proc.cls}">${t.proc.t}</div>`;
-  }
-
-  // set
-  if (t.set) {
-    h += `<div class="tt-sep"></div>`;
-    h += `<div class="tt-line yellow">${t.set.name} (0/${t.set.pieces.length})</div>`;
-    t.set.pieces.forEach(p => {
-      h += `<div class="tt-line indent" style="color:${p===item.name?'#c8c0a8':'#555'}">${p}</div>`;
-    });
-  }
-
-  // req level
-  if (t.reqLevel) {
-    h += `<div class="tt-sep"></div>`;
-    h += `<div class="tt-req">Requires Level ${t.reqLevel}</div>`;
-  }
-
-  // flavor
-  if (t.flavor) {
-    h += `<div class="tt-sep"></div>`;
-    h += `<div class="tt-line flavor">"${t.flavor}"</div>`;
-  }
-
-  return h;
-}
-
-function showTT(itemId, anchor) {
-  const item = ITEMS.find(i => i.id === itemId);
-  if (!item) return;
-  const h = buildTooltip(item);
-  if (!h) return;
-  ttIn.innerHTML = h;
-  ttEl.classList.add('visible');
-  posTT(anchor);
-}
-
-function hideTT() { ttEl.classList.remove('visible'); }
-
-function posTT(anchor) {
-  const r  = anchor.getBoundingClientRect();
-  const tw = ttEl.offsetWidth  || 280;
-  const th = ttEl.offsetHeight || 300;
-  const vw = window.innerWidth, vh = window.innerHeight, GAP = 14;
-  let left = r.right + GAP;
-  let top  = r.top;
-  if (left + tw > vw - 8) left = r.left - tw - GAP;
-  if (top + th > vh - 8) top = vh - th - 8;
-  if (top < 4) top = 4;
-  ttEl.style.left = left + 'px';
-  ttEl.style.top  = top  + 'px';
-}
-
-document.addEventListener('mouseover', e => {
-  const el = e.target.closest('[data-iid]');
-  if (el) { showTT(+el.dataset.iid, el); return; }
-  if (!e.target.closest('#wow-tooltip')) hideTT();
-});
-document.addEventListener('mousemove', e => {
-  if (!ttEl.classList.contains('visible')) return;
-  const el = e.target.closest('[data-iid]');
-  if (el) posTT(el);
-});
-
-// ═══════════════════════════════════════════════════════════════
-// NAV
-// ═══════════════════════════════════════════════════════════════
-let curList='npcs', activeFilters={}, listQuery='';
-let uploadedFile=null;
-
-function show(id){ document.getElementById(id).classList.remove('hidden'); }
-function hide(id){ document.getElementById(id).classList.add('hidden'); }
-function setMnav(tab){
-  const names=['home','npcs','items','quests','loot','zones'];
-  document.querySelectorAll('.mnav-tab').forEach((b,i)=>b.classList.toggle('active',names[i]===tab));
-}
-
-function showHome(){
-  hide('list-view'); hide('detail-view'); show('home-view');
-  setMnav('home'); renderHomePanels();
-}
-function showList(type) {
-        curList = type;
-        activeFilters = {};
-        listQuery = '';
-        hide('home-view'); hide('detail-view'); show('list-view');
-        setMnav(type);
-    renderList(type);
-}
-function showDetail(type, id) {
-        hide('home-view'); hide('list-view'); show('detail-view');
-        window.scrollTo(0, 0);
-        renderDetail(type, id); // async — runs in background, no need to await here
-}
-
-// ═══════════════════════════════════════════════════════════════
-// HOME PANELS
-// ═══════════════════════════════════════════════════════════════
-function iLink(item, text, extraCls) {
-  // item link with tooltip trigger
-  const cls = extraCls || QCLS[item.quality];
-  return `<a class="${cls}" data-iid="${item.id}">${text||item.name}</a>`;
-}
-function iLinkById(itemId, text, extraCls) {
-  const item = ITEMS.find(i=>i.id===itemId);
-  if (!item) return `<span>${text||''}</span>`;
-  return iLink(item, text||item.name, extraCls);
-}
-
-function renderHomePanels(){
-  document.getElementById('hp-kills').innerHTML = NPCS.slice(0,6).map(n=>
-    `<div class="panel-row" onclick="showDetail('npcs',${n.id})">
-      <span class="panel-row-icon">${n.icon}</span>
-      <a class="npc-name">${n.name}</a>
-      <span class="panel-row-meta">${fmt(n.kills)} kills</span>
-    </div>`).join('');
-
-  document.getElementById('hp-loot').innerHTML = LOOT.slice(0,6).map(l=>
-    `<div class="panel-row" onclick="showDetail('loot',${l.id})">
-      <span class="panel-row-icon" style="color:${QCOL[l.quality]}">◆</span>
-      ${iLinkById(l.itemId, l.item)}
-      <span class="panel-row-meta">${pct(l.rate)}</span>
-    </div>`).join('');
-
-  document.getElementById('hp-quests').innerHTML = QUESTS.slice(0,6).map(q=>
-    `<div class="panel-row" onclick="showDetail('quests',${q.id})">
-      <span class="panel-row-icon">${q.icon}</span>
-      <a>${q.name}</a>
-      <span class="panel-row-meta">${fmt(q.completions)}</span>
-    </div>`).join('');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// LIST CONFIG
-// ═══════════════════════════════════════════════════════════════
-const LIST_CFG = {
-  npcs:{
-    title:'NPCs & Mobs',icon:'👹',data:()=>NPCS,
-    cols:[
-      {label:'Name',  render:r=>`<td class="td-name"><span class="td-icon">${r.icon}</span><a class="npc-name" onclick="showDetail('npcs',${r.id})">${r.name}</a></td>`},
-      {label:'Zone',  render:r=>`<td style="color:var(--text-dim)">${r.zone}</td>`},
-      {label:'Level', render:r=>`<td class="mono">${r.level}</td>`},
-      {label:'Type',  render:r=>`<td><span class="badge badge-${r.type}">${cap(r.type)}</span></td>`},
-      {label:'Kills', render:r=>`<td class="mono" style="color:var(--gold-dark)">${fmt(r.kills)}</td>`},
-    ],
-    filters:[{label:'Type',field:'type',items:[
-      {label:'All',val:'',dot:'#888'},{label:'Boss',val:'boss',dot:QCOL[4]},
-      {label:'Elite',val:'elite',dot:QCOL[5]},{label:'Rare',val:'rare',dot:QCOL[3]},{label:'Normal',val:'normal',dot:'#888'},
-    ]}],
-    sort:['kills','level','name'],
-  },
-  items:{
-    title:'Items',icon:'⚔',data:()=>ITEMS,
-    cols:[
-      {label:'Item',    render:r=>`<td class="td-name"><span class="td-icon">${r.icon}</span>${iLink(r,r.name)} <span style="margin-left:2px;cursor:pointer;font-size:.8rem" onclick="showDetail('items',${r.id})"></span></td>`},
-      {label:'Slot',    render:r=>`<td style="color:var(--text-dim)">${r.slot||'—'}</td>`},
-      {label:'iLvl',    render:r=>`<td class="mono">${r.ilvl||'—'}</td>`},
-      {label:'Quality', render:r=>`<td class="${QCLS[r.quality]}">${Q[r.quality]}</td>`},
-      {label:'Seen',    render:r=>`<td class="mono" style="color:var(--gold-dark)">${fmt(r.seen)}</td>`},
-      {label:'Source',  render:r=>`<td style="color:var(--text-dim)">${r.source}</td>`},
-    ],
-    filters:[
-      {label:'Quality',field:'quality',items:[
-        {label:'All',val:'',dot:'#888'},{label:'Legendary',val:5,dot:QCOL[5]},{label:'Epic',val:4,dot:QCOL[4]},
-        {label:'Rare',val:3,dot:QCOL[3]},{label:'Uncommon',val:2,dot:QCOL[2]},{label:'Common',val:1,dot:QCOL[1]},
-      ]},
-      {label:'Type',field:'type',items:[
-        {label:'All',val:'',dot:'#888'},{label:'Weapon',val:'Weapon',dot:'#c8a84b'},
-        {label:'Armor',val:'Armor',dot:'#6ab4e8'},{label:'Accessory',val:'Accessory',dot:'#a87ae8'},{label:'Reagent',val:'Reagent',dot:'#6abf6a'},
-      ]},
-    ],
-    sort:['seen','ilvl','name'],
-  },
-  quests:{
-    title:'Quests',icon:'📜',data:()=>QUESTS,
-    cols:[
-      {label:'Quest',      render:r=>`<td class="td-name"><span class="td-icon">${r.icon}</span><a onclick="showDetail('quests',${r.id})">${r.name}</a></td>`},
-      {label:'Zone',       render:r=>`<td style="color:var(--text-dim)">${r.zone}</td>`},
-      {label:'Level',      render:r=>`<td class="mono">${r.level}</td>`},
-      {label:'Type',       render:r=>`<td><span class="badge badge-${r.type}">${cap(r.type==='elite2'?'elite':r.type)}</span></td>`},
-      {label:'Completions',render:r=>`<td class="mono" style="color:var(--gold-dark)">${fmt(r.completions)}</td>`},
-      {label:'XP',         render:r=>`<td class="mono">${r.xp}</td>`},
-    ],
-    filters:[{label:'Type',field:'type',items:[
-      {label:'All',val:'',dot:'#888'},{label:'Daily',val:'daily',dot:QCOL[5]},{label:'Raid',val:'raid',dot:QCOL[4]},
-      {label:'Elite',val:'elite2',dot:QCOL[3]},{label:'Solo',val:'solo',dot:'#888'},
-    ]}],
-    sort:['completions','level','name'],
-  },
-  loot:{
-    title:'Loot Tables',icon:'💰',data:()=>LOOT,
-    cols:[
-      {label:'Item',     render:r=>`<td class="td-name"><span class="td-icon" style="color:${QCOL[r.quality]}">◆</span>${iLinkById(r.itemId,r.item)}</td>`},
-      {label:'Source',   render:r=>`<td><a class="npc-name" onclick="if(${r.srcId})showDetail('npcs',${r.srcId})">${r.source}</a></td>`},
-      {label:'Quality',  render:r=>`<td class="${QCLS[r.quality]}">${Q[r.quality]}</td>`},
-      {label:'Drop Rate',render:r=>`<td style="min-width:130px"><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill ${r.quality>=5?'fill-leg':r.quality>=4?'fill-epic':r.quality>=3?'fill-rare':''}" style="width:${Math.min(r.rate*100,100)}%"></div></div><span class="rate-text">${pct(r.rate)}</span></div></td>`},
-      {label:'Drops',    render:r=>`<td class="mono" style="color:var(--gold-dark)">${fmt(r.drops)}</td>`},
-      {label:'Samples',  render:r=>`<td class="mono">${fmt(r.samples)}</td>`},
-    ],
-    filters:[{label:'Quality',field:'quality',items:[
-      {label:'All',val:'',dot:'#888'},{label:'Legendary',val:5,dot:QCOL[5]},{label:'Epic',val:4,dot:QCOL[4]},
-      {label:'Rare',val:3,dot:QCOL[3]},{label:'Uncommon',val:2,dot:QCOL[2]},
-    ]}],
-    sort:['rate','drops','item'],
-  },
-  zones:{
-    title:'Zones',icon:'🗺',data:()=>ZONES,
-    cols:[
-      {label:'Zone',   render:r=>`<td class="td-name"><span class="td-icon">${r.icon}</span><a onclick="showDetail('zones',${r.id})">${r.name}</a></td>`},
-      {label:'Type',   render:r=>`<td style="color:var(--text-dim)">${r.type}</td>`},
-      {label:'Levels', render:r=>`<td class="mono">${r.levels}</td>`},
-      {label:'Bosses', render:r=>`<td class="mono">${r.bosses||'—'}</td>`},
-      {label:'Players',render:r=>`<td class="mono" style="color:var(--gold-dark)">${fmt(r.players)}</td>`},
-    ],
-    filters:[{label:'Type',field:'type',items:[
-      {label:'All',val:'',dot:'#888'},{label:'Raid',val:'Raid',dot:QCOL[4]},{label:'Zone',val:'Zone',dot:QCOL[2]},
-    ]}],
-    sort:['players','name'],
-  },
-};
-
-// ═══════════════════════════════════════════════════════════════
-// LIST RENDERING
-// ═══════════════════════════════════════════════════════════════
-function renderList(type){
-  const cfg=LIST_CFG[type]; if(!cfg) return;
-  document.getElementById('list-icon').textContent=cfg.icon;
-  document.getElementById('list-heading').textContent=cfg.title;
-  const sel=document.getElementById('list-sort');
-  sel.innerHTML=`<option value="">Sort by…</option>`+cfg.sort.map(s=>`<option value="${s}">${cap(s)}</option>`).join('');
-  document.getElementById('filter-panel').innerHTML=cfg.filters.map(g=>
-    `<div class="fp-group"><div class="fp-title">${g.label}</div>${g.items.map(it=>
-      `<div class="fp-item" data-field="${g.field}" data-val="${it.val}" onclick="setFilter(this)">
-        <span class="fp-dot" style="background:${it.dot}"></span>${it.label}
-      </div>`).join('')}</div>`).join('');
-  renderTable(cfg);
-}
-
-function setFilter(el){
-  const field=el.dataset.field, val=el.dataset.val;
-  document.querySelectorAll(`.fp-item[data-field="${field}"]`).forEach(e=>e.classList.remove('active'));
-  el.classList.add('active');
-  if(val==='') delete activeFilters[field];
-  else activeFilters[field]=isNaN(val)?val:Number(val);
-  renderTable(LIST_CFG[curList]);
-}
-function filterList(q){ listQuery=q.toLowerCase(); renderTable(LIST_CFG[curList]); }
-function sortList(key){
-  if(!key) return;
-  const cfg=LIST_CFG[curList];
-  const sorted=[...cfg.data()].sort((a,b)=>typeof a[key]==='number'?b[key]-a[key]:String(a[key]).localeCompare(String(b[key])));
-  renderRows(cfg,sorted.filter(applyFilters));
-}
-function applyFilters(r){
-  for(const[f,v]of Object.entries(activeFilters)) if(r[f]!==v) return false;
-  if(listQuery){const t=Object.values(r).join(' ').toLowerCase();if(!t.includes(listQuery))return false;}
-  return true;
-}
-function renderTable(cfg){
-  const rows=cfg.data().filter(applyFilters);
-  document.getElementById('list-count').textContent=`(${rows.length} results)`;
-  document.getElementById('list-thead').innerHTML=`<tr>${cfg.cols.map(c=>`<th>${c.label}</th>`).join('')}</tr>`;
-  renderRows(cfg,rows);
-}
-function renderRows(cfg,rows){
-  document.getElementById('list-tbody').innerHTML=rows.map(r=>`<tr onclick="showDetail('${curList}',${r.id})">${cfg.cols.map(c=>c.render(r)).join('')}</tr>`).join('');
-  document.getElementById('paginator').innerHTML=rows.length>20
-    ?`<button class="pager-btn active">1</button><button class="pager-btn">2</button><button class="pager-btn">3</button><span style="color:var(--text-dim);padding:0 4px;font-size:.7rem">…</span>`:'';
-}
-
-// ═══════════════════════════════════════════════════════════════
-// DETAIL
-// ═══════════════════════════════════════════════════════════════
-const LIST_NAMES={npcs:'NPCs & Mobs',items:'Items',quests:'Quests',loot:'Loot Tables',zones:'Zones'};
-
-    async function renderDetail(type, id) {
-        // Show a loading state while we wait for the server
-        document.getElementById('detail-title-block').innerHTML =
-            `<div style="padding:1.5rem;color:var(--text-dim);font-style:italic">Loading...</div>`;
-
-        let entry;
-
-        try {
-            const res = await fetch(`${API}/api/record/${type}/${id}`);
-            if (!res.ok) throw new Error('Not found');
-
-            entry = await res.json();                              
-            if (entry.data) entry = { ...entry, ...entry.data };  
-
-        } catch (err) {
-            // Backend is offline or record doesn't exist yet — fall back to local data
-            console.warn('Backend unavailable, using local data:', err);
-            const ds = { npcs: NPCS, items: ITEMS, quests: QUESTS, loot: LOOT, zones: ZONES };
-            entry = (ds[type] || []).find(x => x.id === id);
-        }
-
-        if (!entry) {
-            document.getElementById('detail-title-block').innerHTML =
-                `<div style="padding:1.5rem;color:var(--red-bright)">Record not found.</div>`;
-            return;
-        }
-
-        // Everything below is identical to before
-        document.getElementById('breadcrumb').innerHTML =
-            `<a onclick="showHome()">Home</a><span>›</span>` +
-            `<a onclick="showList('${type}')">${LIST_NAMES[type]}</a>` +
-            `<span>›</span>${entry.name || entry.item}`;
-
-        if (type === 'npcs') renderNpcDetail(entry);
-        if (type === 'items') renderItemDetail(entry);
-        if (type === 'quests') renderQuestDetail(entry);
-        if (type === 'loot') renderLootDetail(entry);
-        if (type === 'zones') renderZoneDetail(entry);
-    }
-
-function setTabs(tabs){
-  document.getElementById('detail-tabs').innerHTML=tabs.map((t,i)=>
-    `<button class="dtab ${i===0?'active':''}" onclick="switchTab(${i})">${t.label}${t.count!=null?`<span class="dtab-count">${t.count}</span>`:''}</button>`).join('');
-  document.getElementById('detail-content').innerHTML=tabs.map((t,i)=>
-    `<div class="dtc-panel ${i===0?'active':''}" id="dtc-${i}">${t.html}</div>`).join('');
-}
-function switchTab(i){
-  document.querySelectorAll('.dtab').forEach((b,j)=>b.classList.toggle('active',i===j));
-  document.querySelectorAll('.dtc-panel').forEach((p,j)=>p.classList.toggle('active',i===j));
-}
-
-function sgrid(rows){
-  return `<div class="summary-grid">${rows.map(([k,v,cls])=>`<div class="sg"><div class="sg-label">${k}</div><div class="sg-val ${cls||''}">${v}</div></div>`).join('')}</div>`;
-}
-
-function dropTable(drops, keyLabel, keyFn){
-  if(!drops.length) return `<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No data yet — install the addon and contribute!</div>`;
-  return `<div style="overflow-x:auto"><table class="drop-table">
-    <thead><tr><th>${keyLabel}</th><th>Quality</th><th>Drop Rate</th><th>Drops</th><th>Sample</th></tr></thead>
-    <tbody>${drops.map(d=>`<tr>
-      <td class="td-name">${keyFn(d)}</td>
-      <td class="${QCLS[d.quality]}">${Q[d.quality]}</td>
-      <td style="min-width:130px"><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill ${d.quality>=5?'fill-leg':d.quality>=4?'fill-epic':d.quality>=3?'fill-rare':''}" style="width:${Math.min(d.rate*100,100)}%"></div></div><span class="rate-text">${pct(d.rate)}</span></div></td>
-      <td class="mono" style="color:var(--gold-dark)">${fmt(d.drops)}</td>
-      <td class="mono">${fmt(d.samples)}</td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
-}
-
-function commentsHtml(about){
-  const msgs=[
-    {author:'Arthaniel', cls:'Death Knight',date:'2 days ago', text:`${about} — much easier once everyone knows the positioning. Recommend 3 healers minimum.`},
-    {author:'Shadowmend',cls:'Priest',       date:'5 days ago', text:`Watch the enrage timer. We wiped at 2% because DPS was too slow.`},
-    {author:'Lunaria',   cls:'Druid',        date:'1 week ago', text:`Great documentation. Drop rates match what our guild tracked over ~200 attempts.`},
-  ];
-  return `<div class="comments-wrap">${msgs.map(c=>`<div class="comment">
-    <div class="comment-hdr"><span class="comment-author" style="color:${CLS_COLORS[c.cls]||'var(--gold)'}">${c.author}</span><span class="comment-date">${c.date}</span></div>
-    <div class="comment-body">${c.text}</div>
-  </div>`).join('')}</div>`;
-}
-
-function renderNpcDetail(npc){
-  document.getElementById('detail-title-block').innerHTML=`
-    <div class="detail-big-icon">${npc.icon}</div>
-    <div class="detail-info">
-      <div class="detail-name npc-name">${npc.name}</div>
-      <div class="detail-subtitle">${npc.class} · Level ${npc.level}</div>
-      <div class="detail-pills">
-        <span class="dpill">${npc.zone}</span>
-        <span class="badge badge-${npc.type}">${cap(npc.type)}</span>
-        <span class="dpill">${npc.faction}</span>
-        <span class="dpill gold">${fmt(npc.kills)} kills recorded</span>
-      </div>
-    </div>`;
-  const drops=LOOT.filter(l=>l.srcId===npc.id);
-  setTabs([
-    {label:'Summary',html:sgrid([['Zone',npc.zone],['Level',npc.level],['Classification',npc.class],['Faction',npc.faction],['Type',cap(npc.type)],['Total Kills',fmt(npc.kills)]])},
-    {label:'Drops',count:drops.length,html:dropTable(drops,'Item',d=>`<span class="td-icon" style="color:${QCOL[d.quality]}">◆</span>${iLinkById(d.itemId,d.item)}`)},
-    {label:'Comments',count:3,html:commentsHtml(npc.name)},
-  ]);
-  document.getElementById('detail-sidebar').innerHTML=`
-    <div class="sb-panel">
-      <div class="sb-title">Related in ${npc.zone.split(' ')[0]}…</div>
-      ${NPCS.filter(n=>n.zone===npc.zone&&n.id!==npc.id).slice(0,6).map(n=>`
-        <div class="sb-row" onclick="showDetail('npcs',${n.id})"><span class="sb-row-icon">${n.icon}</span><a class="npc-name">${n.name}</a><span class="sb-row-meta">Lv${n.level}</span></div>`).join('')}
-    </div>
-    <div class="sb-panel">
-      <div class="sb-title">Quick Stats</div>
-      <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Kills</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(npc.kills)}</span></div>
-      <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Loot Entries</span><span class="sb-row-meta">${drops.length}</span></div>
-    </div>`;
-}
-
-function renderItemDetail(item){
-  document.getElementById('detail-title-block').innerHTML=`
-    <div class="detail-big-icon" data-iid="${item.id}">${item.icon}</div>
-    <div class="detail-info">
-      <div class="detail-name ${QCLS[item.quality]}" data-iid="${item.id}">${item.name}</div>
-      <div class="detail-subtitle">${item.type} · ${item.subtype}${item.ilvl?' · Item Level '+item.ilvl:''}</div>
-      <div class="detail-pills">
-        ${item.slot?`<span class="dpill">${item.slot}</span>`:''}
-        <span class="dpill ${QCLS[item.quality]}">${Q[item.quality]}</span>
-        ${item.ilvl?`<span class="dpill">iLvl ${item.ilvl}</span>`:''}
-        <span class="dpill gold">${fmt(item.seen)} times seen</span>
-      </div>
-    </div>`;
-  const drops=LOOT.filter(l=>l.itemId===item.id);
-  setTabs([
-    {label:'Summary',html:sgrid([['Type',item.type],['Subtype',item.subtype],['Slot',item.slot||'—'],['Item Level',item.ilvl||'—'],['Quality',Q[item.quality],''+QCLS[item.quality]],['Times Seen',fmt(item.seen)]])},
-    {label:'Dropped By',count:drops.length,html:dropTable(drops,'Source',d=>`<a class="npc-name" onclick="if(${d.srcId})showDetail('npcs',${d.srcId})">${d.source}</a>`)},
-    {label:'Comments',count:3,html:commentsHtml(item.name)},
-  ]);
-  document.getElementById('detail-sidebar').innerHTML=`
-    <div class="sb-panel">
-      <div class="sb-title">Similar (${item.slot||item.type})</div>
-      ${ITEMS.filter(i=>i.slot===item.slot&&i.id!==item.id).slice(0,5).map(i=>`
-        <div class="sb-row" onclick="showDetail('items',${i.id})"><span class="sb-row-icon">${i.icon}</span>${iLink(i,i.name)}<span class="sb-row-meta">iL${i.ilvl||'—'}</span></div>`).join('')}
-    </div>`;
-}
-
-function renderQuestDetail(q){
-  document.getElementById('detail-title-block').innerHTML=`
-    <div class="detail-big-icon">${q.icon}</div>
-    <div class="detail-info">
-      <div class="detail-name">${q.name}</div>
-      <div class="detail-subtitle">${q.zone} · Level ${q.level}</div>
-      <div class="detail-pills">
-        <span class="badge badge-${q.type}">${cap(q.type==='elite2'?'elite':q.type)}</span>
-        <span class="dpill">${q.zone}</span>
-        <span class="dpill gold">${fmt(q.completions)} completions</span>
-      </div>
-    </div>`;
-  setTabs([
-    {label:'Summary',html:sgrid([['Zone',q.zone],['Level',q.level],['Type',cap(q.type==='elite2'?'elite':q.type)],['XP Reward',q.xp,'q2'],['Gold Reward',q.reward||'—'],['Completions',fmt(q.completions)]])},
-    {label:'Comments',count:3,html:commentsHtml(q.name)},
-  ]);
-  document.getElementById('detail-sidebar').innerHTML=`
-    <div class="sb-panel">
-      <div class="sb-title">More in ${q.zone}</div>
-      ${QUESTS.filter(x=>x.zone===q.zone&&x.id!==q.id).slice(0,5).map(x=>`
-        <div class="sb-row" onclick="showDetail('quests',${x.id})"><span class="sb-row-icon">${x.icon}</span><a>${x.name}</a><span class="sb-row-meta">Lv${x.level}</span></div>`).join('')}
-    </div>`;
-}
-
-function renderLootDetail(loot){
-  document.getElementById('detail-title-block').innerHTML=`
-    <div class="detail-big-icon" style="color:${QCOL[loot.quality]}" data-iid="${loot.itemId}">◆</div>
-    <div class="detail-info">
-      <div class="detail-name ${QCLS[loot.quality]}" data-iid="${loot.itemId}">${loot.item}</div>
-      <div class="detail-subtitle">Dropped by: ${loot.source}</div>
-      <div class="detail-pills">
-        <span class="dpill ${QCLS[loot.quality]}">${Q[loot.quality]}</span>
-        <span class="dpill gold">${pct(loot.rate)} drop rate</span>
-        <span class="dpill">${fmt(loot.drops)} drops / ${fmt(loot.samples)} kills</span>
-      </div>
-    </div>`;
-  setTabs([
-    {label:'Summary',html:sgrid([['Item',`${iLinkById(loot.itemId,loot.item)}`],['Source',`<a class="npc-name">${loot.source}</a>`],['Drop Rate',pct(loot.rate),'q2'],['Sample Size',fmt(loot.samples)+' kills'],['Total Drops',fmt(loot.drops)],['Quality',Q[loot.quality],''+QCLS[loot.quality]]])},
-    {label:'Comments',count:3,html:commentsHtml(loot.item)},
-  ]);
-  document.getElementById('detail-sidebar').innerHTML=`
-    <div class="sb-panel">
-      <div class="sb-title">More from this source</div>
-      ${LOOT.filter(l=>l.source===loot.source&&l.id!==loot.id).slice(0,6).map(l=>`
-        <div class="sb-row" onclick="showDetail('loot',${l.id})"><span class="sb-row-icon" style="color:${QCOL[l.quality]}">◆</span>${iLinkById(l.itemId,l.item)}<span class="sb-row-meta">${pct(l.rate)}</span></div>`).join('')}
-    </div>`;
-}
-
-function renderZoneDetail(zone){
-  document.getElementById('detail-title-block').innerHTML=`
-    <div class="detail-big-icon">${zone.icon}</div>
-    <div class="detail-info">
-      <div class="detail-name">${zone.name}</div>
-      <div class="detail-subtitle">${zone.type} · Levels ${zone.levels}</div>
-      <div class="detail-pills">
-        <span class="dpill">${zone.type}</span>
-        ${zone.bosses?`<span class="dpill">${zone.bosses} bosses</span>`:''}
-        <span class="dpill gold">${fmt(zone.players)} players tracked</span>
-      </div>
-    </div>`;
-  const zN=NPCS.filter(n=>n.zone===zone.name||n.zone.startsWith(zone.name));
-  const zQ=QUESTS.filter(q=>q.zone===zone.name);
-  setTabs([
-    {label:'NPCs',count:zN.length,html:zN.length?`<div style="overflow-x:auto"><table class="drop-table"><thead><tr><th>NPC</th><th>Level</th><th>Type</th><th>Kills</th></tr></thead><tbody>${zN.map(n=>`<tr onclick="showDetail('npcs',${n.id})"><td class="td-name"><span class="td-icon">${n.icon}</span><a class="npc-name">${n.name}</a></td><td class="mono">${n.level}</td><td><span class="badge badge-${n.type}">${cap(n.type)}</span></td><td class="mono" style="color:var(--gold-dark)">${fmt(n.kills)}</td></tr>`).join('')}</tbody></table></div>`:`<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No NPC data.</div>`},
-    {label:'Quests',count:zQ.length,html:zQ.length?`<div style="overflow-x:auto"><table class="drop-table"><thead><tr><th>Quest</th><th>Level</th><th>Type</th><th>Completions</th></tr></thead><tbody>${zQ.map(q=>`<tr onclick="showDetail('quests',${q.id})"><td class="td-name">${q.icon} <a>${q.name}</a></td><td class="mono">${q.level}</td><td><span class="badge badge-${q.type}">${cap(q.type==='elite2'?'elite':q.type)}</span></td><td class="mono" style="color:var(--gold-dark)">${fmt(q.completions)}</td></tr>`).join('')}</tbody></table></div>`:`<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No quest data.</div>`},
-    {label:'Comments',count:1,html:commentsHtml(zone.name)},
-  ]);
-  document.getElementById('detail-sidebar').innerHTML='';
-}
-
-// ═══════════════════════════════════════════════════════════════
-// SEARCH
-// ═══════════════════════════════════════════════════════════════
-const ALL=[
-  ...NPCS.map(x=>({...x,_type:'npcs',_label:x.name})),
-  ...ITEMS.map(x=>({...x,_type:'items',_label:x.name})),
-  ...QUESTS.map(x=>({...x,_type:'quests',_label:x.name})),
-  ...ZONES.map(x=>({...x,_type:'zones',_label:x.name})),
-];
-const GLABELS={npcs:'NPCs',items:'Items',quests:'Quests',zones:'Zones'};
-
-    async function onSearch(v) {
-        const val = v.trim();
-        const sug = document.getElementById('suggestions');
-
-        // If search is too short, close the suggestions
-        if (val.length < 2) {
-            sug.classList.remove('open');
-            return;
-        }
-
-        // 1. Fetch real-time results from your Node.js backend
-        try {
-            const response = await fetch(`${API}/api/search?q=${val}`);
-            const results = await response.json();
-
-            // 2. Display the results if found
-            if (results.length > 0) {
-                sug.innerHTML = results.map(r => `
-        <div class="sug-item" onclick="showDetail('${r.id}')">
-          <span class="sug-icon">📜</span>
-          <span style="flex:1;color:var(--text)">${r.name}</span>
-          <span class="sug-meta">${r.type.toUpperCase()} ID: ${r.id}</span>
+    <div id="topbar">
+        <div class="logo" onclick="showHome()">
+            <div class="logo-icon">
+                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="18" stroke="#c8a84b" stroke-width="1.5" opacity=".4" />
+                    <path d="M20 4L20 36M4 20L36 20" stroke="#c8a84b" stroke-width="1" opacity=".25" />
+                    <path d="M20 8L24 14L30 14L25 18L27 25L20 21L13 25L15 18L10 14L16 14Z" fill="#c8a84b" opacity=".85" />
+                    <circle cx="20" cy="20" r="3" fill="#8b1a1a" />
+                </svg>
+            </div>
+            <div><div class="logo-text">EPOCHDB</div><div class="logo-sub">Project Epoch · 3.3.5</div></div>
         </div>
-      `).join('');
-                sug.classList.add('open');
-            } else {
-                sug.classList.remove('open');
+        <div id="search-wrap">
+            <input id="search-input" type="text" placeholder="Search items, NPCs, quests, zones…" autocomplete="off" oninput="onSearch(this.value)" onkeydown="onSearchKey(event)">
+            <button id="search-go" onclick="doSearch()">🔍</button>
+            <div id="suggestions"></div>
+        </div>
+        <div id="topnav">
+            <button class="tnav-btn" onclick="showList('npcs')">NPCs</button>
+            <button class="tnav-btn" onclick="showList('items')">Items</button>
+            <button class="tnav-btn" onclick="showList('quests')">Quests</button>
+            <button class="tnav-btn" onclick="showList('loot')">Loot</button>
+            <button class="upload-btn" onclick="openUpload()">⬆ Upload Data</button>
+        </div>
+    </div>
+
+    <div id="mainnav">
+        <button class="mnav-tab active" onclick="showHome()">Home</button>
+        <button class="mnav-tab" onclick="showList('npcs')">NPCs &amp; Mobs</button>
+        <button class="mnav-tab" onclick="showList('items')">Items</button>
+        <button class="mnav-tab" onclick="showList('quests')">Quests</button>
+        <button class="mnav-tab" onclick="showList('loot')">Loot Tables</button>
+        <button class="mnav-tab" onclick="showList('zones')">Zones</button>
+    </div>
+
+    <div id="page">
+
+        <!-- HOME -->
+        <div id="home-view">
+            <div class="hero">
+                <h1 class="hero-title">EPOCH DATABASE</h1>
+                <p class="hero-sub">Community-powered encyclopedia for Project Epoch — kills, loot, quests &amp; more.</p>
+                <div class="hero-divider"></div>
+                <div class="home-search-wrap">
+                    <input class="home-search" type="text" placeholder="Search NPCs, items, quests, zones…" autocomplete="off" oninput="onSearch(this.value)" onkeydown="onSearchKey(event)">
+                    <button class="home-search-btn" onclick="doSearch()">🔍</button>
+                </div>
+            </div>
+            <div class="stats-bar">
+                <div class="stat-item"><span class="stat-num" id="sn-kills">0</span><div class="stat-label">Kills Tracked</div></div>
+                <div class="stat-item"><span class="stat-num" id="sn-items">0</span><div class="stat-label">Items</div></div>
+                <div class="stat-item"><span class="stat-num" id="sn-quests">0</span><div class="stat-label">Quests</div></div>
+                <div class="stat-item"><span class="stat-num" id="sn-loot">0</span><div class="stat-label">Loot Drops</div></div>
+                <div class="stat-item"><span class="stat-num" id="sn-players">0</span><div class="stat-label">Contributors</div></div>
+            </div>
+            <div class="home-cats">
+                <div class="cat-card" onclick="showList('npcs')"><div class="cat-icon">👹</div><div class="cat-name">NPCs &amp; Mobs</div><div class="cat-count">24,810 entries</div></div>
+                <div class="cat-card" onclick="showList('items')"><div class="cat-icon">⚔</div><div class="cat-name">Items</div><div class="cat-count">12,447 entries</div></div>
+                <div class="cat-card" onclick="showList('quests')"><div class="cat-icon">📜</div><div class="cat-name">Quests</div><div class="cat-count">4,832 entries</div></div>
+                <div class="cat-card" onclick="showList('loot')"><div class="cat-icon">💰</div><div class="cat-name">Loot Tables</div><div class="cat-count">89,204 records</div></div>
+                <div class="cat-card" onclick="showList('zones')"><div class="cat-icon">🗺</div><div class="cat-name">Zones</div><div class="cat-count">143 zones</div></div>
+                <div class="cat-card" onclick="openUpload()"><div class="cat-icon">⬆</div><div class="cat-name">Contribute</div><div class="cat-count">Upload your .lua</div></div>
+            </div>
+            <div class="home-panels">
+                <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">☠ Most Killed</span><a onclick="showList('npcs')">See all →</a></div><div id="hp-kills"></div></div>
+                <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">💰 Recent Loot</span><a onclick="showList('loot')">See all →</a></div><div id="hp-loot"></div></div>
+                <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">📜 Popular Quests</span><a onclick="showList('quests')">See all →</a></div><div id="hp-quests"></div></div>
+            </div>
+        </div>
+
+        <!-- LIST VIEW -->
+        <div id="list-view" class="hidden">
+            <div class="list-header">
+                <div class="list-title"><span id="list-icon"></span><span id="list-heading"></span><span id="list-count" class="list-count"></span></div>
+                <div class="list-controls">
+                    <input class="list-search" id="list-search-box" type="text" placeholder="Filter…" oninput="filterList(this.value)">
+                    <select class="list-select" id="list-sort" onchange="sortList(this.value)"><option value="">Sort by…</option></select>
+                </div>
+            </div>
+            <div class="list-body">
+                <div class="filter-panel" id="filter-panel"></div>
+                <div><div class="data-wrap"><table><thead id="list-thead"></thead><tbody id="list-tbody"></tbody></table><div class="paginator" id="paginator"></div></div></div>
+            </div>
+        </div>
+
+        <!-- DETAIL VIEW -->
+        <div id="detail-view" class="hidden">
+            <div class="breadcrumb" id="breadcrumb"></div>
+            <div class="detail-layout">
+                <div>
+                    <div class="detail-title-block" id="detail-title-block"></div>
+                    <div class="detail-tabs" id="detail-tabs"></div>
+                    <div class="detail-tab-content" id="detail-content"></div>
+                </div>
+                <div id="detail-sidebar"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- UPLOAD MODAL -->
+    <div class="modal-overlay" id="upload-modal">
+        <div class="modal">
+            <div class="modal-hdr"><div class="modal-title">⬆ Upload Addon Data</div><button class="modal-close" onclick="closeUpload()">✕</button></div>
+            <div class="modal-body">
+                <div class="instructions">Your data is saved at:<br><code>WoW\WTF\Account\[NAME]\SavedVariables\EpochDB.lua</code><br>Upload after each session to contribute your kills, loot, items, and quests to the community.</div>
+                <div class="upload-zone" id="drop-zone" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)" onclick="document.getElementById('file-input').click()">
+                    <span class="upload-icon">📁</span>
+                    <div class="upload-text">Drop EpochDB.lua here</div>
+                    <div class="upload-sub">or click to browse</div>
+                </div>
+                <input type="file" id="file-input" accept=".lua,.txt" style="display:none" onchange="handleFile(this.files[0])">
+                <div id="upload-status"></div>
+                <button class="modal-submit" onclick="submitUpload()">Submit to Database</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WOW TOOLTIP -->
+    <div id="wow-tooltip"><div class="tt-frame"><div class="tt-inner" id="tt-inner"></div></div></div>
+
+    <script>
+
+        const API = 'https://epochdb-api.onrender.com';
+
+        // ═══════════════════════════════════════════════════════════════
+        // DATA
+        // ═══════════════════════════════════════════════════════════════
+        const Q = ['Poor', 'Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Artifact'];
+        const QCLS = ['q0', 'q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
+        const QCOL = ['#9d9d9d', '#e8dfc8', '#1eff00', '#0070dd', '#a335ee', '#ff8000', '#e6cc80'];
+        const CLS_COLORS = { 'Death Knight': '#C41E3A', 'Priest': '#fff', 'Warrior': '#C69B3A', 'Druid': '#FF7C0A', 'Mage': '#3FC7EB', 'Paladin': '#F48CBA', 'Rogue': '#FFF468', 'Shaman': '#0070DD', 'Warlock': '#8788EE', 'Hunter': '#AAD372' };
+
+        // Data is loaded from the backend — no hardcoded arrays
+
+        // ═══════════════════════════════════════════════════════════════
+        // TOOLTIP ENGINE
+        // ═══════════════════════════════════════════════════════════════
+        const ttEl = document.getElementById('wow-tooltip');
+        const ttIn = document.getElementById('tt-inner');
+        const SOCK_COL = { red: '#ff4444', yellow: '#ffd100', blue: '#4488ff', meta: '#cc88ff' };
+        const SOCK_ICO = { red: '🔴', yellow: '🟡', blue: '🔵', meta: '🟣' };
+
+        function buildTooltip(item) {
+            const t = item.tt;
+            if (!t) return '';
+            const qc = QCOL[item.quality];
+            let h = '';
+
+            // name + icon
+            h += `<div class="tt-name-row">
+        <div class="tt-item-icon ql-${item.quality}">${item.icon}</div>
+        <div class="tt-name-info">
+          <div class="tt-name" style="color:${qc}">${item.name}</div>
+          ${t.unique ? `<div class="tt-line white">Unique</div>` : ''}
+          ${t.binding ? `<div class="tt-binding">${t.binding}</div>` : ''}
+        </div>
+      </div>`;
+            if (item.ilvl) h += `<div class="tt-ilvl">Item Level ${item.ilvl}</div>`;
+            h += `<div class="tt-sep"></div>`;
+
+            // slot / weapon type / armor
+            if (t.slot && t.slot !== '—') {
+                if (t.weaponType) {
+                    h += `<div class="tt-row-2col"><span>${t.slot}</span><span>${t.weaponType}</span></div>`;
+                } else if (t.armor) {
+                    h += `<div class="tt-row-2col"><span>${t.slot}</span><span>${item.subtype}</span></div>`;
+                    h += `<div class="tt-line">${t.armor}</div>`;
+                } else {
+                    h += `<div class="tt-line">${t.slot}</div>`;
+                }
             }
-        } catch (err) {
-            console.error("Search error:", err);
+
+            // weapon stats
+            if (t.dmg) {
+                h += `<div class="tt-row-2col"><span>${t.dmg}</span><span>Speed ${t.speed}</span></div>`;
+                h += `<div class="tt-line grey">(${t.dps} damage per second)</div>`;
+            }
+
+            // primary stats
+            if (t.stats && t.stats.length) {
+                h += `<div class="tt-sep"></div>`;
+                t.stats.forEach(s => { h += `<div class="tt-line green">${s}</div>`; });
+            }
+
+            // sockets
+            if (t.socket) {
+                h += `<div class="tt-sep"></div>`;
+                t.socket.colors.forEach(c => {
+                    h += `<div class="tt-line" style="color:${SOCK_COL[c] || '#fff'}">${SOCK_ICO[c] || '◆'} ${cap(c)} Socket</div>`;
+                });
+                h += `<div class="tt-line indent" style="color:#999">Socket Bonus: <span style="color:#1eff00">${t.socket.bonus}</span></div>`;
+            }
+
+            // equip lines
+            if (t.equip && t.equip.length) {
+                h += `<div class="tt-sep"></div>`;
+                t.equip.forEach(e => { h += `<div class="tt-line ${e.cls}">${e.t}</div>`; });
+            }
+
+            // use/proc
+            if (t.proc) {
+                h += `<div class="tt-sep"></div>`;
+                h += `<div class="tt-line ${t.proc.cls}">${t.proc.t}</div>`;
+            }
+
+            // set
+            if (t.set) {
+                h += `<div class="tt-sep"></div>`;
+                h += `<div class="tt-line yellow">${t.set.name} (0/${t.set.pieces.length})</div>`;
+                t.set.pieces.forEach(p => {
+                    h += `<div class="tt-line indent" style="color:${p === item.name ? '#c8c0a8' : '#555'}">${p}</div>`;
+                });
+            }
+
+            // req level
+            if (t.reqLevel) {
+                h += `<div class="tt-sep"></div>`;
+                h += `<div class="tt-req">Requires Level ${t.reqLevel}</div>`;
+            }
+
+            // flavor
+            if (t.flavor) {
+                h += `<div class="tt-sep"></div>`;
+                h += `<div class="tt-line flavor">"${t.flavor}"</div>`;
+            }
+
+            return h;
         }
-    }
-function onSearchKey(e){
-  if(e.key==='Enter') doSearch();
-  if(e.key==='Escape') document.getElementById('suggestions').classList.remove('open');
-}
-    async function doSearch() {
-        document.getElementById('suggestions').classList.remove('open');
-        const q = (document.getElementById('search-input').value || document.querySelector('.home-search')?.value || '').trim();
-        if (!q) return;
-        try {
-            const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`);
-            const results = await res.json();
-            if (results.length > 0) showDetail(results[0].type, results[0].id);
-            else toast('No results found for "' + q + '"');
-        } catch (err) {
-            // Backend offline — fall back to local data
-            const m = ALL.find(e => e._label.toLowerCase().includes(q.toLowerCase()));
-            if (m) showDetail(m._type, m.id);
+
+        function showTT(itemId, anchor) {
+            const item = ITEMS.find(i => i.id === itemId);
+            if (!item) return;
+            const h = buildTooltip(item);
+            if (!h) return;
+            ttIn.innerHTML = h;
+            ttEl.classList.add('visible');
+            posTT(anchor);
         }
-    }
-document.addEventListener('click',e=>{
-  if(!e.target.closest('#search-wrap')&&!e.target.closest('.home-search-wrap'))
-    document.getElementById('suggestions').classList.remove('open');
-});
 
-// ═══════════════════════════════════════════════════════════════
-// UPLOAD
-// ═══════════════════════════════════════════════════════════════
-function openUpload(){document.getElementById('upload-modal').classList.add('open');}
-function closeUpload(){document.getElementById('upload-modal').classList.remove('open');}
-document.getElementById('upload-modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeUpload();});
-function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag');handleFile(e.dataTransfer.files[0]);}
-function handleFile(file){
-  if(!file)return; uploadedFile=file;
-  const s=document.getElementById('upload-status');
-  s.style.display='block'; s.textContent=`✔ Selected: ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
-}
-async function submitUpload() {
-     const fileInput = document.getElementById('lua-file');
-     const status = document.getElementById('upload-status');
+        function hideTT() { ttEl.classList.remove('visible'); }
 
-      if (!fileInput.files[0]) return;
+        function posTT(anchor) {
+            const r = anchor.getBoundingClientRect();
+            const tw = ttEl.offsetWidth || 280;
+            const th = ttEl.offsetHeight || 300;
+            const vw = window.innerWidth, vh = window.innerHeight, GAP = 14;
+            let left = r.right + GAP;
+            let top = r.top;
+            if (left + tw > vw - 8) left = r.left - tw - GAP;
+            if (top + th > vh - 8) top = vh - th - 8;
+            if (top < 4) top = 4;
+            ttEl.style.left = left + 'px';
+            ttEl.style.top = top + 'px';
+        }
 
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
+        document.addEventListener('mouseover', e => {
+            const el = e.target.closest('[data-iid]');
+            if (el) { showTT(+el.dataset.iid, el); return; }
+            if (!e.target.closest('#wow-tooltip')) hideTT();
+        });
+        document.addEventListener('mousemove', e => {
+            if (!ttEl.classList.contains('visible')) return;
+            const el = e.target.closest('[data-iid]');
+            if (el) posTT(el);
+        });
 
-      status.textContent = "Uploading to server...";
-      status.style.display = 'block';
+        // ═══════════════════════════════════════════════════════════════
+        // NAV
+        // ═══════════════════════════════════════════════════════════════
+        let curList = 'npcs', activeFilters = {}, listQuery = '';
+        let uploadedFile = null;
 
-      try {
-          const response = await fetch('${API}/api/upload', {
-             method: 'POST',
-             body: formData
-         });
-            const result = await response.json();
-            status.textContent = `✔ ${result.message}`;
-            setTimeout(closeUpload, 2000);
-      } catch (err) {
-            status.textContent = "❌ Upload failed. Is the server running?";
-            status.style.borderColor = "var(--red)";
-            status.style.color = "var(--red-bright)";
-      }
-}
+        function show(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hide(id) { document.getElementById(id).classList.add('hidden'); }
+        function setMnav(tab) {
+            const names = ['home', 'npcs', 'items', 'quests', 'loot', 'zones'];
+            document.querySelectorAll('.mnav-tab').forEach((b, i) => b.classList.toggle('active', names[i] === tab));
+        }
 
-// ═══════════════════════════════════════════════════════════════
-// UTILS
-// ═══════════════════════════════════════════════════════════════
-function fmt(n){return Number(n).toLocaleString();}
-function cap(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
-function pct(r){return r<0.001?'<0.1%':r>=1?'100%':(r*100).toFixed(1)+'%';}
-function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3200);}
+        function showHome() {
+            hide('list-view'); hide('detail-view'); show('home-view');
+            setMnav('home'); renderHomePanels();
+        }
+        function showList(type) {
+            curList = type;
+            activeFilters = {};
+            listQuery = '';
+            hide('home-view'); hide('detail-view'); show('list-view');
+            setMnav(type);
+            renderList(type);
+        }
+        function showDetail(type, id) {
+            hide('home-view'); hide('list-view'); show('detail-view');
+            window.scrollTo(0, 0);
+            renderDetail(type, id); // async — runs in background, no need to await here
+        }
 
-function animCount(el,target,dur){
-  const n=parseInt(target.replace(/,/g,''));let s=0;const step=n/(dur/16);
-  const tm=setInterval(()=>{s=Math.min(s+step,n);el.textContent=Math.floor(s).toLocaleString();if(s>=n)clearInterval(tm);},16);
-}
+        // ═══════════════════════════════════════════════════════════════
+        // HOME PANELS
+        // ═══════════════════════════════════════════════════════════════
+        function iLink(item, text, extraCls) {
+            // item link with tooltip trigger
+            const cls = extraCls || QCLS[item.quality];
+            return `<a class="${cls}" data-iid="${item.id}">${text || item.name}</a>`;
+        }
+        function iLinkById(itemId, text, extraCls) {
+            const item = ITEMS.find(i => i.id === itemId);
+            if (!item) return `<span>${text || ''}</span>`;
+            return iLink(item, text || item.name, extraCls);
+        }
 
-// ═══════════════════════════════════════════════════════════════
-// BOOT
-// ═══════════════════════════════════════════════════════════════
-showHome();
-setTimeout(()=>{
-  animCount(document.getElementById('sn-kills'),'847291',1200);
-  animCount(document.getElementById('sn-items'),'12447',800);
-  animCount(document.getElementById('sn-quests'),'4832',600);
-  animCount(document.getElementById('sn-loot'),'2891044',1400);
-  animCount(document.getElementById('sn-players'),'6218',700);
-},300);
-</script>
+        async function renderHomePanels() {
+            try {
+                const [npcs, loot, quests] = await Promise.all([
+                    fetch(`${API}/api/list/npcs`).then(r => r.json()),
+                    fetch(`${API}/api/list/loot`).then(r => r.json()),
+                    fetch(`${API}/api/list/quests`).then(r => r.json()),
+                ]);
+
+                document.getElementById('hp-kills').innerHTML = npcs.slice(0, 6).map(n => {
+                    const d = n.data || n;
+                    return `<div class="panel-row" onclick="showDetail('npcs','${n.id}')">
+            <span class="panel-row-icon">${d.icon || '👹'}</span>
+            <a class="npc-name">${n.name}</a>
+            <span class="panel-row-meta">${fmt(d.kills || 0)} kills</span>
+          </div>`;
+                }).join('') || '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">No data yet.</div>';
+
+                document.getElementById('hp-loot').innerHTML = loot.slice(0, 6).map(l => {
+                    const d = l.data || l;
+                    return `<div class="panel-row" onclick="showDetail('loot','${l.id}')">
+            <span class="panel-row-icon" style="color:${QCOL[l.quality || d.quality || 0]}">◆</span>
+            <a>${l.name || d.item || 'Unknown'}</a>
+            <span class="panel-row-meta">${pct(d.rate || 0)}</span>
+          </div>`;
+                }).join('') || '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">No data yet.</div>';
+
+                document.getElementById('hp-quests').innerHTML = quests.slice(0, 6).map(q => {
+                    const d = q.data || q;
+                    return `<div class="panel-row" onclick="showDetail('quests','${q.id}')">
+            <span class="panel-row-icon">${d.icon || '📜'}</span>
+            <a>${q.name}</a>
+            <span class="panel-row-meta">${fmt(d.completions || 0)}</span>
+          </div>`;
+                }).join('') || '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">No data yet.</div>';
+
+            } catch (err) {
+                console.warn('Could not load home panels:', err);
+                ['hp-kills', 'hp-loot', 'hp-quests'].forEach(id => {
+                    document.getElementById(id).innerHTML =
+                        '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">Could not connect to server.</div>';
+                });
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // LIST CONFIG
+        // ═══════════════════════════════════════════════════════════════
+        // cachedList holds the last fetched data so filters/sorts work without re-fetching
+        let cachedList = [];
+
+        const LIST_CFG = {
+            npcs: {
+                title: 'NPCs & Mobs', icon: '👹',
+                cols: [
+                    { label: 'Name', render: r => `<td class="td-name"><span class="td-icon">${(r.data || r).icon || '👹'}</span><a class="npc-name" onclick="showDetail('npcs','${r.id}')">${r.name}</a></td>` },
+                    { label: 'Zone', render: r => `<td style="color:var(--text-dim)">${(r.data || r).zone || '—'}</td>` },
+                    { label: 'Level', render: r => `<td class="mono">${r.level || '—'}</td>` },
+                    { label: 'Type', render: r => `<td><span class="badge badge-${(r.data || r).type || 'normal'}">${cap((r.data || r).type || 'normal')}</span></td>` },
+                    { label: 'Kills', render: r => `<td class="mono" style="color:var(--gold-dark)">${fmt((r.data || r).kills || 0)}</td>` },
+                ],
+                filters: [{
+                    label: 'Type', field: '_type', items: [
+                        { label: 'All', val: '', dot: '#888' }, { label: 'Boss', val: 'boss', dot: QCOL[4] },
+                        { label: 'Elite', val: 'elite', dot: QCOL[5] }, { label: 'Rare', val: 'rare', dot: QCOL[3] }, { label: 'Normal', val: 'normal', dot: '#888' },
+                    ]
+                }],
+                sort: ['kills', 'level', 'name'],
+            },
+            items: {
+                title: 'Items', icon: '⚔',
+                cols: [
+                    { label: 'Item', render: r => `<td class="td-name"><span class="td-icon">${(r.data || r).icon || '⚔'}</span><a class="${QCLS[r.quality || 0]}" onclick="showDetail('items','${r.id}')">${r.name}</a></td>` },
+                    { label: 'Slot', render: r => `<td style="color:var(--text-dim)">${(r.data || r).slot || '—'}</td>` },
+                    { label: 'iLvl', render: r => `<td class="mono">${r.level || '—'}</td>` },
+                    { label: 'Quality', render: r => `<td class="${QCLS[r.quality || 0]}">${Q[r.quality || 0]}</td>` },
+                    { label: 'Seen', render: r => `<td class="mono" style="color:var(--gold-dark)">${fmt((r.data || r).seen || 0)}</td>` },
+                    { label: 'Source', render: r => `<td style="color:var(--text-dim)">${(r.data || r).source || '—'}</td>` },
+                ],
+                filters: [
+                    {
+                        label: 'Quality', field: 'quality', items: [
+                            { label: 'All', val: '', dot: '#888' }, { label: 'Legendary', val: 5, dot: QCOL[5] }, { label: 'Epic', val: 4, dot: QCOL[4] },
+                            { label: 'Rare', val: 3, dot: QCOL[3] }, { label: 'Uncommon', val: 2, dot: QCOL[2] }, { label: 'Common', val: 1, dot: QCOL[1] },
+                        ]
+                    },
+                ],
+                sort: ['seen', 'level', 'name'],
+            },
+            quests: {
+                title: 'Quests', icon: '📜',
+                cols: [
+                    { label: 'Quest', render: r => `<td class="td-name"><span class="td-icon">${(r.data || r).icon || '📜'}</span><a onclick="showDetail('quests','${r.id}')">${r.name}</a></td>` },
+                    { label: 'Zone', render: r => `<td style="color:var(--text-dim)">${(r.data || r).zone || '—'}</td>` },
+                    { label: 'Level', render: r => `<td class="mono">${r.level || '—'}</td>` },
+                    { label: 'Type', render: r => `<td><span class="badge badge-${(r.data || r).type || 'solo'}">${cap((r.data || r).type || 'solo')}</span></td>` },
+                    { label: 'Completions', render: r => `<td class="mono" style="color:var(--gold-dark)">${fmt((r.data || r).completions || 0)}</td>` },
+                    { label: 'XP', render: r => `<td class="mono">${(r.data || r).xp || '—'}</td>` },
+                ],
+                filters: [{
+                    label: 'Type', field: '_type', items: [
+                        { label: 'All', val: '', dot: '#888' }, { label: 'Daily', val: 'daily', dot: QCOL[5] }, { label: 'Raid', val: 'raid', dot: QCOL[4] },
+                        { label: 'Elite', val: 'elite2', dot: QCOL[3] }, { label: 'Solo', val: 'solo', dot: '#888' },
+                    ]
+                }],
+                sort: ['completions', 'level', 'name'],
+            },
+            loot: {
+                title: 'Loot Tables', icon: '💰',
+                cols: [
+                    { label: 'Item', render: r => `<td class="td-name"><span class="td-icon" style="color:${QCOL[r.quality || 0]}">◆</span><a class="${QCLS[r.quality || 0]}" onclick="showDetail('loot','${r.id}')">${r.name || 'Unknown'}</a></td>` },
+                    { label: 'Source', render: r => `<td><a class="npc-name">${(r.data || r).source || '—'}</a></td>` },
+                    { label: 'Quality', render: r => `<td class="${QCLS[r.quality || 0]}">${Q[r.quality || 0]}</td>` },
+                    { label: 'Drop Rate', render: r => `<td style="min-width:130px"><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill ${(r.quality || 0) >= 5 ? 'fill-leg' : (r.quality || 0) >= 4 ? 'fill-epic' : (r.quality || 0) >= 3 ? 'fill-rare' : ''}" style="width:${Math.min(((r.data || r).rate || 0) * 100, 100)}%"></div></div><span class="rate-text">${pct((r.data || r).rate || 0)}</span></div></td>` },
+                    { label: 'Drops', render: r => `<td class="mono" style="color:var(--gold-dark)">${fmt((r.data || r).drops || 0)}</td>` },
+                    { label: 'Samples', render: r => `<td class="mono">${fmt((r.data || r).samples || 0)}</td>` },
+                ],
+                filters: [{
+                    label: 'Quality', field: 'quality', items: [
+                        { label: 'All', val: '', dot: '#888' }, { label: 'Legendary', val: 5, dot: QCOL[5] }, { label: 'Epic', val: 4, dot: QCOL[4] },
+                        { label: 'Rare', val: 3, dot: QCOL[3] }, { label: 'Uncommon', val: 2, dot: QCOL[2] },
+                    ]
+                }],
+                sort: ['rate', 'drops', 'name'],
+            },
+            zones: {
+                title: 'Zones', icon: '🗺',
+                cols: [
+                    { label: 'Zone', render: r => `<td class="td-name"><span class="td-icon">${(r.data || r).icon || '🗺'}</span><a onclick="showDetail('zones','${r.id}')">${r.name}</a></td>` },
+                    { label: 'Type', render: r => `<td style="color:var(--text-dim)">${(r.data || r).zoneType || '—'}</td>` },
+                    { label: 'Levels', render: r => `<td class="mono">${(r.data || r).levels || '—'}</td>` },
+                    { label: 'Bosses', render: r => `<td class="mono">${(r.data || r).bosses || '—'}</td>` },
+                    { label: 'Players', render: r => `<td class="mono" style="color:var(--gold-dark)">${fmt((r.data || r).players || 0)}</td>` },
+                ],
+                filters: [{
+                    label: 'Type', field: '_zoneType', items: [
+                        { label: 'All', val: '', dot: '#888' }, { label: 'Raid', val: 'Raid', dot: QCOL[4] }, { label: 'Zone', val: 'Zone', dot: QCOL[2] },
+                    ]
+                }],
+                sort: ['players', 'name'],
+            },
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // LIST RENDERING
+        // ═══════════════════════════════════════════════════════════════
+        async function renderList(type) {
+            const cfg = LIST_CFG[type]; if (!cfg) return;
+            document.getElementById('list-icon').textContent = cfg.icon;
+            document.getElementById('list-heading').textContent = cfg.title;
+            document.getElementById('list-count').textContent = '(Loading…)';
+            const sel = document.getElementById('list-sort');
+            sel.innerHTML = `<option value="">Sort by…</option>` + cfg.sort.map(s => `<option value="${s}">${cap(s)}</option>`).join('');
+            document.getElementById('filter-panel').innerHTML = cfg.filters.map(g =>
+                `<div class="fp-group"><div class="fp-title">${g.label}</div>${g.items.map(it =>
+                    `<div class="fp-item" data-field="${g.field}" data-val="${it.val}" onclick="setFilter(this)">
+            <span class="fp-dot" style="background:${it.dot}"></span>${it.label}
+          </div>`).join('')}</div>`).join('');
+
+            try {
+                const res = await fetch(`${API}/api/list/${type}`);
+                cachedList = await res.json();
+            } catch (err) {
+                cachedList = [];
+                console.warn('Could not load list:', err);
+            }
+
+            renderTable(cfg);
+        }
+
+        function setFilter(el) {
+            const field = el.dataset.field, val = el.dataset.val;
+            document.querySelectorAll(`.fp-item[data-field="${field}"]`).forEach(e => e.classList.remove('active'));
+            el.classList.add('active');
+            if (val === '') delete activeFilters[field];
+            else activeFilters[field] = isNaN(val) ? val : Number(val);
+            renderTable(LIST_CFG[curList]);
+        }
+        function filterList(q) { listQuery = q.toLowerCase(); renderTable(LIST_CFG[curList]); }
+        function sortList(key) {
+            if (!key) return;
+            const cfg = LIST_CFG[curList];
+            const sorted = [...cachedList].sort((a, b) => {
+                const av = a[key] || (a.data && a.data[key]) || 0;
+                const bv = b[key] || (b.data && b.data[key]) || 0;
+                return typeof av === 'number' ? bv - av : String(av).localeCompare(String(bv));
+            });
+            renderRows(cfg, sorted.filter(applyFilters));
+        }
+        function applyFilters(r) {
+            for (const [f, v] of Object.entries(activeFilters)) {
+                const rv = r[f] !== undefined ? r[f] : (r.data && r.data[f]);
+                if (rv !== v) return false;
+            }
+            if (listQuery) { const t = (r.name + ' ' + JSON.stringify(r.data || {})).toLowerCase(); if (!t.includes(listQuery)) return false; }
+            return true;
+        }
+        function renderTable(cfg) {
+            const rows = cachedList.filter(applyFilters);
+            document.getElementById('list-count').textContent = `(${rows.length} results)`;
+            document.getElementById('list-thead').innerHTML = `<tr>${cfg.cols.map(c => `<th>${c.label}</th>`).join('')}</tr>`;
+            renderRows(cfg, rows);
+        }
+        function renderRows(cfg, rows) {
+            document.getElementById('list-tbody').innerHTML = rows.length
+                ? rows.map(r => `<tr onclick="showDetail('${curList}','${r.id}')">${cfg.cols.map(c => c.render(r)).join('')}</tr>`).join('')
+                : `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text-dim);font-style:italic">No records yet — upload your .lua file to contribute!</td></tr>`;
+            document.getElementById('paginator').innerHTML = rows.length > 20
+                ? `<button class="pager-btn active">1</button><button class="pager-btn">2</button><button class="pager-btn">3</button><span style="color:var(--text-dim);padding:0 4px;font-size:.7rem">…</span>` : '';
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // DETAIL
+        // ═══════════════════════════════════════════════════════════════
+        const LIST_NAMES = { npcs: 'NPCs & Mobs', items: 'Items', quests: 'Quests', loot: 'Loot Tables', zones: 'Zones' };
+
+        async function renderDetail(type, id) {
+            // Show a loading state while we wait for the server
+            document.getElementById('detail-title-block').innerHTML =
+                `<div style="padding:1.5rem;color:var(--text-dim);font-style:italic">Loading...</div>`;
+
+            let entry;
+
+            try {
+                const res = await fetch(`${API}/api/record/${type}/${id}`);
+                if (!res.ok) throw new Error('Not found');
+
+                entry = await res.json();
+                if (entry.data) entry = { ...entry, ...entry.data };
+
+            } catch (err) {
+                // Record not found or server offline
+                console.warn('Could not load record:', err);
+                entry = null;
+            }
+
+            if (!entry) {
+                document.getElementById('detail-title-block').innerHTML =
+                    `<div style="padding:1.5rem;color:var(--red-bright)">Record not found.</div>`;
+                return;
+            }
+
+            // Everything below is identical to before
+            document.getElementById('breadcrumb').innerHTML =
+                `<a onclick="showHome()">Home</a><span>›</span>` +
+                `<a onclick="showList('${type}')">${LIST_NAMES[type]}</a>` +
+                `<span>›</span>${entry.name || entry.item}`;
+
+            if (type === 'npcs') renderNpcDetail(entry);
+            if (type === 'items') renderItemDetail(entry);
+            if (type === 'quests') renderQuestDetail(entry);
+            if (type === 'loot') renderLootDetail(entry);
+            if (type === 'zones') renderZoneDetail(entry);
+        }
+
+        function setTabs(tabs) {
+            document.getElementById('detail-tabs').innerHTML = tabs.map((t, i) =>
+                `<button class="dtab ${i === 0 ? 'active' : ''}" onclick="switchTab(${i})">${t.label}${t.count != null ? `<span class="dtab-count">${t.count}</span>` : ''}</button>`).join('');
+            document.getElementById('detail-content').innerHTML = tabs.map((t, i) =>
+                `<div class="dtc-panel ${i === 0 ? 'active' : ''}" id="dtc-${i}">${t.html}</div>`).join('');
+        }
+        function switchTab(i) {
+            document.querySelectorAll('.dtab').forEach((b, j) => b.classList.toggle('active', i === j));
+            document.querySelectorAll('.dtc-panel').forEach((p, j) => p.classList.toggle('active', i === j));
+        }
+
+        function sgrid(rows) {
+            return `<div class="summary-grid">${rows.map(([k, v, cls]) => `<div class="sg"><div class="sg-label">${k}</div><div class="sg-val ${cls || ''}">${v}</div></div>`).join('')}</div>`;
+        }
+
+        function dropTable(drops, keyLabel, keyFn) {
+            if (!drops.length) return `<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No data yet — install the addon and contribute!</div>`;
+            return `<div style="overflow-x:auto"><table class="drop-table">
+        <thead><tr><th>${keyLabel}</th><th>Quality</th><th>Drop Rate</th><th>Drops</th><th>Sample</th></tr></thead>
+        <tbody>${drops.map(d => `<tr>
+          <td class="td-name">${keyFn(d)}</td>
+          <td class="${QCLS[d.quality]}">${Q[d.quality]}</td>
+          <td style="min-width:130px"><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill ${d.quality >= 5 ? 'fill-leg' : d.quality >= 4 ? 'fill-epic' : d.quality >= 3 ? 'fill-rare' : ''}" style="width:${Math.min(d.rate * 100, 100)}%"></div></div><span class="rate-text">${pct(d.rate)}</span></div></td>
+          <td class="mono" style="color:var(--gold-dark)">${fmt(d.drops)}</td>
+          <td class="mono">${fmt(d.samples)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`;
+        }
+
+        function commentsHtml(about) {
+            const msgs = [
+                { author: 'Arthaniel', cls: 'Death Knight', date: '2 days ago', text: `${about} — much easier once everyone knows the positioning. Recommend 3 healers minimum.` },
+                { author: 'Shadowmend', cls: 'Priest', date: '5 days ago', text: `Watch the enrage timer. We wiped at 2% because DPS was too slow.` },
+                { author: 'Lunaria', cls: 'Druid', date: '1 week ago', text: `Great documentation. Drop rates match what our guild tracked over ~200 attempts.` },
+            ];
+            return `<div class="comments-wrap">${msgs.map(c => `<div class="comment">
+        <div class="comment-hdr"><span class="comment-author" style="color:${CLS_COLORS[c.cls] || 'var(--gold)'}">${c.author}</span><span class="comment-date">${c.date}</span></div>
+        <div class="comment-body">${c.text}</div>
+      </div>`).join('')}</div>`;
+        }
+
+        function renderNpcDetail(npc) {
+            document.getElementById('detail-title-block').innerHTML = `
+        <div class="detail-big-icon">${npc.icon || '👹'}</div>
+        <div class="detail-info">
+          <div class="detail-name npc-name">${npc.name}</div>
+          <div class="detail-subtitle">${npc.class || 'Unknown'} · Level ${npc.level || '?'}</div>
+          <div class="detail-pills">
+            <span class="dpill">${npc.zone || 'Unknown'}</span>
+            <span class="badge badge-${npc.type || 'normal'}">${cap(npc.type || 'normal')}</span>
+            <span class="dpill">${npc.faction || 'Unknown'}</span>
+            <span class="dpill gold">${fmt(npc.kills || 0)} kills recorded</span>
+          </div>
+        </div>`;
+            setTabs([
+                { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Level', npc.level || '—'], ['Classification', npc.class || '—'], ['Faction', npc.faction || '—'], ['Type', cap(npc.type || 'normal')], ['Total Kills', fmt(npc.kills || 0)]]) },
+                { label: 'Drops', count: 0, html: '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop data yet.</div>' },
+                { label: 'Comments', count: 3, html: commentsHtml(npc.name) },
+            ]);
+            document.getElementById('detail-sidebar').innerHTML = `
+        <div class="sb-panel">
+          <div class="sb-title">Quick Stats</div>
+          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Kills</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(npc.kills || 0)}</span></div>
+          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Level</span><span class="sb-row-meta">${npc.level || '—'}</span></div>
+        </div>`;
+        }
+
+        function renderItemDetail(item) {
+            document.getElementById('detail-title-block').innerHTML = `
+        <div class="detail-big-icon">${item.icon || '⚔'}</div>
+        <div class="detail-info">
+          <div class="detail-name ${QCLS[item.quality || 0]}">${item.name}</div>
+          <div class="detail-subtitle">${item.type || 'Item'}${item.ilvl ? ' · Item Level ' + item.ilvl : ''}</div>
+          <div class="detail-pills">
+            ${item.slot ? `<span class="dpill">${item.slot}</span>` : ''}
+            <span class="dpill ${QCLS[item.quality || 0]}">${Q[item.quality || 0]}</span>
+            ${item.ilvl ? `<span class="dpill">iLvl ${item.ilvl}</span>` : ''}
+            <span class="dpill gold">${fmt(item.seen || 0)} times seen</span>
+          </div>
+        </div>`;
+            setTabs([
+                { label: 'Summary', html: sgrid([['Type', item.type || '—'], ['Slot', item.slot || '—'], ['Item Level', item.ilvl || '—'], ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]], ['Source', item.source || '—'], ['Times Seen', fmt(item.seen || 0)]]) },
+                { label: 'Comments', count: 3, html: commentsHtml(item.name) },
+            ]);
+            document.getElementById('detail-sidebar').innerHTML = '';
+        }
+
+        function renderQuestDetail(q) {
+            document.getElementById('detail-title-block').innerHTML = `
+        <div class="detail-big-icon">${q.icon || '📜'}</div>
+        <div class="detail-info">
+          <div class="detail-name">${q.name}</div>
+          <div class="detail-subtitle">${q.zone || 'Unknown'} · Level ${q.level || '?'}</div>
+          <div class="detail-pills">
+            <span class="badge badge-${q.type || 'solo'}">${cap(q.type === 'elite2' ? 'elite' : q.type || 'solo')}</span>
+            <span class="dpill">${q.zone || 'Unknown'}</span>
+            <span class="dpill gold">${fmt(q.completions || 0)} completions</span>
+          </div>
+        </div>`;
+            setTabs([
+                { label: 'Summary', html: sgrid([['Zone', q.zone || '—'], ['Level', q.level || '—'], ['Type', cap(q.type === 'elite2' ? 'elite' : q.type || 'solo')], ['XP Reward', q.xp || '—', 'q2'], ['Gold Reward', q.reward || '—'], ['Completions', fmt(q.completions || 0)]]) },
+                { label: 'Comments', count: 3, html: commentsHtml(q.name) },
+            ]);
+            document.getElementById('detail-sidebar').innerHTML = '';
+        }
+
+        function renderLootDetail(loot) {
+            document.getElementById('detail-title-block').innerHTML = `
+        <div class="detail-big-icon" style="color:${QCOL[loot.quality || 0]}">◆</div>
+        <div class="detail-info">
+          <div class="detail-name ${QCLS[loot.quality || 0]}">${loot.item || loot.name || 'Unknown'}</div>
+          <div class="detail-subtitle">Dropped by: ${loot.source || 'Unknown'}</div>
+          <div class="detail-pills">
+            <span class="dpill ${QCLS[loot.quality || 0]}">${Q[loot.quality || 0]}</span>
+            <span class="dpill gold">${pct(loot.rate || 0)} drop rate</span>
+            <span class="dpill">${fmt(loot.drops || 0)} drops / ${fmt(loot.samples || 0)} kills</span>
+          </div>
+        </div>`;
+            setTabs([
+                { label: 'Summary', html: sgrid([['Source', loot.source || '—'], ['Drop Rate', pct(loot.rate || 0), 'q2'], ['Sample Size', fmt(loot.samples || 0) + ' kills'], ['Total Drops', fmt(loot.drops || 0)], ['Quality', Q[loot.quality || 0], '' + QCLS[loot.quality || 0]]]) },
+                { label: 'Comments', count: 3, html: commentsHtml(loot.item || loot.name || 'this item') },
+            ]);
+            document.getElementById('detail-sidebar').innerHTML = '';
+        }
+
+        function renderZoneDetail(zone) {
+            document.getElementById('detail-title-block').innerHTML = `
+        <div class="detail-big-icon">${zone.icon || '🗺'}</div>
+        <div class="detail-info">
+          <div class="detail-name">${zone.name}</div>
+          <div class="detail-subtitle">${zone.zoneType || zone.type || 'Zone'} · Levels ${zone.levels || '—'}</div>
+          <div class="detail-pills">
+            <span class="dpill">${zone.zoneType || zone.type || 'Zone'}</span>
+            ${zone.bosses ? `<span class="dpill">${zone.bosses} bosses</span>` : ''}
+            <span class="dpill gold">${fmt(zone.players || 0)} players tracked</span>
+          </div>
+        </div>`;
+            setTabs([
+                { label: 'Summary', html: sgrid([['Type', zone.zoneType || zone.type || '—'], ['Levels', zone.levels || '—'], ['Bosses', zone.bosses || '—'], ['Players Tracked', fmt(zone.players || 0)]]) },
+                { label: 'Comments', count: 1, html: commentsHtml(zone.name) },
+            ]);
+            document.getElementById('detail-sidebar').innerHTML = '';
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // SEARCH
+        // ═══════════════════════════════════════════════════════════════
+        // Search uses the backend — no local ALL array needed
+
+        async function onSearch(v) {
+            const val = v.trim();
+            const sug = document.getElementById('suggestions');
+
+            // If search is too short, close the suggestions
+            if (val.length < 2) {
+                sug.classList.remove('open');
+                return;
+            }
+
+            // 1. Fetch real-time results from your Node.js backend
+            try {
+                const response = await fetch(`${API}/api/search?q=${val}`);
+                const results = await response.json();
+
+                // 2. Display the results if found
+                if (results.length > 0) {
+                    sug.innerHTML = results.map(r => `
+            <div class="sug-item" onclick="showDetail('${r.id}')">
+              <span class="sug-icon">📜</span>
+              <span style="flex:1;color:var(--text)">${r.name}</span>
+              <span class="sug-meta">${r.type.toUpperCase()} ID: ${r.id}</span>
+            </div>
+          `).join('');
+                    sug.classList.add('open');
+                } else {
+                    sug.classList.remove('open');
+                }
+            } catch (err) {
+                console.error("Search error:", err);
+            }
+        }
+        function onSearchKey(e) {
+            if (e.key === 'Enter') doSearch();
+            if (e.key === 'Escape') document.getElementById('suggestions').classList.remove('open');
+        }
+        async function doSearch() {
+            document.getElementById('suggestions').classList.remove('open');
+            const q = (document.getElementById('search-input').value || document.querySelector('.home-search')?.value || '').trim();
+            if (!q) return;
+            try {
+                const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`);
+                const results = await res.json();
+                if (results.length > 0) showDetail(results[0].type, results[0].id);
+                else toast('No results found for "' + q + '"');
+            } catch (err) {
+                toast('Could not reach server. Please try again.');
+            }
+        }
+        document.addEventListener('click', e => {
+            if (!e.target.closest('#search-wrap') && !e.target.closest('.home-search-wrap'))
+                document.getElementById('suggestions').classList.remove('open');
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // UPLOAD
+        // ═══════════════════════════════════════════════════════════════
+        function openUpload() { document.getElementById('upload-modal').classList.add('open'); }
+        function closeUpload() { document.getElementById('upload-modal').classList.remove('open'); }
+        document.getElementById('upload-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeUpload(); });
+        function handleDrop(e) { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag'); handleFile(e.dataTransfer.files[0]); }
+        function handleFile(file) {
+            if (!file) return; uploadedFile = file;
+            const s = document.getElementById('upload-status');
+            s.style.display = 'block'; s.textContent = `✔ Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        }
+        async function submitUpload() {
+            const fileInput = document.getElementById('lua-file');
+            const status = document.getElementById('upload-status');
+
+            if (!fileInput.files[0]) return;
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            status.textContent = "Uploading to server...";
+            status.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API}/api/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                status.textContent = `✔ ${result.message}`;
+                setTimeout(closeUpload, 2000);
+            } catch (err) {
+                status.textContent = "❌ Upload failed. Is the server running?";
+                status.style.borderColor = "var(--red)";
+                status.style.color = "var(--red-bright)";
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // UTILS
+        // ═══════════════════════════════════════════════════════════════
+        function fmt(n) { return Number(n).toLocaleString(); }
+        function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+        function pct(r) { return r < 0.001 ? '<0.1%' : r >= 1 ? '100%' : (r * 100).toFixed(1) + '%'; }
+        function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3200); }
+
+        function animCount(el, target, dur) {
+            const n = parseInt(String(target).replace(/,/g, '')); let s = 0; const step = n / (dur / 16);
+            const tm = setInterval(() => { s = Math.min(s + step, n); el.textContent = Math.floor(s).toLocaleString(); if (s >= n) clearInterval(tm); }, 16);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // BOOT
+        // ═══════════════════════════════════════════════════════════════
+        async function loadStats() {
+            try {
+                const [npcs, items, quests, loot] = await Promise.all([
+                    fetch(`${API}/api/list/npcs`).then(r => r.json()),
+                    fetch(`${API}/api/list/items`).then(r => r.json()),
+                    fetch(`${API}/api/list/quests`).then(r => r.json()),
+                    fetch(`${API}/api/list/loot`).then(r => r.json()),
+                ]);
+                const totalKills = npcs.reduce((sum, n) => sum + ((n.data || n).kills || 0), 0);
+                const totalDrops = loot.reduce((sum, l) => sum + ((l.data || l).drops || 0), 0);
+                animCount(document.getElementById('sn-kills'), totalKills, 1200);
+                animCount(document.getElementById('sn-items'), items.length, 800);
+                animCount(document.getElementById('sn-quests'), quests.length, 600);
+                animCount(document.getElementById('sn-loot'), totalDrops, 1400);
+                animCount(document.getElementById('sn-players'), npcs.length, 700);
+            } catch (err) {
+                console.warn('Could not load stats:', err);
+            }
+        }
+
+        showHome();
+        loadStats();
+    </script>
 </body>
 </html>
