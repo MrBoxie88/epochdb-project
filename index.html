@@ -2018,10 +2018,10 @@
             setMnav(type);
             renderList(type);
         }
-        function showDetail(type, id) {
+        async function showDetail(type, id) {
             hide('home-view'); hide('list-view'); show('detail-view');
             window.scrollTo(0, 0);
-            renderDetail(type, id);
+            await renderDetail(type, id);
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -2285,10 +2285,10 @@
                 `<a onclick="showList('${type}')">${LIST_NAMES[type]}</a>` +
                 `<span>›</span>${entry.name || entry.item}`;
 
-            if (type === 'npcs') renderNpcDetail(entry);
-            if (type === 'items') renderItemDetail(entry);
+            if (type === 'npcs') await renderNpcDetail(entry);
+            if (type === 'items') await renderItemDetail(entry);
             if (type === 'quests') renderQuestDetail(entry);
-            if (type === 'loot') renderLootDetail(entry);
+            if (type === 'loot') await renderLootDetail(entry);
             if (type === 'zones') renderZoneDetail(entry);
         }
 
@@ -2333,50 +2333,163 @@
       </div>`).join('')}</div>`;
         }
 
-        function renderNpcDetail(npc) {
+        async function renderNpcDetail(npc) {
+            const kills = npc.kills || 0;
+
             document.getElementById('detail-title-block').innerHTML = `
         <div class="detail-big-icon">${npc.icon || '👹'}</div>
         <div class="detail-info">
           <div class="detail-name npc-name">${npc.name}</div>
-          <div class="detail-subtitle">${npc.class || 'Unknown'} · Level ${npc.level || '?'}</div>
+          <div class="detail-subtitle">${npc.zone || 'Unknown'}${npc.subZone ? ' · ' + npc.subZone : ''}</div>
           <div class="detail-pills">
             <span class="dpill">${npc.zone || 'Unknown'}</span>
-            <span class="badge badge-${npc.type || 'normal'}">${cap(npc.type || 'normal')}</span>
-            <span class="dpill">${npc.faction || 'Unknown'}</span>
-            <span class="dpill gold">${fmt(npc.kills || 0)} kills recorded</span>
+            ${npc.coords ? `<span class="dpill">${npc.coords}</span>` : ''}
+            <span class="dpill gold">${fmt(kills)} kills recorded</span>
           </div>
         </div>`;
+
+            // Fetch all loot records and find ones dropped by this NPC
+            let dropRows = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Loading drops…</div>';
             setTabs([
-                { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Level', npc.level || '—'], ['Classification', npc.class || '—'], ['Faction', npc.faction || '—'], ['Type', cap(npc.type || 'normal')], ['Total Kills', fmt(npc.kills || 0)]]) },
-                { label: 'Drops', count: 0, html: '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop data yet.</div>' },
+                { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Sub-Zone', npc.subZone || '—'], ['Coords', npc.coords || '—'], ['First Kill', npc.firstKill || '—'], ['Last Kill', npc.lastKill || '—'], ['Total Kills', fmt(kills)]]) },
+                { label: 'Drops', count: '…', html: dropRows },
                 { label: 'Comments', count: 3, html: commentsHtml(npc.name) },
             ]);
+
             document.getElementById('detail-sidebar').innerHTML = `
         <div class="sb-panel">
           <div class="sb-title">Quick Stats</div>
-          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Kills</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(npc.kills || 0)}</span></div>
-          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Level</span><span class="sb-row-meta">${npc.level || '—'}</span></div>
+          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Kills</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(kills)}</span></div>
+          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Zone</span><span class="sb-row-meta">${npc.zone || '—'}</span></div>
+          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Coords</span><span class="sb-row-meta">${npc.coords || '—'}</span></div>
         </div>`;
+
+            // Now load loot data and populate the Drops tab
+            try {
+                const allLoot = await fetch(`${API}/api/list/loot`).then(r => r.json());
+                // Match loot entries where any source key starts with this NPC's name
+                const myDrops = allLoot.filter(l => {
+                    const sources = (l.data && l.data.sources) ? l.data.sources : {};
+                    return Object.keys(sources).some(src => src.startsWith(npc.name));
+                });
+
+                if (myDrops.length === 0) {
+                    dropRows = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drops recorded yet for this NPC.</div>';
+                } else {
+                    // Calculate per-item drop count from sources matching this NPC
+                    const rows = myDrops.map(l => {
+                        const d = l.data || {};
+                        const sources = d.sources || {};
+                        // Sum only drops from sources matching this NPC's name
+                        const npcDrops = Object.entries(sources)
+                            .filter(([src]) => src.startsWith(npc.name))
+                            .reduce((sum, [, cnt]) => sum + cnt, 0);
+                        const rate = kills > 0 ? npcDrops / kills : 0;
+                        const qIdx = l.quality || 0;
+                        const fillCls = qIdx >= 5 ? 'fill-leg' : qIdx >= 4 ? 'fill-epic' : qIdx >= 3 ? 'fill-rare' : '';
+                        return `<tr onclick="showDetail('loot','${l.id}')">
+                          <td class="td-name"><span style="color:${QCOL[qIdx]}">◆</span> <a class="${QCLS[qIdx]}">${l.name}</a></td>
+                          <td class="${QCLS[qIdx]}">${Q[qIdx]}</td>
+                          <td style="min-width:140px"><div class="rate-wrap">
+                            <div class="rate-bar"><div class="rate-fill ${fillCls}" style="width:${Math.min(rate*100,100)}%"></div></div>
+                            <span class="rate-text">${pct(rate)}</span>
+                          </div></td>
+                          <td class="mono" style="color:var(--gold-dark)">${fmt(npcDrops)}</td>
+                          <td class="mono">${fmt(kills)} kills</td>
+                        </tr>`;
+                    }).join('');
+                    dropRows = `<div style="overflow-x:auto"><table class="drop-table">
+                        <thead><tr><th>Item</th><th>Quality</th><th>Drop Rate</th><th>Drops</th><th>Sample</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table></div>`;
+                }
+            } catch(e) {
+                dropRows = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Could not load drop data.</div>';
+            }
+
+            // Re-render tabs with real drop data
+            setTabs([
+                { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Sub-Zone', npc.subZone || '—'], ['Coords', npc.coords || '—'], ['First Kill', npc.firstKill || '—'], ['Last Kill', npc.lastKill || '—'], ['Total Kills', fmt(kills)]]) },
+                { label: 'Drops', count: myDrops ? myDrops.length : 0, html: dropRows },
+                { label: 'Comments', count: 3, html: commentsHtml(npc.name) },
+            ]);
         }
 
-        function renderItemDetail(item) {
+        async function renderItemDetail(item) {
+            const slot = item.slot ? item.slot.replace('INVTYPE_', '').replace(/_/g, ' ') : '';
             document.getElementById('detail-title-block').innerHTML = `
         <div class="detail-big-icon">${item.icon || '⚔'}</div>
         <div class="detail-info">
           <div class="detail-name ${QCLS[item.quality || 0]}">${item.name}</div>
-          <div class="detail-subtitle">${item.type || 'Item'}${item.ilvl ? ' · Item Level ' + item.ilvl : ''}</div>
+          <div class="detail-subtitle">${item.type || 'Item'}${item.subType && item.subType !== item.type ? ' · ' + item.subType : ''}${item.ilvl ? ' · iLvl ' + item.ilvl : ''}</div>
           <div class="detail-pills">
-            ${item.slot ? `<span class="dpill">${item.slot}</span>` : ''}
+            ${slot ? `<span class="dpill">${slot}</span>` : ''}
             <span class="dpill ${QCLS[item.quality || 0]}">${Q[item.quality || 0]}</span>
             ${item.ilvl ? `<span class="dpill">iLvl ${item.ilvl}</span>` : ''}
             <span class="dpill gold">${fmt(item.seen || 0)} times seen</span>
           </div>
         </div>`;
+
             setTabs([
-                { label: 'Summary', html: sgrid([['Type', item.type || '—'], ['Slot', item.slot || '—'], ['Item Level', item.ilvl || '—'], ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]], ['Source', item.source || '—'], ['Times Seen', fmt(item.seen || 0)]]) },
+                { label: 'Summary', html: sgrid([['Type', item.type || '—'], ['Sub-Type', item.subType || '—'], ['Slot', slot || '—'], ['Item Level', item.ilvl || '—'], ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]], ['First Seen', item.firstSeen || '—']]) },
+                { label: 'Dropped By', count: '…', html: '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Loading sources…</div>' },
                 { label: 'Comments', count: 3, html: commentsHtml(item.name) },
             ]);
             document.getElementById('detail-sidebar').innerHTML = '';
+
+            // Fetch the loot record for this item to get its sources
+            let droppedByHtml;
+            let sourceCount = 0;
+            try {
+                const lootRecord = await fetch(`${API}/api/record/loot/${item.id}`).then(r => r.ok ? r.json() : null);
+                if (lootRecord && lootRecord.data && lootRecord.data.sources) {
+                    const sources = lootRecord.data.sources;
+                    sourceCount = Object.keys(sources).length;
+
+                    if (sourceCount === 0) {
+                        droppedByHtml = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop sources recorded yet.</div>';
+                    } else {
+                        // Fetch NPC kill counts so we can calculate rates
+                        const allNpcs = await fetch(`${API}/api/list/npcs`).then(r => r.json());
+                        const npcKillMap = {};
+                        for (const n of allNpcs) {
+                            npcKillMap[n.name] = (n.data && n.data.kills) ? n.data.kills : 0;
+                        }
+
+                        const totalDrops = lootRecord.data.drops || 0;
+                        const rows = Object.entries(sources).map(([src, cnt]) => {
+                            // src is like "Elder Mottled Boar (44.00, 15.13)" — extract base name
+                            const baseName = src.replace(/\s*\([\d., ]+\)$/, '').replace(/_/g, ' ');
+                            const kills = npcKillMap[baseName] || 0;
+                            const rate = kills > 0 ? cnt / kills : 0;
+                            const fillCls = lootRecord.quality >= 5 ? 'fill-leg' : lootRecord.quality >= 4 ? 'fill-epic' : lootRecord.quality >= 3 ? 'fill-rare' : '';
+                            return `<tr onclick="showList('npcs')">
+                              <td class="td-name"><span class="td-icon">👹</span><a class="npc-name">${src}</a></td>
+                              <td class="mono" style="color:var(--gold-dark)">${fmt(cnt)}</td>
+                              <td style="min-width:140px"><div class="rate-wrap">
+                                <div class="rate-bar"><div class="rate-fill ${fillCls}" style="width:${Math.min(rate*100,100)}%"></div></div>
+                                <span class="rate-text">${kills > 0 ? pct(rate) : '—'}</span>
+                              </div></td>
+                              <td class="mono">${kills > 0 ? fmt(kills) + ' kills' : 'No kill data'}</td>
+                            </tr>`;
+                        }).join('');
+                        droppedByHtml = `<div style="overflow-x:auto"><table class="drop-table">
+                            <thead><tr><th>Source</th><th>Drops</th><th>Drop Rate</th><th>Sample</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table></div>`;
+                    }
+                } else {
+                    droppedByHtml = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Not recorded as a drop yet — only seen in bags.</div>';
+                }
+            } catch(e) {
+                droppedByHtml = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Could not load source data.</div>';
+            }
+
+            setTabs([
+                { label: 'Summary', html: sgrid([['Type', item.type || '—'], ['Sub-Type', item.subType || '—'], ['Slot', slot || '—'], ['Item Level', item.ilvl || '—'], ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]], ['First Seen', item.firstSeen || '—']]) },
+                { label: 'Dropped By', count: sourceCount, html: droppedByHtml },
+                { label: 'Comments', count: 3, html: commentsHtml(item.name) },
+            ]);
         }
 
         function renderQuestDetail(q) {
@@ -2398,23 +2511,79 @@
             document.getElementById('detail-sidebar').innerHTML = '';
         }
 
-        function renderLootDetail(loot) {
+        async function renderLootDetail(loot) {
+            const drops = loot.drops || 0;
+            const samples = loot.samples || 0;
+            const overallRate = samples > 0 ? drops / samples : 0;
+            const qIdx = loot.quality || 0;
+
             document.getElementById('detail-title-block').innerHTML = `
-        <div class="detail-big-icon" style="color:${QCOL[loot.quality || 0]}">◆</div>
+        <div class="detail-big-icon" style="color:${QCOL[qIdx]}">◆</div>
         <div class="detail-info">
-          <div class="detail-name ${QCLS[loot.quality || 0]}">${loot.item || loot.name || 'Unknown'}</div>
-          <div class="detail-subtitle">Dropped by: ${loot.source || 'Unknown'}</div>
+          <div class="detail-name ${QCLS[qIdx]}">${loot.item || loot.name || 'Unknown'}</div>
+          <div class="detail-subtitle">Drop data · ${Q[qIdx]} quality</div>
           <div class="detail-pills">
-            <span class="dpill ${QCLS[loot.quality || 0]}">${Q[loot.quality || 0]}</span>
-            <span class="dpill gold">${pct(loot.rate || 0)} drop rate</span>
-            <span class="dpill">${fmt(loot.drops || 0)} drops / ${fmt(loot.samples || 0)} kills</span>
+            <span class="dpill ${QCLS[qIdx]}">${Q[qIdx]}</span>
+            <span class="dpill gold">${pct(overallRate)} overall drop rate</span>
+            <span class="dpill">${fmt(drops)} drops recorded</span>
           </div>
         </div>`;
+
             setTabs([
-                { label: 'Summary', html: sgrid([['Source', loot.source || '—'], ['Drop Rate', pct(loot.rate || 0), 'q2'], ['Sample Size', fmt(loot.samples || 0) + ' kills'], ['Total Drops', fmt(loot.drops || 0)], ['Quality', Q[loot.quality || 0], '' + QCLS[loot.quality || 0]]]) },
+                { label: 'Summary', html: sgrid([['Quality', Q[qIdx], '' + QCLS[qIdx]], ['Overall Drop Rate', pct(overallRate), 'q2'], ['Total Drops', fmt(drops)], ['Unique Sources', '…']]) },
+                { label: 'Sources', count: '…', html: '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Loading sources…</div>' },
                 { label: 'Comments', count: 3, html: commentsHtml(loot.item || loot.name || 'this item') },
             ]);
             document.getElementById('detail-sidebar').innerHTML = '';
+
+            // Build the per-source breakdown
+            let sourcesHtml;
+            let sourceCount = 0;
+            try {
+                const sources = loot.sources || {};
+                sourceCount = Object.keys(sources).length;
+
+                // Fetch NPC kill data to calculate per-source rates
+                const allNpcs = await fetch(`${API}/api/list/npcs`).then(r => r.json());
+                const npcKillMap = {};
+                for (const n of allNpcs) {
+                    npcKillMap[n.name] = (n.data && n.data.kills) ? n.data.kills : 0;
+                }
+
+                if (sourceCount === 0) {
+                    sourcesHtml = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No source data recorded yet.</div>';
+                } else {
+                    const fillCls = qIdx >= 5 ? 'fill-leg' : qIdx >= 4 ? 'fill-epic' : qIdx >= 3 ? 'fill-rare' : '';
+                    // Sort sources by drop count descending
+                    const sorted = Object.entries(sources).sort(([,a],[,b]) => b - a);
+                    const rows = sorted.map(([src, cnt]) => {
+                        const baseName = src.replace(/\s*\([\d., ]+\)$/, '').replace(/_/g, ' ');
+                        const kills = npcKillMap[baseName] || 0;
+                        const rate = kills > 0 ? cnt / kills : 0;
+                        return `<tr>
+                          <td class="td-name"><span class="td-icon">👹</span><a class="npc-name" onclick="showList('npcs')">${src}</a></td>
+                          <td class="mono" style="color:var(--gold-dark)">${fmt(cnt)}</td>
+                          <td style="min-width:140px"><div class="rate-wrap">
+                            <div class="rate-bar"><div class="rate-fill ${fillCls}" style="width:${Math.min(rate*100,100)}%"></div></div>
+                            <span class="rate-text">${kills > 0 ? pct(rate) : '—'}</span>
+                          </div></td>
+                          <td class="mono">${kills > 0 ? fmt(kills) + ' kills' : 'No kill data'}</td>
+                        </tr>`;
+                    }).join('');
+                    sourcesHtml = `<div style="overflow-x:auto"><table class="drop-table">
+                        <thead><tr><th>Source NPC</th><th>Drops</th><th>Drop Rate</th><th>Sample</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table></div>`;
+                }
+            } catch(e) {
+                sourcesHtml = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Could not load source data.</div>';
+            }
+
+            setTabs([
+                { label: 'Summary', html: sgrid([['Quality', Q[qIdx], '' + QCLS[qIdx]], ['Overall Drop Rate', pct(overallRate), 'q2'], ['Total Drops', fmt(drops)], ['Unique Sources', fmt(sourceCount)]]) },
+                { label: 'Sources', count: sourceCount, html: sourcesHtml },
+                { label: 'Comments', count: 3, html: commentsHtml(loot.item || loot.name || 'this item') },
+            ]);
         }
 
         function renderZoneDetail(zone) {
