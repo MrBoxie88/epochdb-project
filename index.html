@@ -2021,20 +2021,7 @@
         function showDetail(type, id) {
             hide('home-view'); hide('list-view'); show('detail-view');
             window.scrollTo(0, 0);
-            renderDetail(type, id); // async — runs in background, no need to await here
-
-            if (data.effects && data.effects.length > 0) {
-                // Add a header for the effects section
-                html += `<div class="detail-section-header">Item Effects</div>`;
-
-                // Loop through each effect (Equip, Use, etc.) and add it to the HTML
-                html += `<div class="effects-container">`;
-                data.effects.forEach(effect => {
-                    // We wrap it in a div and apply a specific class for styling
-                    html += `<div class="item-effect">${effect}</div>`;
-                });
-                html += `</div>`;
-            }
+            renderDetail(type, id);
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -2292,16 +2279,6 @@
                 return;
             }
 
-            if (data.effects && data.effects.length > 0) {
-                html += `
-                <div class="detail-section">
-                    <div class="section-label">Effects</div>
-                    <div class="effects-list">
-                        ${data.effects.map(eff => `<div class="effect-line">${eff}</div>`).join('')}
-                    </div>
-                </div>`;
-            }
-
             // Everything below is identical to before
             document.getElementById('breadcrumb').innerHTML =
                 `<a onclick="showHome()">Home</a><span>›</span>` +
@@ -2531,30 +2508,44 @@
             s.style.display = 'block'; s.textContent = `✔ Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
         }
         async function submitUpload() {
-            const fileInput = document.getElementById('lua-file');
-            const status = document.getElementById('upload-status');
-
-            if (!fileInput.files[0]) return;
-
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            status.textContent = "Uploading to server...";
-            status.style.display = 'block';
-
-            try {
-                const response = await fetch(`${API}/api/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
-                const result = await response.json();
-                status.textContent = `✔ ${result.message}`;
-                setTimeout(closeUpload, 2000);
-            } catch (err) {
-                status.textContent = "❌ Upload failed. Is the server running?";
-                status.style.borderColor = "var(--red)";
-                status.style.color = "var(--red-bright)";
+            if (!uploadedFile) {
+                alert("Please select your SavedVariables .lua file first!");
+                return;
             }
+            const status = document.getElementById('upload-status');
+            status.style.display = 'block';
+            status.style.borderColor = '';
+            status.style.color = '';
+            status.textContent = "Reading file...";
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const fileContent = e.target.result;
+                status.textContent = "Uploading to EpochDB...";
+                try {
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: fileContent
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        status.textContent = `✔ Success! ${result.items} records updated.`;
+                        setTimeout(closeUpload, 2000);
+                    } else {
+                        status.textContent = "❌ Upload failed: " + (result.error || "Unknown Error");
+                        status.style.borderColor = "var(--red)";
+                        status.style.color = "var(--red-bright)";
+                    }
+                } catch (err) {
+                    status.textContent = "❌ Error: Could not reach the server.";
+                    status.style.borderColor = "var(--red)";
+                    status.style.color = "var(--red-bright)";
+                    console.error(err);
+                }
+            };
+            reader.onerror = () => alert("Error reading file.");
+            reader.readAsText(uploadedFile);
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -2592,60 +2583,6 @@
                 console.warn('Could not load stats:', err);
             }
         }
-
-     // Logic to handle the file upload
-     const modalSubmit = document.querySelector('.modal-submit');
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file'; // Hidden file input
-
-        // Trigger file picker when clicking the dashed zone
-        document.querySelector('.upload-zone').onclick = () => fileInput.click();
-
-        // Replace your existing modalSubmit event listener with this:
-        const modalSubmit = document.querySelector('.modal-submit');
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.lua';
-
-        document.querySelector('.upload-zone').onclick = () => fileInput.click();
-
-        modalSubmit.addEventListener('click', async () => {
-            const file = fileInput.files[0];
-            if (!file) return alert("Please select your SavedVariables .lua file first!");
-
-            const status = document.getElementById('upload-status');
-            status.style.display = 'block';
-            status.innerText = "Reading file...";
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const fileContent = e.target.result;
-                status.innerText = "Uploading to EpochDB...";
-
-                try {
-                    // We use the relative path because of netlify.toml redirects
-                    const response = await fetch('/api/upload', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain' },
-                        body: fileContent
-                    });
-
-                    const result = await response.json();
-                    if (response.ok) {
-                        status.innerText = `Success! ${result.items} records updated.`;
-                        setTimeout(() => location.reload(), 1500);
-                    } else {
-                        status.innerText = "Upload failed: " + (result.error || "Unknown Error");
-                    }
-                } catch (err) {
-                    status.innerText = "Error: Could not reach the server.";
-                    console.error(err);
-                }
-            };
-
-            reader.onerror = () => alert("Error reading file.");
-            reader.readAsText(file);
-        });
 
         showHome();
         loadStats();
