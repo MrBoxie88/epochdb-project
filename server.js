@@ -42,18 +42,35 @@ mongoose.connect(MONGODB_URI)
     .then(() => console.log("Successfully connected to MongoDB"))
     .catch(err => console.error("Database connection error:", err));
 
-// ═══════════════════════════════════════════════════════════════
-// 3. LUA PARSER LOGIC
-// ═══════════════════════════════════════════════════════════════
+// Known metadata keys that appear as ["key"] = number but are NOT NPC names
+const METADATA_KEYS = new Set([
+    'ilvl', 'quality', 'count', 'sessions', 'level', 'id', 'type',
+    'timestamp', 'version', 'seen', 'drops', 'samples', 'rate',
+    'kills', 'items', 'quests', 'loot', 'zones', 'players'
+]);
+
+function isValidNpcKey(key) {
+    const name = key.split('|')[0];
+    if (METADATA_KEYS.has(name.toLowerCase())) return false;
+    if (/^\d+$/.test(name)) return false;
+    if (!/[A-Z ]/.test(name)) return false;
+    return true;
+}
+
 function parseLuaFile(filePath) {
     const content = fs.readFileSync(filePath, 'utf8');
     const data = { kills: {}, items: {} };
 
-    // Regex to find NPC kill counts: ["NPC_NAME|ZONE"] = count
-    const killRegex = /\["(.+?)"\]\s*=\s*(\d+)/g;
+    // Scope to the kills table if we can find it
+    const killsTableMatch = content.match(/\w*[Kk]ills\w*\s*=\s*\{([\s\S]*?)\n\}/);
+    const scope = killsTableMatch ? killsTableMatch[1] : content;
+
+    const killRegex = /^\s*\["(.+?)"\]\s*=\s*(\d+)/gm;
     let match;
-    while ((match = killRegex.exec(content)) !== null) {
-        const [fullId, count] = [match[1], parseInt(match[2])];
+    while ((match = killRegex.exec(scope)) !== null) {
+        const fullId = match[1];
+        const count = parseInt(match[2]);
+        if (!isValidNpcKey(fullId)) continue;
         const name = fullId.split('|')[0];
         data.kills[fullId] = { name, count };
     }

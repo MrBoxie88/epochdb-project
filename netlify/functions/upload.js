@@ -6,13 +6,41 @@ const RecordSchema = new mongoose.Schema({
 });
 const Record = mongoose.models.Record || mongoose.model('Record', RecordSchema);
 
-// Helper to parse Lua from a string (since we have no file system)
+// Known metadata keys that appear as ["key"] = number in the Lua file
+// but are NOT NPC names — filter these out.
+const METADATA_KEYS = new Set([
+    'ilvl', 'quality', 'count', 'sessions', 'level', 'id', 'type',
+    'timestamp', 'version', 'seen', 'drops', 'samples', 'rate',
+    'kills', 'items', 'quests', 'loot', 'zones', 'players'
+]);
+
+// A valid NPC kill entry must:
+//   1. Not be a known metadata key
+//   2. Contain at least one uppercase letter OR a space (real names have these)
+//   3. Not be purely numeric
+function isValidNpcKey(key) {
+    const name = key.split('|')[0]; // strip zone part if present
+    if (METADATA_KEYS.has(name.toLowerCase())) return false;
+    if (/^\d+$/.test(name)) return false;
+    if (!/[A-Z ]/.test(name)) return false; // must have a capital or space
+    return true;
+}
+
+// Helper to parse Lua from a string — only reads entries inside the Kills table
 function parseLuaContent(content) {
     const data = { kills: {} };
-    const killRegex = /\["(.+?)"\]\s*=\s*(\d+)/g;
+
+    // Find the kills table block: EpochDB_Kills = { ... } or similar
+    // We look for a top-level table that contains NPC entries
+    const killsTableMatch = content.match(/\w*[Kk]ills\w*\s*=\s*\{([\s\S]*?)\n\}/);
+    const scope = killsTableMatch ? killsTableMatch[1] : content;
+
+    const killRegex = /^\s*\["(.+?)"\]\s*=\s*(\d+)/gm;
     let match;
-    while ((match = killRegex.exec(content)) !== null) {
-        const [fullId, count] = [match[1], parseInt(match[2])];
+    while ((match = killRegex.exec(scope)) !== null) {
+        const fullId = match[1];
+        const count = parseInt(match[2]);
+        if (!isValidNpcKey(fullId)) continue;
         const name = fullId.split('|')[0];
         data.kills[fullId] = { name, count };
     }
