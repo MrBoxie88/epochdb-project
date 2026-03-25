@@ -394,6 +394,9 @@ td.mono{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--tex
 <div id="wow-tooltip"><div class="tt-frame"><div class="tt-inner" id="tt-inner"></div></div></div>
 
 <script>
+
+    const API = 'https://epochdb-api.onrender.com';
+
 // ═══════════════════════════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════════════════════════
@@ -861,7 +864,7 @@ const LIST_NAMES={npcs:'NPCs & Mobs',items:'Items',quests:'Quests',loot:'Loot Ta
         let entry;
 
         try {
-            const res = await fetch(`http://localhost:3000/api/record/${type}/${id}`);
+            const res = await fetch(`${API}/api/record/${type}/${id}`);
             if (!res.ok) throw new Error('Not found');
 
             entry = await res.json();                              
@@ -1086,7 +1089,7 @@ const GLABELS={npcs:'NPCs',items:'Items',quests:'Quests',zones:'Zones'};
 
         // 1. Fetch real-time results from your Node.js backend
         try {
-            const response = await fetch(`http://localhost:3000/api/search?q=${val}`);
+            const response = await fetch(`${API}/api/search?q=${val}`);
             const results = await response.json();
 
             // 2. Display the results if found
@@ -1115,7 +1118,7 @@ function onSearchKey(e){
         const q = (document.getElementById('search-input').value || document.querySelector('.home-search')?.value || '').trim();
         if (!q) return;
         try {
-            const res = await fetch(`http://localhost:3000/api/search?q=${encodeURIComponent(q)}`);
+            const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`);
             const results = await res.json();
             if (results.length > 0) showDetail(results[0].type, results[0].id);
             else toast('No results found for "' + q + '"');
@@ -1155,7 +1158,7 @@ async function submitUpload() {
       status.style.display = 'block';
 
       try {
-         const response = await fetch('http://localhost:3000/api/upload', {
+          const response = await fetch('${API}/api/upload', {
              method: 'POST',
              body: formData
          });
