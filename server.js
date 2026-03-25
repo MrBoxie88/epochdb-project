@@ -315,6 +315,45 @@ async function saveToDatabase(parsed) {
     return stats;
 }
 
+// 4. UPLOAD & SYNC ENDPOINT
+app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+        // Parse the Lua file using your existing parser
+        const parsedData = parseLuaFile(req.file.path);
+
+        // Prepare bulk operations for MongoDB
+        const ops = [];
+
+        // Example: Syncing Kills/NPCs
+        for (const key in parsedData.kills) {
+            const kill = parsedData.kills[key];
+            ops.push({
+                updateOne: {
+                    filter: { type: 'npcs', id: key }, // Using name|zone as ID
+                    update: {
+                        $set: { name: kill.name, level: 0 },
+                        $inc: { "data.kills": kill.count }
+                    },
+                    upsert: true
+                }
+            });
+        }
+
+        // Execute bulk write
+        if (ops.length > 0) await Record.bulkWrite(ops);
+
+        // Clean up the uploaded temp file
+        fs.unlinkSync(req.file.path);
+
+        res.json({ message: "Database updated successfully", items: ops.length });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Processing failed" });
+    }
+});
+
 // ═══════════════════════════════════════════════════════════════
 // 5. FILE UPLOAD ENDPOINT
 // ═══════════════════════════════════════════════════════════════

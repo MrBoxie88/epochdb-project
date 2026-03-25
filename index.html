@@ -12,6 +12,41 @@
             padding: 0
         }
 
+        /* Container for the effects list */
+        .effects-container {
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3); /* Darkens the area behind effects */
+            border-radius: 4px;
+            border-left: 2px solid var(--gold); /* Adds a thematic accent line */
+        }
+
+        /* Header for the section */
+        .detail-section-header {
+            color: var(--gold);
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+
+        /* The actual effect text (Equip/Use) */
+        .item-effect {
+            color: #1eff00; /* The classic WoW "Green" for item effects */
+            font-family: 'Crimson Text', serif;
+            font-size: 1rem;
+            line-height: 1.4;
+            margin-bottom: 6px;
+            font-style: italic;
+        }
+
+            /* Optional: If the effect is a "Use" effect, you can make it slightly different */
+            .item-effect:contains("Use:") {
+                color: #1eff00;
+            }
+
         :root {
             --gold: #c8a84b;
             --gold-light: #e8cc7a;
