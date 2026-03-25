@@ -442,4 +442,52 @@ app.get('/', (req, res) => {
     res.json({ status: 'EpochDB API is running' });
 });
 
+// ═══════════════════════════════════════════════════════════════
+// UPLOAD & PARSE ROUTE
+// ═══════════════════════════════════════════════════════════════
+app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded." });
+        }
+
+        // 1. Parse the uploaded Lua file
+        const parsedData = parseLuaFile(req.file.path);
+        const ops = [];
+
+        // 2. Prepare database updates (Example for NPCs/Kills)
+        if (parsedData.kills) {
+            for (const [id, details] of Object.entries(parsedData.kills)) {
+                ops.push({
+                    updateOne: {
+                        filter: { type: 'npcs', id: id },
+                        update: {
+                            $set: { name: details.name },
+                            $inc: { "data.kills": details.count }
+                        },
+                        upsert: true
+                    }
+                });
+            }
+        }
+
+        // 3. Execute updates to MongoDB
+        if (ops.length > 0) {
+            await Record.bulkWrite(ops);
+        }
+
+        // 4. Delete the temporary file from /uploads folder
+        fs.unlinkSync(req.file.path);
+
+        res.json({
+            message: "Database updated successfully!",
+            recordsProcessed: ops.length
+        });
+
+    } catch (err) {
+        console.error("Upload Error:", err);
+        res.status(500).json({ error: "Failed to process file." });
+    }
+});
+
 app.listen(3000, () => console.log('Backend server running at http://localhost:3000'));
