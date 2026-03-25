@@ -2601,32 +2601,50 @@
         // Trigger file picker when clicking the dashed zone
         document.querySelector('.upload-zone').onclick = () => fileInput.click();
 
+        // Replace your existing modalSubmit event listener with this:
+        const modalSubmit = document.querySelector('.modal-submit');
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.lua';
+
+        document.querySelector('.upload-zone').onclick = () => fileInput.click();
+
         modalSubmit.addEventListener('click', async () => {
             const file = fileInput.files[0];
-            if (!file) return alert("Please select a file first!");
-
-            const formData = new FormData();
-            formData.append('luaFile', file);
+            if (!file) return alert("Please select your SavedVariables .lua file first!");
 
             const status = document.getElementById('upload-status');
             status.style.display = 'block';
-            status.innerText = "Uploading and parsing...";
+            status.innerText = "Reading file...";
 
-            try {
-                const response = await fetch('http://localhost:5000/api/upload', {
-                    method: 'POST',
-                    body: formData
-                });
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const fileContent = e.target.result;
+                status.innerText = "Uploading to EpochDB...";
 
-                if (response.ok) {
-                    status.innerText = "Success! Database updated.";
-                    setTimeout(() => location.reload(), 1500); // Reload to show new stats
-                } else {
-                    status.innerText = "Upload failed. Check server logs.";
+                try {
+                    // We use the relative path because of netlify.toml redirects
+                    const response = await fetch('/api/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: fileContent
+                    });
+
+                    const result = await response.json();
+                    if (response.ok) {
+                        status.innerText = `Success! ${result.items} records updated.`;
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        status.innerText = "Upload failed: " + (result.error || "Unknown Error");
+                    }
+                } catch (err) {
+                    status.innerText = "Error: Could not reach the server.";
+                    console.error(err);
                 }
-            } catch (err) {
-                status.innerText = "Error: Could not connect to server.";
-            }
+            };
+
+            reader.onerror = () => alert("Error reading file.");
+            reader.readAsText(file);
         });
 
         showHome();
