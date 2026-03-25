@@ -1,3 +1,8 @@
 node_modules/
 uploads/
 .env
+.vs/epochdb-project.slnx/config/applicationhost.config
+.vs/epochdb-project.slnx/FileContentIndex/e9f9e8e1-d679-448f-b8f3-bca6a8fac160.vsidx
+.vs/epochdb-project.slnx/v18/.wsuo
+.vs/epochdb-project.slnx/v18/DocumentLayout.json
+.vs/slnx.sqlite
