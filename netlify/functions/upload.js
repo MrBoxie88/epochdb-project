@@ -166,8 +166,31 @@ exports.handler = async (event) => {
             return { statusCode: 400, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ error: 'No file data provided' }) };
         }
 
-        await mongoose.connect(process.env.NETLIFY_DATABASE_URL || process.env.MONGODB_URI);
-        console.log(`[UPLOAD] Database connected`);
+        const dbUri = process.env.NETLIFY_DATABASE_URL || process.env.MONGODB_URI;
+        console.log(`[UPLOAD] Database URI source:`, process.env.NETLIFY_DATABASE_URL ? 'NETLIFY_DATABASE_URL' : 'MONGODB_URI');
+        console.log(`[UPLOAD] Database URI (first 50 chars):`, dbUri ? dbUri.substring(0, 50) + '...' : 'UNDEFINED');
+
+        if (!dbUri) {
+            const errorMsg = 'Database URI not configured. Set NETLIFY_DATABASE_URL or MONGODB_URI environment variable.';
+            console.error(`[UPLOAD] ${errorMsg}`);
+            return { 
+                statusCode: 500, 
+                headers: { 'Access-Control-Allow-Origin': '*' }, 
+                body: JSON.stringify({ error: errorMsg }) 
+            };
+        }
+
+        try {
+            await mongoose.connect(dbUri);
+            console.log(`[UPLOAD] Database connected successfully`);
+        } catch (dbConnErr) {
+            console.error(`[UPLOAD] Database connection failed:`, dbConnErr.message);
+            return { 
+                statusCode: 500, 
+                headers: { 'Access-Control-Allow-Origin': '*' }, 
+                body: JSON.stringify({ error: `Database connection failed: ${dbConnErr.message}` }) 
+            };
+        }
 
         let luaContent = event.body;
         if (event.isBase64Encoded) {
