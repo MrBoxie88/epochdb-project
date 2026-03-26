@@ -2957,16 +2957,26 @@
 
         ];
 
-        // LocalStorage keys for saved kill times
-        const LS_KEY = 'epochdb_timers_v1';
+        // Support multiple realms for timers (Gurubashi, Kezan)
+        const REALMS = ['Gurubashi', 'Kezan'];
+        let CUR_REALM = localStorage.getItem('epochdb_timer_realm') || REALMS[0];
+        const LS_KEY_BASE = 'epochdb_timers_v1';
+        function realmKey() { return LS_KEY_BASE + '_' + CUR_REALM; }
         function loadKillTimes() {
-            try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) { return {}; }
+            try { return JSON.parse(localStorage.getItem(realmKey()) || '{}'); } catch (e) { return {}; }
         }
         function saveKillTime(id, ts) {
-            const d = loadKillTimes(); d[id] = ts; localStorage.setItem(LS_KEY, JSON.stringify(d));
+            const d = loadKillTimes(); d[id] = ts; localStorage.setItem(realmKey(), JSON.stringify(d));
         }
         function clearKillTime(id) {
-            const d = loadKillTimes(); delete d[id]; localStorage.setItem(LS_KEY, JSON.stringify(d));
+            const d = loadKillTimes(); delete d[id]; localStorage.setItem(realmKey(), JSON.stringify(d));
+        }
+        function setRealm(r) {
+            if (!REALMS.includes(r)) return;
+            CUR_REALM = r;
+            localStorage.setItem('epochdb_timer_realm', r);
+            renderTimers();
+            toast(`Realm switched to ${r}`);
         }
 
         function msToCountdown(ms) {
@@ -3007,7 +3017,10 @@
                 html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
                             <div>
                                 <div style="font-family:'Cinzel',serif;font-size:1.4rem;font-weight:900;color:var(--gold);text-shadow:0 0 20px rgba(200,168,75,.3)">⏱ RAID TIMERS</div>
-                                <div style="font-size:.85rem;color:var(--text-dim);font-style:italic;margin-top:.2rem">Project Epoch — Gurubashi realm</div>
+                                <div style="font-size:.85rem;color:var(--text-dim);font-style:italic;margin-top:.2rem">Project Epoch — <span id="realm-label">${CUR_REALM}</span> realm</div>
+                                <div style="margin-top:.5rem">
+                                    ${REALMS.map(r => `<button class="pager-btn" style="margin-right:8px;${r===CUR_REALM?`background:var(--gold-dark);color:var(--gold-light);border-color:var(--gold-dark)`:''}" onclick="setRealm('${r}')">${r}</button>`).join('')}
+                                </div>
                             </div>
                             <div style="font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--text-dim);text-align:right">
                                 <div>Server time (UTC)</div>
