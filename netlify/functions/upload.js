@@ -134,7 +134,7 @@ function parseLuaContent(content) {
 // NETLIFY HANDLER
 // ═══════════════════════════════════════════════════════════════
 exports.handler = async (event) => {
-    if (event.httpMethod !== 'POST') return { statusCode: 405, body: 'Method Not Allowed' };
+    if (event.httpMethod !== 'POST') return { statusCode: 405, headers: { 'Access-Control-Allow-Origin': '*' }, body: 'Method Not Allowed' };
 
     try {
         await mongoose.connect(process.env.MONGODB_URI);
@@ -199,7 +199,7 @@ exports.handler = async (event) => {
 
         return {
             statusCode: 200,
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
             body: JSON.stringify({
                 message: 'Sync Success',
                 items: ops.length,
@@ -208,6 +208,6 @@ exports.handler = async (event) => {
         };
     } catch (err) {
         console.error('Upload error:', err);
-        return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
+        return { statusCode: 500, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ error: err.message }) };
     }
 };

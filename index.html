@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EpochDB — Project Epoch Database</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -1925,6 +1926,7 @@
             <button class="tnav-btn" onclick="showList('quests')">Quests</button>
             <button class="tnav-btn" onclick="showList('loot')">Loot</button>
             <button class="tnav-btn" onclick="showTimers()">⏱ Timers</button>
+            <button id="id-btn" class="tnav-btn" onclick="onAuthClick()">Login</button>
             <button class="upload-btn" onclick="openUpload()">⬆ Upload Data</button>
         </div>
     </div>
@@ -2034,7 +2036,8 @@
 
     <script>
 
-        const API = 'https://epochdb-api.onrender.com';
+        // Use Netlify Functions endpoints (redirects in netlify.toml map /api/* to functions)
+        const API = '';
 
         // ═══════════════════════════════════════════════════════════════
         // DATA
@@ -2475,11 +2478,12 @@
                 `<a onclick="showList('${type}')">${LIST_NAMES[type]}</a>` +
                 `<span>›</span>${entry.name || entry.item}`;
 
-            if (type === 'npcs') await renderNpcDetail(entry);
-            if (type === 'items') await renderItemDetail(entry);
-            if (type === 'quests') renderQuestDetail(entry);
-            if (type === 'loot') await renderLootDetail(entry);
-            if (type === 'zones') renderZoneDetail(entry);
+            const commentsKey = `${type}:${id}`;
+            if (type === 'npcs') await renderNpcDetail(entry, commentsKey);
+            if (type === 'items') await renderItemDetail(entry, commentsKey);
+            if (type === 'quests') renderQuestDetail(entry, commentsKey);
+            if (type === 'loot') await renderLootDetail(entry, commentsKey);
+            if (type === 'zones') renderZoneDetail(entry, commentsKey);
         }
 
         function setTabs(tabs) {
@@ -2511,19 +2515,134 @@
               </table></div>`;
         }
 
-        function commentsHtml(about) {
-            const msgs = [
-                { author: 'Arthaniel', cls: 'Death Knight', date: '2 days ago', text: `${about} — much easier once everyone knows the positioning. Recommend 3 healers minimum.` },
-                { author: 'Shadowmend', cls: 'Priest', date: '5 days ago', text: `Watch the enrage timer. We wiped at 2% because DPS was too slow.` },
-                { author: 'Lunaria', cls: 'Druid', date: '1 week ago', text: `Great documentation. Drop rates match what our guild tracked over ~200 attempts.` },
-            ];
-            return `<div class="comments-wrap">${msgs.map(c => `<div class="comment">
-                <div class="comment-hdr"><span class="comment-author" style="color:${CLS_COLORS[c.cls] || 'var(--gold)'}">${c.author}</span><span class="comment-date">${c.date}</span></div>
-                <div class="comment-body">${c.text}</div>
-              </div>`).join('')}</div>`;
+        // Server-backed comments using Netlify Function at /api/comments
+        const COMMENTS_API = '/api/comments';
+
+        function idFromKey(key) { return 'comments_' + String(key).replace(/[^a-zA-Z0-9_-]/g, '_'); }
+        function formatDate(ts) { const d = new Date(ts); return d.toLocaleString(); }
+        function escapeHtml(s) { const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}; return String(s || '').replace(/[&<>"']/g, c => map[c]); }
+
+        async function loadComments(key) {
+            const id = idFromKey(key);
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.innerHTML = `<div style="padding:1rem;color:var(--text-dim)">Loading comments…</div>`;
+            const [type, recId] = key.split(':');
+            try {
+                const res = await fetch(`${API || ''}${COMMENTS_API}/${type}/${recId}`);
+                if (!res.ok) throw new Error('Could not load');
+                const comments = await res.json();
+                renderCommentsInto(key, comments);
+            } catch (err) {
+                el.innerHTML = `<div style="padding:1rem;color:var(--text-dim)">Could not load comments.</div>`;
+            }
         }
 
-        function renderNpcDetail(npc) {
+        function renderCommentsInto(key, comments) {
+            const id = idFromKey(key);
+            const container = document.getElementById(id);
+            if (!container) return;
+            const user = (window.netlifyIdentity && netlifyIdentity.currentUser()) || window.EPOCH_USER || null;
+
+            let formHtml = '';
+            if (!user) {
+                formHtml = `<div style="padding:.8rem;color:var(--text-dim)">Please <a onclick="netlifyIdentity.open()">log in</a> to post comments.</div>`;
+            } else {
+                const name = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user.email || '';
+                formHtml = `
+                    <div style="padding:.8rem">
+                        <div style="display:flex;gap:.5rem;margin-bottom:.5rem;align-items:center">
+                            <div style="font-size:.85rem;color:var(--text-dim)">Logged in as <strong style="color:var(--text-bright)">${escapeHtml(name)}</strong></div>
+                            <input id="c-class-${id}" class="list-search" placeholder="Class (optional)" style="width:140px;margin-left:auto">
+                        </div>
+                        <textarea id="c-text-${id}" placeholder="Write a comment..." style="width:100%;height:72px;padding:.5rem;border:1px solid var(--border);background:var(--bg-card);color:var(--text);resize:vertical"></textarea>
+                        <div style="margin-top:.5rem;display:flex;gap:.5rem">
+                            <button class="modal-submit" onclick="postComment(${JSON.stringify(key)})">Post Comment</button>
+                            <button class="modal-close" style="background:none;border:1px solid var(--border);color:var(--text-dim);padding:.45rem .8rem" onclick="clearCommentForm(${JSON.stringify(key)})">Clear</button>
+                        </div>
+                    </div>`;
+            }
+
+            const listHtml = comments.length ? comments.map(c => `
+                <div class="comment">
+                    <div class="comment-hdr">
+                        <span class="comment-author" style="color:${CLS_COLORS[c.cls] || 'var(--gold)'}">${escapeHtml(c.author || 'Anonymous')}</span>
+                        <span class="comment-date">${formatDate(c.ts)}</span>
+                    </div>
+                    <div class="comment-body">${escapeHtml(c.text)}</div>
+                    <div style="padding:.4rem .8rem;display:flex;gap:.5rem;justify-content:flex-end">
+                        <button class="pager-btn" style="font-size:.68rem" onclick="deleteComment(${JSON.stringify(key)}, '${c._id}')">Delete</button>
+                    </div>
+                </div>
+            `).join('') : `<div style="padding:1rem;color:var(--text-dim);font-style:italic">No comments yet — be the first to post.</div>`;
+
+            container.innerHTML = `<div style="padding:.6rem;border-bottom:1px solid var(--border)"><div style="font-family:'Cinzel',serif;font-size:.68rem;color:var(--text-dim);letter-spacing:.12em;text-transform:uppercase">Comments <span style="margin-left:.6rem;font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-dim)">(${comments.length})</span></div></div>${formHtml}<div class="comments-wrap" style="padding:.8rem">${listHtml}</div>`;
+            // update tab count
+            document.querySelectorAll('.dtab').forEach(b => {
+                if (b.textContent && b.textContent.includes('Comments')) {
+                    const sp = b.querySelector('.dtab-count'); if (sp) sp.textContent = comments.length;
+                }
+            });
+        }
+
+        function clearCommentForm(key) {
+            const id = idFromKey(key);
+            const cl = document.getElementById('c-class-' + id); if (cl) cl.value = '';
+            const t = document.getElementById('c-text-' + id); if (t) t.value = '';
+        }
+
+        async function postComment(key) {
+            const user = (window.netlifyIdentity && netlifyIdentity.currentUser()) || window.EPOCH_USER || null;
+            if (!user) { if (window.netlifyIdentity) netlifyIdentity.open(); else toast('Please log in to comment.'); return; }
+            const id = idFromKey(key);
+            const classEl = document.getElementById('c-class-' + id);
+            const textEl = document.getElementById('c-text-' + id);
+            if (!textEl) return;
+            const text = textEl.value.trim();
+            const author = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user.email || 'Anonymous';
+            const cls = classEl && classEl.value.trim() ? classEl.value.trim() : '';
+            if (!text) { toast('Please enter a comment.'); return; }
+            const [type, recId] = key.split(':');
+            try {
+                // get a JWT from netlifyIdentity
+                let token = null;
+                try { if (netlifyIdentity && netlifyIdentity.currentUser && typeof netlifyIdentity.currentUser().jwt === 'function') token = await netlifyIdentity.currentUser().jwt(); } catch (e) { /* ignore */ }
+                if (!token && user.token && user.token.access_token) token = user.token.access_token;
+                if (!token) { toast('Auth token not available. Please re-login.'); netlifyIdentity.open(); return; }
+
+                const res = await fetch(`${API || ''}${COMMENTS_API}/${type}/${recId}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ text, cls, author })
+                });
+                if (!res.ok) throw new Error('Post failed');
+                await loadComments(key);
+            } catch (err) { console.error(err); toast('Could not post comment.'); }
+        }
+
+        async function deleteComment(key, commentId) {
+            const user = (window.netlifyIdentity && netlifyIdentity.currentUser()) || window.EPOCH_USER || null;
+            if (!user) { toast('Login required'); return; }
+            const [type, recId] = key.split(':');
+            try {
+                let token = null;
+                try { if (netlifyIdentity && netlifyIdentity.currentUser && typeof netlifyIdentity.currentUser().jwt === 'function') token = await netlifyIdentity.currentUser().jwt(); } catch (e) { /* ignore */ }
+                if (!token && user.token && user.token.access_token) token = user.token.access_token;
+                if (!token) { toast('Auth token not available. Please re-login.'); netlifyIdentity.open(); return; }
+
+                const res = await fetch(`${API || ''}${COMMENTS_API}/${type}/${recId}/${commentId}`, {
+                    method: 'DELETE', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({})
+                });
+                if (!res.ok) {
+                    const j = await res.json().catch(() => null);
+                    toast((j && j.error) || 'Could not delete comment');
+                    return;
+                }
+                await loadComments(key);
+            } catch (err) { toast('Could not delete comment.'); }
+        }
+
+        function renderNpcDetail(npc, commentKey) {
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon">${npc.icon || '👹'}</div>
                 <div class="detail-info">
@@ -2536,11 +2655,13 @@
                     <span class="dpill gold">${fmt(npc.kills || 0)} kills recorded</span>
                   </div>
                 </div>`;
+            const commentsId = idFromKey(commentKey);
             setTabs([
                 { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Level', npc.level || '—'], ['Classification', npc.class || '—'], ['Faction', npc.faction || '—'], ['Type', cap(npc.type || 'normal')], ['Total Kills', fmt(npc.kills || 0)]]) },
                 { label: 'Drops', count: 0, html: '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop data yet.</div>' },
-                { label: 'Comments', count: 3, html: commentsHtml(npc.name) },
+                { label: 'Comments', count: 0, html: `<div id="${commentsId}">Loading comments…</div>` },
             ]);
+            loadComments(commentKey);
             document.getElementById('detail-sidebar').innerHTML = `
                 <div class="sb-panel">
                   <div class="sb-title">Quick Stats</div>
@@ -2549,7 +2670,7 @@
                 </div>`;
         }
 
-        function renderItemDetail(item) {
+        function renderItemDetail(item, commentKey) {
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon">${item.icon || '⚔'}</div>
                 <div class="detail-info">
@@ -2562,14 +2683,16 @@
                     <span class="dpill gold">${fmt(item.seen || 0)} times seen</span>
                   </div>
                 </div>`;
+            const commentsId2 = idFromKey(commentKey);
             setTabs([
                 { label: 'Summary', html: sgrid([['Type', item.type || '—'], ['Slot', item.slot || '—'], ['Item Level', item.ilvl || '—'], ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]], ['Source', item.source || '—'], ['Times Seen', fmt(item.seen || 0)]]) },
-                { label: 'Comments', count: 3, html: commentsHtml(item.name) },
+                { label: 'Comments', count: 0, html: `<div id="${commentsId2}">Loading comments…</div>` },
             ]);
+            loadComments(commentKey);
             document.getElementById('detail-sidebar').innerHTML = '';
         }
 
-        function renderQuestDetail(q) {
+        function renderQuestDetail(q, commentKey) {
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon">${q.icon || '📜'}</div>
                 <div class="detail-info">
@@ -2581,14 +2704,16 @@
                     <span class="dpill gold">${fmt(q.completions || 0)} completions</span>
                   </div>
                 </div>`;
+            const commentsId3 = idFromKey(commentKey);
             setTabs([
                 { label: 'Summary', html: sgrid([['Zone', q.zone || '—'], ['Level', q.level || '—'], ['Type', cap(q.type === 'elite2' ? 'elite' : q.type || 'solo')], ['XP Reward', q.xp || '—', 'q2'], ['Gold Reward', q.reward || '—'], ['Completions', fmt(q.completions || 0)]]) },
-                { label: 'Comments', count: 3, html: commentsHtml(q.name) },
+                { label: 'Comments', count: 0, html: `<div id="${commentsId3}">Loading comments…</div>` },
             ]);
+            loadComments(commentKey);
             document.getElementById('detail-sidebar').innerHTML = '';
         }
 
-        function renderLootDetail(loot) {
+        function renderLootDetail(loot, commentKey) {
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon" style="color:${QCOL[loot.quality || 0]}">◆</div>
                 <div class="detail-info">
@@ -2600,14 +2725,16 @@
                     <span class="dpill">${fmt(loot.drops || 0)} drops / ${fmt(loot.samples || 0)} kills</span>
                   </div>
                 </div>`;
+            const commentsId4 = idFromKey(commentKey);
             setTabs([
                 { label: 'Summary', html: sgrid([['Source', loot.source || '—'], ['Drop Rate', pct(loot.rate || 0), 'q2'], ['Sample Size', fmt(loot.samples || 0) + ' kills'], ['Total Drops', fmt(loot.drops || 0)], ['Quality', Q[loot.quality || 0], '' + QCLS[loot.quality || 0]]]) },
-                { label: 'Comments', count: 3, html: commentsHtml(loot.item || loot.name || 'this item') },
+                { label: 'Comments', count: 0, html: `<div id="${commentsId4}">Loading comments…</div>` },
             ]);
+            loadComments(commentKey);
             document.getElementById('detail-sidebar').innerHTML = '';
         }
 
-        function renderZoneDetail(zone) {
+        function renderZoneDetail(zone, commentKey) {
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon">${zone.icon || '🗺'}</div>
                 <div class="detail-info">
@@ -2619,10 +2746,12 @@
                     <span class="dpill gold">${fmt(zone.players || 0)} players tracked</span>
                   </div>
                 </div>`;
+            const commentsId5 = idFromKey(commentKey);
             setTabs([
                 { label: 'Summary', html: sgrid([['Type', zone.zoneType || zone.type || '—'], ['Levels', zone.levels || '—'], ['Bosses', zone.bosses || '—'], ['Players Tracked', fmt(zone.players || 0)]]) },
-                { label: 'Comments', count: 1, html: commentsHtml(zone.name) },
+                { label: 'Comments', count: 0, html: `<div id="${commentsId5}">Loading comments…</div>` },
             ]);
+            loadComments(commentKey);
             document.getElementById('detail-sidebar').innerHTML = '';
         }
 
@@ -2810,7 +2939,7 @@
                 name: 'Volchan',
                 icon: '🌋',
                 zone: 'Burning Steppes',
-                type: 'World Boss (Custom)',
+                type: 'World Boss',
                 resetMs: 7 * MS.d,
                 spawnNote: 'Wanders Burning Steppes. 5-minute zone-wide alert before spawn. Zone goes PvP-enabled on spawn. 2-hour kill window.',
                 wbpvp: true,
@@ -2887,7 +3016,7 @@
                         </div>`;
 
                 html += `<div class="timers-note">
-                            Raid resets are based on a fixed weekly Wednesday 09:00 UTC schedule for 7-day raids, and every 3 days for ZG/AQ20.
+                            Raid resets are based on a fixed weekly Wednesday 09:00 UTC schedule for 7-day raids, and every 5 days for Onyxyia.
                             World boss timers can be tracked manually — click <strong style="color:var(--gold)">Mark as Killed</strong> after a kill to start your personal countdown.
                             World bosses on Project Epoch trigger a <strong style="color:var(--red-bright)">zone-wide PvP event</strong> — cross-faction groups are disbanded and the zone becomes a battleground 5 minutes before spawn.
                         </div>`;
@@ -3037,6 +3166,7 @@
             renderTimers();
         }
 
+        initIdentity();
         showHome();
         loadStats();
     </script>
