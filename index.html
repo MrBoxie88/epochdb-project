@@ -1926,7 +1926,7 @@
             <button class="tnav-btn" onclick="showList('quests')">Quests</button>
             <button class="tnav-btn" onclick="showList('loot')">Loot</button>
             <button class="tnav-btn" onclick="showTimers()">⏱ Timers</button>
-            <button id="id-btn" class="tnav-btn" onclick="onAuthClick()">Login</button>
+            <button id="id-btn" class="tnav-btn upload-btn" onclick="onAuthClick()">Login</button>
             <button class="upload-btn" onclick="openUpload()">⬆ Upload Data</button>
         </div>
     </div>
@@ -3164,6 +3164,32 @@
         function clearWBKill(id) {
             clearKillTime(id);
             renderTimers();
+        }
+
+        // Netlify Identity helpers (re-added to enable login/logout)
+        function initIdentity() {
+            if (!window.netlifyIdentity) return;
+            netlifyIdentity.on('init', user => updateAuthUI(user));
+            netlifyIdentity.on('login', user => { updateAuthUI(user); netlifyIdentity.close(); });
+            netlifyIdentity.on('logout', () => { updateAuthUI(null); });
+            netlifyIdentity.init();
+            updateAuthUI(netlifyIdentity.currentUser());
+        }
+
+        function updateAuthUI(user) {
+            window.EPOCH_USER = user || null;
+            const btn = document.getElementById('id-btn');
+            if (!btn) return;
+            if (user) {
+                const name = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user.email || 'User';
+                btn.textContent = `Logout (${name})`;
+            } else btn.textContent = 'Login';
+        }
+
+        function onAuthClick() {
+            if (!window.netlifyIdentity) { toast('Auth not available'); return; }
+            const u = netlifyIdentity.currentUser();
+            if (u) netlifyIdentity.logout(); else netlifyIdentity.open();
         }
 
         initIdentity();
