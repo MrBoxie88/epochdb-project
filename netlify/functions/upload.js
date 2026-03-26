@@ -65,10 +65,15 @@ function parseEntries(tableContent) {
 function parseLuaContent(content) {
     const result = { kills: [], items: [], loot: [] };
 
+    console.log(`[PARSE] Starting Lua parse`);
+    console.log(`[PARSE] Content size: ${content.length} bytes`);
+
     // ── KILLS ──
     const killsTable = extractTable('kills', content);
     if (killsTable) {
-        for (const { key, block } of parseEntries(killsTable)) {
+        const killEntries = parseEntries(killsTable);
+        console.log(`[PARSE] Found kills table with ${killEntries.length} entries`);
+        for (const { key, block } of killEntries) {
             result.kills.push({
                 key,
                 name:      getStr('name', block)      || key.split('|')[0],
@@ -80,12 +85,16 @@ function parseLuaContent(content) {
                 lastKill:  getStr('lastKill', block)  || '',
             });
         }
+    } else {
+        console.log(`[PARSE] No kills table found`);
     }
 
     // ── ITEMS ──
     const itemsTable = extractTable('items', content);
     if (itemsTable) {
-        for (const { key, block } of parseEntries(itemsTable)) {
+        const itemEntries = parseEntries(itemsTable);
+        console.log(`[PARSE] Found items table with ${itemEntries.length} entries`);
+        for (const { key, block } of itemEntries) {
             result.items.push({
                 id:        getStr('id', block)        || key,
                 name:      getStr('name', block)      || '',
@@ -97,12 +106,16 @@ function parseLuaContent(content) {
                 firstSeen: getStr('firstSeen', block) || '',
             });
         }
+    } else {
+        console.log(`[PARSE] No items table found`);
     }
 
     // ── LOOT ──
     const lootTable = extractTable('loot', content);
     if (lootTable) {
-        for (const { key, block } of parseEntries(lootTable)) {
+        const lootEntries = parseEntries(lootTable);
+        console.log(`[PARSE] Found loot table with ${lootEntries.length} entries`);
+        for (const { key, block } of lootEntries) {
             const sources = {};
             const sourcesInner = extractTable('sources', block);
             if (sourcesInner) {
@@ -125,8 +138,11 @@ function parseLuaContent(content) {
                 lastSeen:  getStr('lastSeen', block)  || '',
             });
         }
+    } else {
+        console.log(`[PARSE] No loot table found`);
     }
 
+    console.log(`[PARSE] Complete: ${result.kills.length} kills, ${result.items.length} items, ${result.loot.length} loot`);
     return result;
 }
 
@@ -134,12 +150,32 @@ function parseLuaContent(content) {
 // NETLIFY HANDLER
 // ═══════════════════════════════════════════════════════════════
 exports.handler = async (event) => {
-    if (event.httpMethod !== 'POST') return { statusCode: 405, headers: { 'Access-Control-Allow-Origin': '*' }, body: 'Method Not Allowed' };
+    console.log(`[UPLOAD] Received ${event.httpMethod} request`);
+
+    if (event.httpMethod !== 'POST') {
+        return { statusCode: 405, headers: { 'Access-Control-Allow-Origin': '*' }, body: 'Method Not Allowed' };
+    }
 
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
+        console.log(`[UPLOAD] Request headers:`, JSON.stringify(event.headers, null, 2));
+        console.log(`[UPLOAD] Body size: ${event.body ? event.body.length : 0} bytes`);
+        console.log(`[UPLOAD] Is multipart:`, event.isBase64Encoded ? 'base64' : 'raw');
 
-        const parsed = parseLuaContent(event.body);
+        if (!event.body) {
+            console.warn(`[UPLOAD] Empty body`);
+            return { statusCode: 400, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ error: 'No file data provided' }) };
+        }
+
+        await mongoose.connect(process.env.NETLIFY_DATABASE_URL || process.env.MONGODB_URI);
+        console.log(`[UPLOAD] Database connected`);
+
+        let luaContent = event.body;
+        if (event.isBase64Encoded) {
+            console.log(`[UPLOAD] Decoding base64 content`);
+            luaContent = Buffer.from(event.body, 'base64').toString('utf-8');
+        }
+
+        const parsed = parseLuaContent(luaContent);
         const ops = [];
 
         // Sync kills
@@ -195,19 +231,34 @@ exports.handler = async (event) => {
             });
         }
 
-        if (ops.length > 0) await Record.bulkWrite(ops);
+        if (ops.length > 0) {
+            console.log(`[UPLOAD] Executing ${ops.length} bulk write operations`);
+            await Record.bulkWrite(ops);
+            console.log(`[UPLOAD] MongoDB bulk write successful`);
+        } else {
+            console.warn(`[UPLOAD] No operations generated from parsed data`);
+        }
+
+        const response = {
+            message: 'Sync Success',
+            items: ops.length,
+            breakdown: { kills: parsed.kills.length, items: parsed.items.length, loot: parsed.loot.length }
+        };
+
+        console.log(`[UPLOAD] Returning response:`, JSON.stringify(response));
 
         return {
             statusCode: 200,
             headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({
-                message: 'Sync Success',
-                items: ops.length,
-                breakdown: { kills: parsed.kills.length, items: parsed.items.length, loot: parsed.loot.length }
-            })
+            body: JSON.stringify(response)
         };
     } catch (err) {
-        console.error('Upload error:', err);
-        return { statusCode: 500, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ error: err.message }) };
+        console.error('[UPLOAD] Fatal error:', err.message);
+        console.error('[UPLOAD] Stack trace:', err.stack);
+        return { 
+            statusCode: 500, 
+            headers: { 'Access-Control-Allow-Origin': '*' }, 
+            body: JSON.stringify({ error: err.message }) 
+        };
     }
 };
