@@ -2004,12 +2004,12 @@
 
     </div>
 
-    </div><!-- end #page -->
+        <!-- TIMERS VIEW -->
+        <div id="timers-view" class="hidden">
+            <div id="timers-inner"></div>
+        </div>
 
-    <!-- TIMERS VIEW -->
-    <div id="timers-view" class="hidden">
-        <div id="timers-inner"></div>
-    </div>
+    </div><!-- end #page -->
 
     <!-- UPLOAD MODAL -->
     <div class="modal-overlay" id="upload-modal">
@@ -2475,10 +2475,10 @@
                 `<a onclick="showList('${type}')">${LIST_NAMES[type]}</a>` +
                 `<span>›</span>${entry.name || entry.item}`;
 
-            if (type === 'npcs') renderNpcDetail(entry);
-            if (type === 'items') renderItemDetail(entry);
+            if (type === 'npcs') await renderNpcDetail(entry);
+            if (type === 'items') await renderItemDetail(entry);
             if (type === 'quests') renderQuestDetail(entry);
-            if (type === 'loot') renderLootDetail(entry);
+            if (type === 'loot') await renderLootDetail(entry);
             if (type === 'zones') renderZoneDetail(entry);
         }
 
@@ -2775,13 +2775,11 @@
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // TIMER CONFIGURATION
+        // RAID & WORLD BOSS TIMERS
         // ═══════════════════════════════════════════════════════════════
-        // const WORLD_BOSSES = [
-        //    { id: 'onyxia', name: 'Onyxia', respawn: 120 }, // 120 Hours = 5 Days
-        //    { id: 'kazzak', name: 'Lord Kazzak', respawn: 72 },
-        //    { id: 'azuregos', name: 'Azuregos', respawn: 72 }
-        ];
+
+        // All times in milliseconds
+        const MS = { s: 1000, m: 60000, h: 3600000, d: 86400000 };
 
         const RAIDS = [
             {
@@ -2791,96 +2789,18 @@
                 zone: 'Dustwallow Marsh',
                 size: '25-man',
                 tier: 'Tier 1',
-                resetMs: 7 * MS.d,
-                resetDay: 3, // Wednesday (0=Sun)
-                resetHour: 9, // 9 AM server
-                bosses: [
-                    { name: 'Ortorg the Sentinel', type: 'Custom' },
-                    { name: 'Atressian the Keeper', type: 'Custom' },
-                    { name: 'Onyxia', type: 'Final Boss' },
-                ],
-                note: '25-player. Reworked with 3 bosses. Weekly reset Wednesday.'
-            },
-            //{
-               // id: 'mc',
-               // name: 'Molten Core',
-               // icon: '🔥',
-               // zone: 'Blackrock Mountain',
-               // size: '25-man',
-               // tier: 'Tier 1',
-               // resetMs: 7 * MS.d,
-               // resetDay: 3,
-               // resetHour: 9,
-               // bosses: [
-               //     { name: 'Lucifron', type: 'Boss' },
-               //     { name: 'Magmadar', type: 'Boss' },
-               //     { name: 'Gehennas', type: 'Boss' },
-               //     { name: 'Garr', type: 'Boss' },
-               //     { name: 'Shazzrah', type: 'Boss' },
-               //     { name: 'Baron Geddon', type: 'Boss' },
-               //     { name: 'Golemagg the Incinerator', type: 'Boss' },
-              //      { name: 'Sulfuron Harbinger', type: 'Boss' },
-               //     { name: 'Majordomo Executus', type: 'Boss' },
-                //    { name: 'Ragnaros', type: 'Final Boss' },
-                // ],
-                // note: '25-player. Weekly reset Wednesday. Bring fire resistance gear.'
-            //},
-            {
-                id: 'zg',
-                name: "Zul'Gurub",
-                icon: '🐍',
-                zone: 'Stranglethorn Vale',
-                size: '10-man',
-                tier: 'Minor Raid',
-                resetMs: 3 * MS.d,
-                resetDay: 3,
-                resetHour: 9,
-                bosses: [
-                    { name: "High Priest Venoxis", type: 'Boss' },
-                    { name: "High Priestess Jeklik", type: 'Boss' },
-                    { name: "High Priest Thekal", type: 'Boss' },
-                    { name: "High Priestess Arlokk", type: 'Boss' },
-                    { name: "High Priestess Mar'li", type: 'Boss' },
-                    { name: "Bloodlord Mandokir", type: 'Boss' },
-                    { name: "Jin'do the Hexxer", type: 'Boss' },
-                    { name: "Hakkar the Soulflayer", type: 'Final Boss' },
-                ],
-                note: '10-player. 3-day reset (resets twice per week).'
+                resetMs: 5 * MS.d,
+                note: '25-player. Weekly reset every 5 days.'
             },
             {
-                id: 'aq20',
-                name: 'Ruins of Ahn\'Qiraj',
-                icon: '🦂',
-                zone: 'Silithus',
-                size: '10-man',
-                tier: 'Minor Raid',
-                resetMs: 3 * MS.d,
-                resetDay: 3,
-                resetHour: 9,
-                bosses: [
-                    { name: 'Kurinnaxx', type: 'Boss' },
-                    { name: 'General Rajaxx', type: 'Boss' },
-                    { name: 'Moam', type: 'Boss' },
-                    { name: 'Buru the Gorger', type: 'Boss' },
-                    { name: 'Ayamiss the Hunter', type: 'Boss' },
-                    { name: "Ossirian the Unscarred", type: 'Final Boss' },
-                ],
-                note: '10-player. 3-day reset (resets twice per week).'
-            },
-            {
-                id: 'uldum',
-                name: 'Uldum',
-                icon: '🏺',
-                zone: 'Uldum',
+                id: 'mc',
+                name: 'Molten Core',
+                icon: '🔥',
+                zone: 'Blackrock Mountain',
                 size: '25-man',
-                tier: 'Tier 2 (Custom)',
+                tier: 'Tier 1',
                 resetMs: 7 * MS.d,
-                resetDay: 3,
-                resetHour: 9,
-                bosses: [
-                    { name: 'Unknown Bosses', type: 'Custom' },
-                ],
-                note: 'Project Epoch Tier 2 custom raid. Weekly reset. Full encounter list TBD at content release.'
+                note: '25-player. Weekly reset Wednesday. Bring fire resistance gear.'
             },
         ];
 
@@ -3033,19 +2953,12 @@
                         <div class="timer-card-body">
                             <div class="timer-meta-row"><span>Zone</span><span>${raid.zone}</span></div>
                             <div class="timer-meta-row"><span>Tier</span><span style="color:var(--gold)">${raid.tier}</span></div>
-                            <div class="timer-meta-row"><span>Bosses</span><span>${raid.bosses.length}</span></div>
                             <div class="timer-meta-row"><span>Last Reset</span><span>${lastDate}</span></div>
                             <div class="timer-meta-row"><span>Next Reset</span><span>${nextDate}</span></div>
                             <div class="timer-countdown-wrap">
                                 <div class="timer-countdown-label">Resets In</div>
                                 <div class="timer-countdown ${cls}" id="cd-${raid.id}">${str}</div>
                                 <div class="timer-bar-wrap"><div class="timer-bar ${cls}" style="width:${pct.toFixed(1)}%" id="bar-${raid.id}"></div></div>
-                            </div>
-                            <div class="timer-boss-list">
-                                ${raid.bosses.map(b => `<div class="timer-boss-row">
-                                    <span class="timer-boss-name">${b.name}</span>
-                                    <span class="timer-boss-type">${b.type}</span>
-                                </div>`).join('')}
                             </div>
                             ${raid.note ? `<div style="margin-top:.6rem;font-size:.78rem;color:var(--text-dim);font-style:italic">${raid.note}</div>` : ''}
                         </div>
