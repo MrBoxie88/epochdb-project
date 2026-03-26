@@ -86,11 +86,24 @@ function parseEntries(tableContent) {
 }
 
 function parseLuaFile(filePath) {
-    const content = fs.readFileSync(filePath, 'utf8');
+    let content = fs.readFileSync(filePath, 'utf8');
     const result = { kills: [], items: [], loot: [] };
 
     console.log(`[PARSE] Starting Lua parse from: ${filePath}`);
     console.log(`[PARSE] File size: ${content.length} bytes`);
+
+    // Extract the EpochDBData table from SavedVariables format
+    // SavedVariables format: EpochDBData = { ... }
+    // We need to extract just the { ... } part for the parser
+    console.log(`[PARSE] Checking for SavedVariables format (EpochDBData = {...})`);
+    const savedVarsMatch = content.match(/^EpochDBData\s*=\s*(\{[\s\S]*\})[\s\S]*$/);
+
+    if (savedVarsMatch) {
+        console.log(`[PARSE] Detected SavedVariables format, extracting data table`);
+        content = savedVarsMatch[1];
+    } else {
+        console.log(`[PARSE] Not SavedVariables format, using content as-is (raw table format)`);
+    }
 
     // ── KILLS ──
     const killsTable = extractTable('kills', content);

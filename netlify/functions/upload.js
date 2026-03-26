@@ -175,6 +175,19 @@ exports.handler = async (event) => {
             luaContent = Buffer.from(event.body, 'base64').toString('utf-8');
         }
 
+        // Extract the EpochDBData table from SavedVariables format
+        // SavedVariables format: EpochDBData = { ... }
+        // We need to extract just the { ... } part for the parser
+        console.log(`[UPLOAD] Checking for SavedVariables format (EpochDBData = {...})`);
+        const savedVarsMatch = luaContent.match(/^EpochDBData\s*=\s*(\{[\s\S]*\})[\s\S]*$/);
+
+        if (savedVarsMatch) {
+            console.log(`[UPLOAD] Detected SavedVariables format, extracting data table`);
+            luaContent = savedVarsMatch[1];
+        } else {
+            console.log(`[UPLOAD] Not SavedVariables format, using content as-is (raw table format)`);
+        }
+
         const parsed = parseLuaContent(luaContent);
         const ops = [];
 
