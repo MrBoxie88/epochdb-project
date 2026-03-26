@@ -2777,10 +2777,10 @@
         // ═══════════════════════════════════════════════════════════════
         // TIMER CONFIGURATION
         // ═══════════════════════════════════════════════════════════════
-        const WORLD_BOSSES = [
-            { id: 'onyxia', name: 'Onyxia', respawn: 120 }, // 120 Hours = 5 Days
-            { id: 'kazzak', name: 'Lord Kazzak', respawn: 72 },
-            { id: 'azuregos', name: 'Azuregos', respawn: 72 }
+        // const WORLD_BOSSES = [
+        //    { id: 'onyxia', name: 'Onyxia', respawn: 120 }, // 120 Hours = 5 Days
+        //    { id: 'kazzak', name: 'Lord Kazzak', respawn: 72 },
+        //    { id: 'azuregos', name: 'Azuregos', respawn: 72 }
         ];
 
         const RAIDS = [
@@ -2794,11 +2794,11 @@
                 resetMs: 7 * MS.d,
                 resetDay: 3, // Wednesday (0=Sun)
                 resetHour: 9, // 9 AM server
-                //bosses: [
-                  //  { name: 'Ortorg the Sentinel', type: 'Custom' },
-                 //   { name: 'Atressian the Keeper', type: 'Custom' },
-                //    { name: 'Onyxia', type: 'Final Boss' },
-               // ],
+                bosses: [
+                    { name: 'Ortorg the Sentinel', type: 'Custom' },
+                    { name: 'Atressian the Keeper', type: 'Custom' },
+                    { name: 'Onyxia', type: 'Final Boss' },
+                ],
                 note: '25-player. Reworked with 3 bosses. Weekly reset Wednesday.'
             },
             //{
