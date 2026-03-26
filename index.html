@@ -2062,13 +2062,13 @@
 
             // name + icon
             h += `<div class="tt-name-row">
-        <div class="tt-item-icon ql-${item.quality}">${item.icon}</div>
-        <div class="tt-name-info">
-          <div class="tt-name" style="color:${qc}">${item.name}</div>
-          ${t.unique ? `<div class="tt-line white">Unique</div>` : ''}
-          ${t.binding ? `<div class="tt-binding">${t.binding}</div>` : ''}
-        </div>
-      </div>`;
+                <div class="tt-item-icon ql-${item.quality}">${item.icon}</div>
+                <div class="tt-name-info">
+                  <div class="tt-name" style="color:${qc}">${item.name}</div>
+                  ${t.unique ? `<div class="tt-line white">Unique</div>` : ''}
+                  ${t.binding ? `<div class="tt-binding">${t.binding}</div>` : ''}
+                </div>
+              </div>`;
             if (item.ilvl) h += `<div class="tt-ilvl">Item Level ${item.ilvl}</div>`;
             h += `<div class="tt-sep"></div>`;
 
@@ -2239,28 +2239,28 @@
                 document.getElementById('hp-kills').innerHTML = npcs.slice(0, 6).map(n => {
                     const d = n.data || n;
                     return `<div class="panel-row" onclick="showDetail('npcs','${n.id}')">
-            <span class="panel-row-icon">${d.icon || '👹'}</span>
-            <a class="npc-name">${n.name}</a>
-            <span class="panel-row-meta">${fmt(d.kills || 0)} kills</span>
-          </div>`;
+                    <span class="panel-row-icon">${d.icon || '👹'}</span>
+                    <a class="npc-name">${n.name}</a>
+                    <span class="panel-row-meta">${fmt(d.kills || 0)} kills</span>
+                  </div>`;
                 }).join('') || '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">No data yet.</div>';
 
                 document.getElementById('hp-loot').innerHTML = loot.slice(0, 6).map(l => {
                     const d = l.data || l;
                     return `<div class="panel-row" onclick="showDetail('loot','${l.id}')">
-            <span class="panel-row-icon" style="color:${QCOL[l.quality || d.quality || 0]}">◆</span>
-            <a>${l.name || d.item || 'Unknown'}</a>
-            <span class="panel-row-meta">${pct(d.rate || 0)}</span>
-          </div>`;
+                    <span class="panel-row-icon" style="color:${QCOL[l.quality || d.quality || 0]}">◆</span>
+                    <a>${l.name || d.item || 'Unknown'}</a>
+                    <span class="panel-row-meta">${pct(d.rate || 0)}</span>
+                  </div>`;
                 }).join('') || '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">No data yet.</div>';
 
                 document.getElementById('hp-quests').innerHTML = quests.slice(0, 6).map(q => {
                     const d = q.data || q;
                     return `<div class="panel-row" onclick="showDetail('quests','${q.id}')">
-            <span class="panel-row-icon">${d.icon || '📜'}</span>
-            <a>${q.name}</a>
-            <span class="panel-row-meta">${fmt(d.completions || 0)}</span>
-          </div>`;
+                    <span class="panel-row-icon">${d.icon || '📜'}</span>
+                    <a>${q.name}</a>
+                    <span class="panel-row-meta">${fmt(d.completions || 0)}</span>
+                  </div>`;
                 }).join('') || '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">No data yet.</div>';
 
             } catch (err) {
@@ -2383,8 +2383,8 @@
             document.getElementById('filter-panel').innerHTML = cfg.filters.map(g =>
                 `<div class="fp-group"><div class="fp-title">${g.label}</div>${g.items.map(it =>
                     `<div class="fp-item" data-field="${g.field}" data-val="${it.val}" onclick="setFilter(this)">
-            <span class="fp-dot" style="background:${it.dot}"></span>${it.label}
-          </div>`).join('')}</div>`).join('');
+                    <span class="fp-dot" style="background:${it.dot}"></span>${it.label}
+                  </div>`).join('')}</div>`).join('');
 
             try {
                 const res = await fetch(`${API}/api/list/${type}`);
@@ -2500,15 +2500,15 @@
         function dropTable(drops, keyLabel, keyFn) {
             if (!drops.length) return `<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No data yet — install the addon and contribute!</div>`;
             return `<div style="overflow-x:auto"><table class="drop-table">
-        <thead><tr><th>${keyLabel}</th><th>Quality</th><th>Drop Rate</th><th>Drops</th><th>Sample</th></tr></thead>
-        <tbody>${drops.map(d => `<tr>
-          <td class="td-name">${keyFn(d)}</td>
-          <td class="${QCLS[d.quality]}">${Q[d.quality]}</td>
-          <td style="min-width:130px"><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill ${d.quality >= 5 ? 'fill-leg' : d.quality >= 4 ? 'fill-epic' : d.quality >= 3 ? 'fill-rare' : ''}" style="width:${Math.min(d.rate * 100, 100)}%"></div></div><span class="rate-text">${pct(d.rate)}</span></div></td>
-          <td class="mono" style="color:var(--gold-dark)">${fmt(d.drops)}</td>
-          <td class="mono">${fmt(d.samples)}</td>
-        </tr>`).join('')}</tbody>
-      </table></div>`;
+                <thead><tr><th>${keyLabel}</th><th>Quality</th><th>Drop Rate</th><th>Drops</th><th>Sample</th></tr></thead>
+                <tbody>${drops.map(d => `<tr>
+                  <td class="td-name">${keyFn(d)}</td>
+                  <td class="${QCLS[d.quality]}">${Q[d.quality]}</td>
+                  <td style="min-width:130px"><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill ${d.quality >= 5 ? 'fill-leg' : d.quality >= 4 ? 'fill-epic' : d.quality >= 3 ? 'fill-rare' : ''}" style="width:${Math.min(d.rate * 100, 100)}%"></div></div><span class="rate-text">${pct(d.rate)}</span></div></td>
+                  <td class="mono" style="color:var(--gold-dark)">${fmt(d.drops)}</td>
+                  <td class="mono">${fmt(d.samples)}</td>
+                </tr>`).join('')}</tbody>
+              </table></div>`;
         }
 
         function commentsHtml(about) {
@@ -2518,50 +2518,50 @@
                 { author: 'Lunaria', cls: 'Druid', date: '1 week ago', text: `Great documentation. Drop rates match what our guild tracked over ~200 attempts.` },
             ];
             return `<div class="comments-wrap">${msgs.map(c => `<div class="comment">
-        <div class="comment-hdr"><span class="comment-author" style="color:${CLS_COLORS[c.cls] || 'var(--gold)'}">${c.author}</span><span class="comment-date">${c.date}</span></div>
-        <div class="comment-body">${c.text}</div>
-      </div>`).join('')}</div>`;
+                <div class="comment-hdr"><span class="comment-author" style="color:${CLS_COLORS[c.cls] || 'var(--gold)'}">${c.author}</span><span class="comment-date">${c.date}</span></div>
+                <div class="comment-body">${c.text}</div>
+              </div>`).join('')}</div>`;
         }
 
         function renderNpcDetail(npc) {
             document.getElementById('detail-title-block').innerHTML = `
-        <div class="detail-big-icon">${npc.icon || '👹'}</div>
-        <div class="detail-info">
-          <div class="detail-name npc-name">${npc.name}</div>
-          <div class="detail-subtitle">${npc.class || 'Unknown'} · Level ${npc.level || '?'}</div>
-          <div class="detail-pills">
-            <span class="dpill">${npc.zone || 'Unknown'}</span>
-            <span class="badge badge-${npc.type || 'normal'}">${cap(npc.type || 'normal')}</span>
-            <span class="dpill">${npc.faction || 'Unknown'}</span>
-            <span class="dpill gold">${fmt(npc.kills || 0)} kills recorded</span>
-          </div>
-        </div>`;
+                <div class="detail-big-icon">${npc.icon || '👹'}</div>
+                <div class="detail-info">
+                  <div class="detail-name npc-name">${npc.name}</div>
+                  <div class="detail-subtitle">${npc.class || 'Unknown'} · Level ${npc.level || '?'}</div>
+                  <div class="detail-pills">
+                    <span class="dpill">${npc.zone || 'Unknown'}</span>
+                    <span class="badge badge-${npc.type || 'normal'}">${cap(npc.type || 'normal')}</span>
+                    <span class="dpill">${npc.faction || 'Unknown'}</span>
+                    <span class="dpill gold">${fmt(npc.kills || 0)} kills recorded</span>
+                  </div>
+                </div>`;
             setTabs([
                 { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Level', npc.level || '—'], ['Classification', npc.class || '—'], ['Faction', npc.faction || '—'], ['Type', cap(npc.type || 'normal')], ['Total Kills', fmt(npc.kills || 0)]]) },
                 { label: 'Drops', count: 0, html: '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop data yet.</div>' },
                 { label: 'Comments', count: 3, html: commentsHtml(npc.name) },
             ]);
             document.getElementById('detail-sidebar').innerHTML = `
-        <div class="sb-panel">
-          <div class="sb-title">Quick Stats</div>
-          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Kills</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(npc.kills || 0)}</span></div>
-          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Level</span><span class="sb-row-meta">${npc.level || '—'}</span></div>
-        </div>`;
+                <div class="sb-panel">
+                  <div class="sb-title">Quick Stats</div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Kills</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(npc.kills || 0)}</span></div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Level</span><span class="sb-row-meta">${npc.level || '—'}</span></div>
+                </div>`;
         }
 
         function renderItemDetail(item) {
             document.getElementById('detail-title-block').innerHTML = `
-        <div class="detail-big-icon">${item.icon || '⚔'}</div>
-        <div class="detail-info">
-          <div class="detail-name ${QCLS[item.quality || 0]}">${item.name}</div>
-          <div class="detail-subtitle">${item.type || 'Item'}${item.ilvl ? ' · Item Level ' + item.ilvl : ''}</div>
-          <div class="detail-pills">
-            ${item.slot ? `<span class="dpill">${item.slot}</span>` : ''}
-            <span class="dpill ${QCLS[item.quality || 0]}">${Q[item.quality || 0]}</span>
-            ${item.ilvl ? `<span class="dpill">iLvl ${item.ilvl}</span>` : ''}
-            <span class="dpill gold">${fmt(item.seen || 0)} times seen</span>
-          </div>
-        </div>`;
+                <div class="detail-big-icon">${item.icon || '⚔'}</div>
+                <div class="detail-info">
+                  <div class="detail-name ${QCLS[item.quality || 0]}">${item.name}</div>
+                  <div class="detail-subtitle">${item.type || 'Item'}${item.ilvl ? ' · Item Level ' + item.ilvl : ''}</div>
+                  <div class="detail-pills">
+                    ${item.slot ? `<span class="dpill">${item.slot}</span>` : ''}
+                    <span class="dpill ${QCLS[item.quality || 0]}">${Q[item.quality || 0]}</span>
+                    ${item.ilvl ? `<span class="dpill">iLvl ${item.ilvl}</span>` : ''}
+                    <span class="dpill gold">${fmt(item.seen || 0)} times seen</span>
+                  </div>
+                </div>`;
             setTabs([
                 { label: 'Summary', html: sgrid([['Type', item.type || '—'], ['Slot', item.slot || '—'], ['Item Level', item.ilvl || '—'], ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]], ['Source', item.source || '—'], ['Times Seen', fmt(item.seen || 0)]]) },
                 { label: 'Comments', count: 3, html: commentsHtml(item.name) },
@@ -2571,16 +2571,16 @@
 
         function renderQuestDetail(q) {
             document.getElementById('detail-title-block').innerHTML = `
-        <div class="detail-big-icon">${q.icon || '📜'}</div>
-        <div class="detail-info">
-          <div class="detail-name">${q.name}</div>
-          <div class="detail-subtitle">${q.zone || 'Unknown'} · Level ${q.level || '?'}</div>
-          <div class="detail-pills">
-            <span class="badge badge-${q.type || 'solo'}">${cap(q.type === 'elite2' ? 'elite' : q.type || 'solo')}</span>
-            <span class="dpill">${q.zone || 'Unknown'}</span>
-            <span class="dpill gold">${fmt(q.completions || 0)} completions</span>
-          </div>
-        </div>`;
+                <div class="detail-big-icon">${q.icon || '📜'}</div>
+                <div class="detail-info">
+                  <div class="detail-name">${q.name}</div>
+                  <div class="detail-subtitle">${q.zone || 'Unknown'} · Level ${q.level || '?'}</div>
+                  <div class="detail-pills">
+                    <span class="badge badge-${q.type || 'solo'}">${cap(q.type === 'elite2' ? 'elite' : q.type || 'solo')}</span>
+                    <span class="dpill">${q.zone || 'Unknown'}</span>
+                    <span class="dpill gold">${fmt(q.completions || 0)} completions</span>
+                  </div>
+                </div>`;
             setTabs([
                 { label: 'Summary', html: sgrid([['Zone', q.zone || '—'], ['Level', q.level || '—'], ['Type', cap(q.type === 'elite2' ? 'elite' : q.type || 'solo')], ['XP Reward', q.xp || '—', 'q2'], ['Gold Reward', q.reward || '—'], ['Completions', fmt(q.completions || 0)]]) },
                 { label: 'Comments', count: 3, html: commentsHtml(q.name) },
@@ -2590,16 +2590,16 @@
 
         function renderLootDetail(loot) {
             document.getElementById('detail-title-block').innerHTML = `
-        <div class="detail-big-icon" style="color:${QCOL[loot.quality || 0]}">◆</div>
-        <div class="detail-info">
-          <div class="detail-name ${QCLS[loot.quality || 0]}">${loot.item || loot.name || 'Unknown'}</div>
-          <div class="detail-subtitle">Dropped by: ${loot.source || 'Unknown'}</div>
-          <div class="detail-pills">
-            <span class="dpill ${QCLS[loot.quality || 0]}">${Q[loot.quality || 0]}</span>
-            <span class="dpill gold">${pct(loot.rate || 0)} drop rate</span>
-            <span class="dpill">${fmt(loot.drops || 0)} drops / ${fmt(loot.samples || 0)} kills</span>
-          </div>
-        </div>`;
+                <div class="detail-big-icon" style="color:${QCOL[loot.quality || 0]}">◆</div>
+                <div class="detail-info">
+                  <div class="detail-name ${QCLS[loot.quality || 0]}">${loot.item || loot.name || 'Unknown'}</div>
+                  <div class="detail-subtitle">Dropped by: ${loot.source || 'Unknown'}</div>
+                  <div class="detail-pills">
+                    <span class="dpill ${QCLS[loot.quality || 0]}">${Q[loot.quality || 0]}</span>
+                    <span class="dpill gold">${pct(loot.rate || 0)} drop rate</span>
+                    <span class="dpill">${fmt(loot.drops || 0)} drops / ${fmt(loot.samples || 0)} kills</span>
+                  </div>
+                </div>`;
             setTabs([
                 { label: 'Summary', html: sgrid([['Source', loot.source || '—'], ['Drop Rate', pct(loot.rate || 0), 'q2'], ['Sample Size', fmt(loot.samples || 0) + ' kills'], ['Total Drops', fmt(loot.drops || 0)], ['Quality', Q[loot.quality || 0], '' + QCLS[loot.quality || 0]]]) },
                 { label: 'Comments', count: 3, html: commentsHtml(loot.item || loot.name || 'this item') },
@@ -2609,16 +2609,16 @@
 
         function renderZoneDetail(zone) {
             document.getElementById('detail-title-block').innerHTML = `
-        <div class="detail-big-icon">${zone.icon || '🗺'}</div>
-        <div class="detail-info">
-          <div class="detail-name">${zone.name}</div>
-          <div class="detail-subtitle">${zone.zoneType || zone.type || 'Zone'} · Levels ${zone.levels || '—'}</div>
-          <div class="detail-pills">
-            <span class="dpill">${zone.zoneType || zone.type || 'Zone'}</span>
-            ${zone.bosses ? `<span class="dpill">${zone.bosses} bosses</span>` : ''}
-            <span class="dpill gold">${fmt(zone.players || 0)} players tracked</span>
-          </div>
-        </div>`;
+                <div class="detail-big-icon">${zone.icon || '🗺'}</div>
+                <div class="detail-info">
+                  <div class="detail-name">${zone.name}</div>
+                  <div class="detail-subtitle">${zone.zoneType || zone.type || 'Zone'} · Levels ${zone.levels || '—'}</div>
+                  <div class="detail-pills">
+                    <span class="dpill">${zone.zoneType || zone.type || 'Zone'}</span>
+                    ${zone.bosses ? `<span class="dpill">${zone.bosses} bosses</span>` : ''}
+                    <span class="dpill gold">${fmt(zone.players || 0)} players tracked</span>
+                  </div>
+                </div>`;
             setTabs([
                 { label: 'Summary', html: sgrid([['Type', zone.zoneType || zone.type || '—'], ['Levels', zone.levels || '—'], ['Bosses', zone.bosses || '—'], ['Players Tracked', fmt(zone.players || 0)]]) },
                 { label: 'Comments', count: 1, html: commentsHtml(zone.name) },
@@ -2649,12 +2649,12 @@
                 // 2. Display the results if found
                 if (results.length > 0) {
                     sug.innerHTML = results.map(r => `
-            <div class="sug-item" onclick="showDetail('${r.id}')">
-              <span class="sug-icon">📜</span>
-              <span style="flex:1;color:var(--text)">${r.name}</span>
-              <span class="sug-meta">${r.type.toUpperCase()} ID: ${r.id}</span>
-            </div>
-          `).join('');
+                    <div class="sug-item" onclick="showDetail('${r.id}')">
+                      <span class="sug-icon">📜</span>
+                      <span style="flex:1;color:var(--text)">${r.name}</span>
+                      <span class="sug-meta">${r.type.toUpperCase()} ID: ${r.id}</span>
+                    </div>
+                  `).join('');
                     sug.classList.add('open');
                 } else {
                     sug.classList.remove('open');
@@ -2811,6 +2811,7 @@
                 icon: '🌋',
                 zone: 'Burning Steppes',
                 type: 'World Boss (Custom)',
+                resetMs: 7 * MS.d,
                 spawnNote: 'Wanders Burning Steppes. 5-minute zone-wide alert before spawn. Zone goes PvP-enabled on spawn. 2-hour kill window.',
                 wbpvp: true,
             },
@@ -2820,60 +2821,17 @@
                 icon: '😈',
                 zone: 'Blasted Lands',
                 type: 'World Boss',
+                resetMs: 7 * MS.d,
                 spawnNote: '5-minute zone-wide alert before spawn. Zone goes PvP-enabled on spawn. 2-hour kill window.',
                 wbpvp: true,
             },
-            {
-                id: 'azuregos',
-                name: 'Azuregos',
-                icon: '🐲',
-                zone: 'Azshara',
-                type: 'World Boss',
-                spawnNote: '5-minute zone-wide alert before spawn. Zone goes PvP-enabled on spawn. 2-hour kill window.',
-                wbpvp: true,
-            },
-            {
-                id: 'emeriss',
-                name: 'Emeriss',
-                icon: '🌿',
-                zone: 'Ashenvale / Feralas / Hinterlands / Duskwood',
-                type: 'Dragon of Nightmare',
-                spawnNote: 'One of four Dragon of Nightmare spawn locations. 5-minute alert before spawn. Zone PvP-enabled on spawn.',
-                wbpvp: true,
-            },
-            {
-                id: 'lethon',
-                name: 'Lethon',
-                icon: '🌑',
-                zone: 'Ashenvale / Feralas / Hinterlands / Duskwood',
-                type: 'Dragon of Nightmare',
-                spawnNote: 'One of four Dragon of Nightmare spawn locations. All four typically spawn at the same time.',
-                wbpvp: true,
-            },
-            {
-                id: 'taerar',
-                name: 'Taerar',
-                icon: '💀',
-                zone: 'Ashenvale / Feralas / Hinterlands / Duskwood',
-                type: 'Dragon of Nightmare',
-                spawnNote: 'One of four Dragon of Nightmare spawn locations. All four typically spawn at the same time.',
-                wbpvp: true,
-            },
-            {
-                id: 'ysondre',
-                name: 'Ysondre',
-                icon: '🟢',
-                zone: 'Ashenvale / Feralas / Hinterlands / Duskwood',
-                type: 'Dragon of Nightmare',
-                spawnNote: 'One of four Dragon of Nightmare spawn locations. All four typically spawn at the same time.',
-                wbpvp: true,
-            },
+
         ];
 
         // LocalStorage keys for saved kill times
         const LS_KEY = 'epochdb_timers_v1';
         function loadKillTimes() {
-            try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch(e) { return {}; }
+            try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) { return {}; }
         }
         function saveKillTime(id, ts) {
             const d = loadKillTimes(); d[id] = ts; localStorage.setItem(LS_KEY, JSON.stringify(d));
@@ -2918,21 +2876,21 @@
 
                 // Header
                 html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
-                    <div>
-                        <div style="font-family:'Cinzel',serif;font-size:1.4rem;font-weight:900;color:var(--gold);text-shadow:0 0 20px rgba(200,168,75,.3)">⏱ RAID TIMERS</div>
-                        <div style="font-size:.85rem;color:var(--text-dim);font-style:italic;margin-top:.2rem">Project Epoch — Gurubashi realm</div>
-                    </div>
-                    <div style="font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--text-dim);text-align:right">
-                        <div>Server time (UTC)</div>
-                        <div id="server-clock" style="font-size:1rem;color:var(--text)"></div>
-                    </div>
-                </div>`;
+                            <div>
+                                <div style="font-family:'Cinzel',serif;font-size:1.4rem;font-weight:900;color:var(--gold);text-shadow:0 0 20px rgba(200,168,75,.3)">⏱ RAID TIMERS</div>
+                                <div style="font-size:.85rem;color:var(--text-dim);font-style:italic;margin-top:.2rem">Project Epoch — Gurubashi realm</div>
+                            </div>
+                            <div style="font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--text-dim);text-align:right">
+                                <div>Server time (UTC)</div>
+                                <div id="server-clock" style="font-size:1rem;color:var(--text)"></div>
+                            </div>
+                        </div>`;
 
                 html += `<div class="timers-note">
-                    Raid resets are based on a fixed weekly Wednesday 09:00 UTC schedule for 7-day raids, and every 3 days for ZG/AQ20.
-                    World boss timers can be tracked manually — click <strong style="color:var(--gold)">Mark as Killed</strong> after a kill to start your personal countdown.
-                    World bosses on Project Epoch trigger a <strong style="color:var(--red-bright)">zone-wide PvP event</strong> — cross-faction groups are disbanded and the zone becomes a battleground 5 minutes before spawn.
-                </div>`;
+                            Raid resets are based on a fixed weekly Wednesday 09:00 UTC schedule for 7-day raids, and every 3 days for ZG/AQ20.
+                            World boss timers can be tracked manually — click <strong style="color:var(--gold)">Mark as Killed</strong> after a kill to start your personal countdown.
+                            World bosses on Project Epoch trigger a <strong style="color:var(--red-bright)">zone-wide PvP event</strong> — cross-faction groups are disbanded and the zone becomes a battleground 5 minutes before spawn.
+                        </div>`;
 
                 // ── RAIDS ──
                 html += `<div class="timers-section-title">⚔ Raid Instances</div>`;
@@ -2945,24 +2903,24 @@
                     const lastDate = new Date(lastReset).toUTCString().replace(' GMT', ' UTC').slice(0, -4);
 
                     html += `<div class="timer-card">
-                        <div class="timer-card-hdr">
-                            <span class="timer-card-icon">${raid.icon}</span>
-                            <span class="timer-card-name">${raid.name}</span>
-                            <span class="timer-card-size">${raid.size}</span>
-                        </div>
-                        <div class="timer-card-body">
-                            <div class="timer-meta-row"><span>Zone</span><span>${raid.zone}</span></div>
-                            <div class="timer-meta-row"><span>Tier</span><span style="color:var(--gold)">${raid.tier}</span></div>
-                            <div class="timer-meta-row"><span>Last Reset</span><span>${lastDate}</span></div>
-                            <div class="timer-meta-row"><span>Next Reset</span><span>${nextDate}</span></div>
-                            <div class="timer-countdown-wrap">
-                                <div class="timer-countdown-label">Resets In</div>
-                                <div class="timer-countdown ${cls}" id="cd-${raid.id}">${str}</div>
-                                <div class="timer-bar-wrap"><div class="timer-bar ${cls}" style="width:${pct.toFixed(1)}%" id="bar-${raid.id}"></div></div>
-                            </div>
-                            ${raid.note ? `<div style="margin-top:.6rem;font-size:.78rem;color:var(--text-dim);font-style:italic">${raid.note}</div>` : ''}
-                        </div>
-                    </div>`;
+                                <div class="timer-card-hdr">
+                                    <span class="timer-card-icon">${raid.icon}</span>
+                                    <span class="timer-card-name">${raid.name}</span>
+                                    <span class="timer-card-size">${raid.size}</span>
+                                </div>
+                                <div class="timer-card-body">
+                                    <div class="timer-meta-row"><span>Zone</span><span>${raid.zone}</span></div>
+                                    <div class="timer-meta-row"><span>Tier</span><span style="color:var(--gold)">${raid.tier}</span></div>
+                                    <div class="timer-meta-row"><span>Last Reset</span><span>${lastDate}</span></div>
+                                    <div class="timer-meta-row"><span>Next Reset</span><span>${nextDate}</span></div>
+                                    <div class="timer-countdown-wrap">
+                                        <div class="timer-countdown-label">Resets In</div>
+                                        <div class="timer-countdown ${cls}" id="cd-${raid.id}">${str}</div>
+                                        <div class="timer-bar-wrap"><div class="timer-bar ${cls}" style="width:${pct.toFixed(1)}%" id="bar-${raid.id}"></div></div>
+                                    </div>
+                                    ${raid.note ? `<div style="margin-top:.6rem;font-size:.78rem;color:var(--text-dim);font-style:italic">${raid.note}</div>` : ''}
+                                </div>
+                            </div>`;
                 }
                 html += `</div>`;
 
@@ -2987,25 +2945,25 @@
                     const killDateStr = killTime ? new Date(killTime).toUTCString().replace(' GMT', ' UTC').slice(0, -4) : 'Not recorded';
 
                     html += `<div class="timer-card">
-                        <div class="timer-card-hdr">
-                            <span class="timer-card-icon">${wb.icon}</span>
-                            <span class="timer-card-name">${wb.name}</span>
-                            <span class="timer-card-size" style="color:var(--red-bright);border-color:rgba(139,26,26,.5)">${wb.type}</span>
-                        </div>
-                        <div class="timer-card-body">
-                            <div class="timer-meta-row"><span>Zone</span><span>${wb.zone}</span></div>
-                            <div class="timer-meta-row"><span>Last Kill</span><span id="killdate-${wb.id}">${killDateStr}</span></div>
-                            <div class="timer-countdown-wrap">
-                                <div class="timer-countdown-label">Est. Respawn In</div>
-                                <div class="timer-countdown ${cdCls}" id="cd-${wb.id}">${cdStr}</div>
-                                <div class="timer-bar-wrap"><div class="timer-bar ${cdCls}" style="width:${cdPct.toFixed(1)}%" id="bar-${wb.id}"></div></div>
-                            </div>
-                            <div class="world-boss-alert">⚠ PvP Event — zone goes PvP-enabled 5 min before spawn. Cross-faction groups disbanded. 2-hour kill window.</div>
-                            <div style="margin-top:.5rem;font-size:.78rem;color:var(--text-dim);font-style:italic">${wb.spawnNote}</div>
-                            <button class="timer-set-btn" onclick="markWBKilled('${wb.id}')">☠ Mark as Killed Now</button>
-                            ${killTime ? `<button class="timer-reset-btn" onclick="clearWBKill('${wb.id}')">✕ Clear Kill Time</button>` : ''}
-                        </div>
-                    </div>`;
+                                <div class="timer-card-hdr">
+                                    <span class="timer-card-icon">${wb.icon}</span>
+                                    <span class="timer-card-name">${wb.name}</span>
+                                    <span class="timer-card-size" style="color:var(--red-bright);border-color:rgba(139,26,26,.5)">${wb.type}</span>
+                                </div>
+                                <div class="timer-card-body">
+                                    <div class="timer-meta-row"><span>Zone</span><span>${wb.zone}</span></div>
+                                    <div class="timer-meta-row"><span>Last Kill</span><span id="killdate-${wb.id}">${killDateStr}</span></div>
+                                    <div class="timer-countdown-wrap">
+                                        <div class="timer-countdown-label">Est. Respawn In</div>
+                                        <div class="timer-countdown ${cdCls}" id="cd-${wb.id}">${cdStr}</div>
+                                        <div class="timer-bar-wrap"><div class="timer-bar ${cdCls}" style="width:${cdPct.toFixed(1)}%" id="bar-${wb.id}"></div></div>
+                                    </div>
+                                    <div class="world-boss-alert">⚠ PvP Event — zone goes PvP-enabled 5 min before spawn. Cross-faction groups disbanded. 2-hour kill window.</div>
+                                    <div style="margin-top:.5rem;font-size:.78rem;color:var(--text-dim);font-style:italic">${wb.spawnNote}</div>
+                                    <button class="timer-set-btn" onclick="markWBKilled('${wb.id}')">☠ Mark as Killed Now</button>
+                                    ${killTime ? `<button class="timer-reset-btn" onclick="clearWBKill('${wb.id}')">✕ Clear Kill Time</button>` : ''}
+                                </div>
+                            </div>`;
                 }
                 html += `</div></div>`;
 
