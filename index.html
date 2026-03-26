@@ -1722,6 +1722,182 @@
                 grid-template-columns: 1fr
             }
         }
+        /* ── TIMERS VIEW ── */
+        #timers-view {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            position: relative;
+            z-index: 1;
+        }
+        .timers-section-title {
+            font-family: 'Cinzel', serif;
+            font-size: .62rem;
+            letter-spacing: .28em;
+            text-transform: uppercase;
+            color: var(--gold-dark);
+            border-bottom: 1px solid var(--border-gold);
+            padding-bottom: .4rem;
+            margin: 1.8rem 0 .9rem;
+        }
+        .timers-section-title:first-child { margin-top: 0; }
+        .timers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 10px;
+        }
+        .timer-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: border-color .15s;
+        }
+        .timer-card:hover { border-color: var(--border-gold); }
+        .timer-card-hdr {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: .55rem .9rem;
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+        }
+        .timer-card-icon { font-size: 1.2rem; flex-shrink: 0; }
+        .timer-card-name {
+            font-family: 'Cinzel', serif;
+            font-size: .75rem;
+            font-weight: 600;
+            color: var(--text-bright);
+            flex: 1;
+        }
+        .timer-card-size {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .6rem;
+            color: var(--text-dim);
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            padding: 1px 5px;
+            border-radius: 2px;
+        }
+        .timer-card-body { padding: .7rem .9rem; }
+        .timer-meta-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: .82rem;
+            margin-bottom: .35rem;
+            color: var(--text-dim);
+        }
+        .timer-meta-row span:last-child {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .72rem;
+            color: var(--text);
+        }
+        .timer-countdown-wrap {
+            margin-top: .65rem;
+            background: var(--bg-deep);
+            border: 1px solid var(--border);
+            padding: .5rem .8rem;
+        }
+        .timer-countdown-label {
+            font-family: 'Cinzel', serif;
+            font-size: .52rem;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: .2rem;
+        }
+        .timer-countdown {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.35rem;
+            color: var(--gold);
+            text-shadow: 0 0 12px rgba(200,168,75,.3);
+            letter-spacing: .06em;
+        }
+        .timer-countdown.soon { color: var(--q5); text-shadow: 0 0 12px rgba(255,128,0,.4); }
+        .timer-countdown.open { color: var(--q2); text-shadow: 0 0 12px rgba(30,255,0,.3); }
+        .timer-bar-wrap {
+            margin-top: .45rem;
+            height: 4px;
+            background: var(--bg-card);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .timer-bar {
+            height: 100%;
+            border-radius: 2px;
+            background: var(--gold-dark);
+            transition: width .5s linear;
+        }
+        .timer-bar.soon { background: var(--q5); }
+        .timer-bar.open { background: var(--q2); }
+        .timer-set-btn {
+            margin-top: .6rem;
+            font-family: 'Cinzel', serif;
+            font-size: .58rem;
+            letter-spacing: .1em;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: .3rem .7rem;
+            cursor: pointer;
+            transition: all .15s;
+            width: 100%;
+        }
+        .timer-set-btn:hover { border-color: var(--gold-dark); color: var(--gold); }
+        .timer-reset-btn {
+            margin-top: .35rem;
+            font-family: 'Cinzel', serif;
+            font-size: .58rem;
+            letter-spacing: .1em;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: .3rem .7rem;
+            cursor: pointer;
+            transition: all .15s;
+            width: 100%;
+        }
+        .timer-reset-btn:hover { border-color: var(--red-bright); color: var(--red-bright); }
+        .timer-boss-list {
+            margin-top: .5rem;
+            border-top: 1px solid var(--border);
+            padding-top: .5rem;
+        }
+        .timer-boss-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: .82rem;
+            padding: .25rem 0;
+            border-bottom: 1px solid rgba(37,37,48,.4);
+        }
+        .timer-boss-row:last-child { border-bottom: none; }
+        .timer-boss-name { color: var(--text); }
+        .timer-boss-type {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .65rem;
+            color: var(--text-dim);
+        }
+        .world-boss-alert {
+            background: rgba(139,26,26,.15);
+            border: 1px solid rgba(139,26,26,.4);
+            border-left: 3px solid var(--red-bright);
+            padding: .5rem .8rem;
+            font-size: .82rem;
+            color: var(--text-dim);
+            margin-top: .5rem;
+            line-height: 1.5;
+        }
+        .timers-note {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--gold-dark);
+            padding: .6rem .9rem;
+            font-size: .82rem;
+            color: var(--text-dim);
+            line-height: 1.7;
+            margin-bottom: 1.2rem;
+        }
     </style>
 </head>
 <body>
@@ -1748,6 +1924,7 @@
             <button class="tnav-btn" onclick="showList('items')">Items</button>
             <button class="tnav-btn" onclick="showList('quests')">Quests</button>
             <button class="tnav-btn" onclick="showList('loot')">Loot</button>
+            <button class="tnav-btn" onclick="showTimers()">⏱ Timers</button>
             <button class="upload-btn" onclick="openUpload()">⬆ Upload Data</button>
         </div>
     </div>
@@ -1759,6 +1936,7 @@
         <button class="mnav-tab" onclick="showList('quests')">Quests</button>
         <button class="mnav-tab" onclick="showList('loot')">Loot Tables</button>
         <button class="mnav-tab" onclick="showList('zones')">Zones</button>
+        <button class="mnav-tab" onclick="showTimers()">⏱ Raid Timers</button>
     </div>
 
     <div id="page">
@@ -1824,6 +2002,13 @@
             </div>
         </div>
 
+    </div>
+
+    </div><!-- end #page -->
+
+    <!-- TIMERS VIEW -->
+    <div id="timers-view" class="hidden">
+        <div id="timers-inner"></div>
     </div>
 
     <!-- UPLOAD MODAL -->
@@ -2002,24 +2187,29 @@
         function show(id) { document.getElementById(id).classList.remove('hidden'); }
         function hide(id) { document.getElementById(id).classList.add('hidden'); }
         function setMnav(tab) {
-            const names = ['home', 'npcs', 'items', 'quests', 'loot', 'zones'];
+            const names = ['home', 'npcs', 'items', 'quests', 'loot', 'zones', 'timers'];
             document.querySelectorAll('.mnav-tab').forEach((b, i) => b.classList.toggle('active', names[i] === tab));
         }
 
         function showHome() {
-            hide('list-view'); hide('detail-view'); show('home-view');
+            hide('list-view'); hide('detail-view'); hide('timers-view'); show('home-view');
             setMnav('home'); renderHomePanels();
         }
         function showList(type) {
             curList = type;
             activeFilters = {};
             listQuery = '';
-            hide('home-view'); hide('detail-view'); show('list-view');
+            hide('home-view'); hide('detail-view'); hide('timers-view'); show('list-view');
             setMnav(type);
             renderList(type);
         }
+        function showTimers() {
+            hide('home-view'); hide('list-view'); hide('detail-view'); show('timers-view');
+            setMnav('timers');
+            renderTimers();
+        }
         async function showDetail(type, id) {
-            hide('home-view'); hide('list-view'); show('detail-view');
+            hide('home-view'); hide('list-view'); hide('timers-view'); show('detail-view');
             window.scrollTo(0, 0);
             await renderDetail(type, id);
         }
@@ -2285,10 +2475,10 @@
                 `<a onclick="showList('${type}')">${LIST_NAMES[type]}</a>` +
                 `<span>›</span>${entry.name || entry.item}`;
 
-            if (type === 'npcs') await renderNpcDetail(entry);
-            if (type === 'items') await renderItemDetail(entry);
+            if (type === 'npcs') renderNpcDetail(entry);
+            if (type === 'items') renderItemDetail(entry);
             if (type === 'quests') renderQuestDetail(entry);
-            if (type === 'loot') await renderLootDetail(entry);
+            if (type === 'loot') renderLootDetail(entry);
             if (type === 'zones') renderZoneDetail(entry);
         }
 
@@ -2333,163 +2523,50 @@
       </div>`).join('')}</div>`;
         }
 
-        async function renderNpcDetail(npc) {
-            const kills = npc.kills || 0;
-
+        function renderNpcDetail(npc) {
             document.getElementById('detail-title-block').innerHTML = `
         <div class="detail-big-icon">${npc.icon || '👹'}</div>
         <div class="detail-info">
           <div class="detail-name npc-name">${npc.name}</div>
-          <div class="detail-subtitle">${npc.zone || 'Unknown'}${npc.subZone ? ' · ' + npc.subZone : ''}</div>
+          <div class="detail-subtitle">${npc.class || 'Unknown'} · Level ${npc.level || '?'}</div>
           <div class="detail-pills">
             <span class="dpill">${npc.zone || 'Unknown'}</span>
-            ${npc.coords ? `<span class="dpill">${npc.coords}</span>` : ''}
-            <span class="dpill gold">${fmt(kills)} kills recorded</span>
+            <span class="badge badge-${npc.type || 'normal'}">${cap(npc.type || 'normal')}</span>
+            <span class="dpill">${npc.faction || 'Unknown'}</span>
+            <span class="dpill gold">${fmt(npc.kills || 0)} kills recorded</span>
           </div>
         </div>`;
-
-            // Fetch all loot records and find ones dropped by this NPC
-            let dropRows = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Loading drops…</div>';
             setTabs([
-                { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Sub-Zone', npc.subZone || '—'], ['Coords', npc.coords || '—'], ['First Kill', npc.firstKill || '—'], ['Last Kill', npc.lastKill || '—'], ['Total Kills', fmt(kills)]]) },
-                { label: 'Drops', count: '…', html: dropRows },
+                { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Level', npc.level || '—'], ['Classification', npc.class || '—'], ['Faction', npc.faction || '—'], ['Type', cap(npc.type || 'normal')], ['Total Kills', fmt(npc.kills || 0)]]) },
+                { label: 'Drops', count: 0, html: '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop data yet.</div>' },
                 { label: 'Comments', count: 3, html: commentsHtml(npc.name) },
             ]);
-
             document.getElementById('detail-sidebar').innerHTML = `
         <div class="sb-panel">
           <div class="sb-title">Quick Stats</div>
-          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Kills</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(kills)}</span></div>
-          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Zone</span><span class="sb-row-meta">${npc.zone || '—'}</span></div>
-          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Coords</span><span class="sb-row-meta">${npc.coords || '—'}</span></div>
+          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Kills</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(npc.kills || 0)}</span></div>
+          <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Level</span><span class="sb-row-meta">${npc.level || '—'}</span></div>
         </div>`;
-
-            // Now load loot data and populate the Drops tab
-            try {
-                const allLoot = await fetch(`${API}/api/list/loot`).then(r => r.json());
-                // Match loot entries where any source key starts with this NPC's name
-                const myDrops = allLoot.filter(l => {
-                    const sources = (l.data && l.data.sources) ? l.data.sources : {};
-                    return Object.keys(sources).some(src => src.startsWith(npc.name));
-                });
-
-                if (myDrops.length === 0) {
-                    dropRows = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drops recorded yet for this NPC.</div>';
-                } else {
-                    // Calculate per-item drop count from sources matching this NPC
-                    const rows = myDrops.map(l => {
-                        const d = l.data || {};
-                        const sources = d.sources || {};
-                        // Sum only drops from sources matching this NPC's name
-                        const npcDrops = Object.entries(sources)
-                            .filter(([src]) => src.startsWith(npc.name))
-                            .reduce((sum, [, cnt]) => sum + cnt, 0);
-                        const rate = kills > 0 ? npcDrops / kills : 0;
-                        const qIdx = l.quality || 0;
-                        const fillCls = qIdx >= 5 ? 'fill-leg' : qIdx >= 4 ? 'fill-epic' : qIdx >= 3 ? 'fill-rare' : '';
-                        return `<tr onclick="showDetail('loot','${l.id}')">
-                          <td class="td-name"><span style="color:${QCOL[qIdx]}">◆</span> <a class="${QCLS[qIdx]}">${l.name}</a></td>
-                          <td class="${QCLS[qIdx]}">${Q[qIdx]}</td>
-                          <td style="min-width:140px"><div class="rate-wrap">
-                            <div class="rate-bar"><div class="rate-fill ${fillCls}" style="width:${Math.min(rate*100,100)}%"></div></div>
-                            <span class="rate-text">${pct(rate)}</span>
-                          </div></td>
-                          <td class="mono" style="color:var(--gold-dark)">${fmt(npcDrops)}</td>
-                          <td class="mono">${fmt(kills)} kills</td>
-                        </tr>`;
-                    }).join('');
-                    dropRows = `<div style="overflow-x:auto"><table class="drop-table">
-                        <thead><tr><th>Item</th><th>Quality</th><th>Drop Rate</th><th>Drops</th><th>Sample</th></tr></thead>
-                        <tbody>${rows}</tbody>
-                    </table></div>`;
-                }
-            } catch(e) {
-                dropRows = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Could not load drop data.</div>';
-            }
-
-            // Re-render tabs with real drop data
-            setTabs([
-                { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Sub-Zone', npc.subZone || '—'], ['Coords', npc.coords || '—'], ['First Kill', npc.firstKill || '—'], ['Last Kill', npc.lastKill || '—'], ['Total Kills', fmt(kills)]]) },
-                { label: 'Drops', count: myDrops ? myDrops.length : 0, html: dropRows },
-                { label: 'Comments', count: 3, html: commentsHtml(npc.name) },
-            ]);
         }
 
-        async function renderItemDetail(item) {
-            const slot = item.slot ? item.slot.replace('INVTYPE_', '').replace(/_/g, ' ') : '';
+        function renderItemDetail(item) {
             document.getElementById('detail-title-block').innerHTML = `
         <div class="detail-big-icon">${item.icon || '⚔'}</div>
         <div class="detail-info">
           <div class="detail-name ${QCLS[item.quality || 0]}">${item.name}</div>
-          <div class="detail-subtitle">${item.type || 'Item'}${item.subType && item.subType !== item.type ? ' · ' + item.subType : ''}${item.ilvl ? ' · iLvl ' + item.ilvl : ''}</div>
+          <div class="detail-subtitle">${item.type || 'Item'}${item.ilvl ? ' · Item Level ' + item.ilvl : ''}</div>
           <div class="detail-pills">
-            ${slot ? `<span class="dpill">${slot}</span>` : ''}
+            ${item.slot ? `<span class="dpill">${item.slot}</span>` : ''}
             <span class="dpill ${QCLS[item.quality || 0]}">${Q[item.quality || 0]}</span>
             ${item.ilvl ? `<span class="dpill">iLvl ${item.ilvl}</span>` : ''}
             <span class="dpill gold">${fmt(item.seen || 0)} times seen</span>
           </div>
         </div>`;
-
             setTabs([
-                { label: 'Summary', html: sgrid([['Type', item.type || '—'], ['Sub-Type', item.subType || '—'], ['Slot', slot || '—'], ['Item Level', item.ilvl || '—'], ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]], ['First Seen', item.firstSeen || '—']]) },
-                { label: 'Dropped By', count: '…', html: '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Loading sources…</div>' },
+                { label: 'Summary', html: sgrid([['Type', item.type || '—'], ['Slot', item.slot || '—'], ['Item Level', item.ilvl || '—'], ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]], ['Source', item.source || '—'], ['Times Seen', fmt(item.seen || 0)]]) },
                 { label: 'Comments', count: 3, html: commentsHtml(item.name) },
             ]);
             document.getElementById('detail-sidebar').innerHTML = '';
-
-            // Fetch the loot record for this item to get its sources
-            let droppedByHtml;
-            let sourceCount = 0;
-            try {
-                const lootRecord = await fetch(`${API}/api/record/loot/${item.id}`).then(r => r.ok ? r.json() : null);
-                if (lootRecord && lootRecord.data && lootRecord.data.sources) {
-                    const sources = lootRecord.data.sources;
-                    sourceCount = Object.keys(sources).length;
-
-                    if (sourceCount === 0) {
-                        droppedByHtml = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop sources recorded yet.</div>';
-                    } else {
-                        // Fetch NPC kill counts so we can calculate rates
-                        const allNpcs = await fetch(`${API}/api/list/npcs`).then(r => r.json());
-                        const npcKillMap = {};
-                        for (const n of allNpcs) {
-                            npcKillMap[n.name] = (n.data && n.data.kills) ? n.data.kills : 0;
-                        }
-
-                        const totalDrops = lootRecord.data.drops || 0;
-                        const rows = Object.entries(sources).map(([src, cnt]) => {
-                            // src is like "Elder Mottled Boar (44.00, 15.13)" — extract base name
-                            const baseName = src.replace(/\s*\([\d., ]+\)$/, '').replace(/_/g, ' ');
-                            const kills = npcKillMap[baseName] || 0;
-                            const rate = kills > 0 ? cnt / kills : 0;
-                            const fillCls = lootRecord.quality >= 5 ? 'fill-leg' : lootRecord.quality >= 4 ? 'fill-epic' : lootRecord.quality >= 3 ? 'fill-rare' : '';
-                            return `<tr onclick="showList('npcs')">
-                              <td class="td-name"><span class="td-icon">👹</span><a class="npc-name">${src}</a></td>
-                              <td class="mono" style="color:var(--gold-dark)">${fmt(cnt)}</td>
-                              <td style="min-width:140px"><div class="rate-wrap">
-                                <div class="rate-bar"><div class="rate-fill ${fillCls}" style="width:${Math.min(rate*100,100)}%"></div></div>
-                                <span class="rate-text">${kills > 0 ? pct(rate) : '—'}</span>
-                              </div></td>
-                              <td class="mono">${kills > 0 ? fmt(kills) + ' kills' : 'No kill data'}</td>
-                            </tr>`;
-                        }).join('');
-                        droppedByHtml = `<div style="overflow-x:auto"><table class="drop-table">
-                            <thead><tr><th>Source</th><th>Drops</th><th>Drop Rate</th><th>Sample</th></tr></thead>
-                            <tbody>${rows}</tbody>
-                        </table></div>`;
-                    }
-                } else {
-                    droppedByHtml = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Not recorded as a drop yet — only seen in bags.</div>';
-                }
-            } catch(e) {
-                droppedByHtml = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Could not load source data.</div>';
-            }
-
-            setTabs([
-                { label: 'Summary', html: sgrid([['Type', item.type || '—'], ['Sub-Type', item.subType || '—'], ['Slot', slot || '—'], ['Item Level', item.ilvl || '—'], ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]], ['First Seen', item.firstSeen || '—']]) },
-                { label: 'Dropped By', count: sourceCount, html: droppedByHtml },
-                { label: 'Comments', count: 3, html: commentsHtml(item.name) },
-            ]);
         }
 
         function renderQuestDetail(q) {
@@ -2511,79 +2588,23 @@
             document.getElementById('detail-sidebar').innerHTML = '';
         }
 
-        async function renderLootDetail(loot) {
-            const drops = loot.drops || 0;
-            const samples = loot.samples || 0;
-            const overallRate = samples > 0 ? drops / samples : 0;
-            const qIdx = loot.quality || 0;
-
+        function renderLootDetail(loot) {
             document.getElementById('detail-title-block').innerHTML = `
-        <div class="detail-big-icon" style="color:${QCOL[qIdx]}">◆</div>
+        <div class="detail-big-icon" style="color:${QCOL[loot.quality || 0]}">◆</div>
         <div class="detail-info">
-          <div class="detail-name ${QCLS[qIdx]}">${loot.item || loot.name || 'Unknown'}</div>
-          <div class="detail-subtitle">Drop data · ${Q[qIdx]} quality</div>
+          <div class="detail-name ${QCLS[loot.quality || 0]}">${loot.item || loot.name || 'Unknown'}</div>
+          <div class="detail-subtitle">Dropped by: ${loot.source || 'Unknown'}</div>
           <div class="detail-pills">
-            <span class="dpill ${QCLS[qIdx]}">${Q[qIdx]}</span>
-            <span class="dpill gold">${pct(overallRate)} overall drop rate</span>
-            <span class="dpill">${fmt(drops)} drops recorded</span>
+            <span class="dpill ${QCLS[loot.quality || 0]}">${Q[loot.quality || 0]}</span>
+            <span class="dpill gold">${pct(loot.rate || 0)} drop rate</span>
+            <span class="dpill">${fmt(loot.drops || 0)} drops / ${fmt(loot.samples || 0)} kills</span>
           </div>
         </div>`;
-
             setTabs([
-                { label: 'Summary', html: sgrid([['Quality', Q[qIdx], '' + QCLS[qIdx]], ['Overall Drop Rate', pct(overallRate), 'q2'], ['Total Drops', fmt(drops)], ['Unique Sources', '…']]) },
-                { label: 'Sources', count: '…', html: '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Loading sources…</div>' },
+                { label: 'Summary', html: sgrid([['Source', loot.source || '—'], ['Drop Rate', pct(loot.rate || 0), 'q2'], ['Sample Size', fmt(loot.samples || 0) + ' kills'], ['Total Drops', fmt(loot.drops || 0)], ['Quality', Q[loot.quality || 0], '' + QCLS[loot.quality || 0]]]) },
                 { label: 'Comments', count: 3, html: commentsHtml(loot.item || loot.name || 'this item') },
             ]);
             document.getElementById('detail-sidebar').innerHTML = '';
-
-            // Build the per-source breakdown
-            let sourcesHtml;
-            let sourceCount = 0;
-            try {
-                const sources = loot.sources || {};
-                sourceCount = Object.keys(sources).length;
-
-                // Fetch NPC kill data to calculate per-source rates
-                const allNpcs = await fetch(`${API}/api/list/npcs`).then(r => r.json());
-                const npcKillMap = {};
-                for (const n of allNpcs) {
-                    npcKillMap[n.name] = (n.data && n.data.kills) ? n.data.kills : 0;
-                }
-
-                if (sourceCount === 0) {
-                    sourcesHtml = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No source data recorded yet.</div>';
-                } else {
-                    const fillCls = qIdx >= 5 ? 'fill-leg' : qIdx >= 4 ? 'fill-epic' : qIdx >= 3 ? 'fill-rare' : '';
-                    // Sort sources by drop count descending
-                    const sorted = Object.entries(sources).sort(([,a],[,b]) => b - a);
-                    const rows = sorted.map(([src, cnt]) => {
-                        const baseName = src.replace(/\s*\([\d., ]+\)$/, '').replace(/_/g, ' ');
-                        const kills = npcKillMap[baseName] || 0;
-                        const rate = kills > 0 ? cnt / kills : 0;
-                        return `<tr>
-                          <td class="td-name"><span class="td-icon">👹</span><a class="npc-name" onclick="showList('npcs')">${src}</a></td>
-                          <td class="mono" style="color:var(--gold-dark)">${fmt(cnt)}</td>
-                          <td style="min-width:140px"><div class="rate-wrap">
-                            <div class="rate-bar"><div class="rate-fill ${fillCls}" style="width:${Math.min(rate*100,100)}%"></div></div>
-                            <span class="rate-text">${kills > 0 ? pct(rate) : '—'}</span>
-                          </div></td>
-                          <td class="mono">${kills > 0 ? fmt(kills) + ' kills' : 'No kill data'}</td>
-                        </tr>`;
-                    }).join('');
-                    sourcesHtml = `<div style="overflow-x:auto"><table class="drop-table">
-                        <thead><tr><th>Source NPC</th><th>Drops</th><th>Drop Rate</th><th>Sample</th></tr></thead>
-                        <tbody>${rows}</tbody>
-                    </table></div>`;
-                }
-            } catch(e) {
-                sourcesHtml = '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">Could not load source data.</div>';
-            }
-
-            setTabs([
-                { label: 'Summary', html: sgrid([['Quality', Q[qIdx], '' + QCLS[qIdx]], ['Overall Drop Rate', pct(overallRate), 'q2'], ['Total Drops', fmt(drops)], ['Unique Sources', fmt(sourceCount)]]) },
-                { label: 'Sources', count: sourceCount, html: sourcesHtml },
-                { label: 'Comments', count: 3, html: commentsHtml(loot.item || loot.name || 'this item') },
-            ]);
         }
 
         function renderZoneDetail(zone) {
@@ -2751,6 +2772,398 @@
             } catch (err) {
                 console.warn('Could not load stats:', err);
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // TIMER CONFIGURATION
+        // ═══════════════════════════════════════════════════════════════
+        const WORLD_BOSSES = [
+            { id: 'onyxia', name: 'Onyxia', respawn: 120 }, // 120 Hours = 5 Days
+            { id: 'kazzak', name: 'Lord Kazzak', respawn: 72 },
+            { id: 'azuregos', name: 'Azuregos', respawn: 72 }
+        ];
+
+        const RAIDS = [
+            {
+                id: 'onyxia',
+                name: "Onyxia's Lair",
+                icon: '🐉',
+                zone: 'Dustwallow Marsh',
+                size: '25-man',
+                tier: 'Tier 1',
+                resetMs: 7 * MS.d,
+                resetDay: 3, // Wednesday (0=Sun)
+                resetHour: 9, // 9 AM server
+                //bosses: [
+                  //  { name: 'Ortorg the Sentinel', type: 'Custom' },
+                 //   { name: 'Atressian the Keeper', type: 'Custom' },
+                //    { name: 'Onyxia', type: 'Final Boss' },
+               // ],
+                note: '25-player. Reworked with 3 bosses. Weekly reset Wednesday.'
+            },
+            //{
+               // id: 'mc',
+               // name: 'Molten Core',
+               // icon: '🔥',
+               // zone: 'Blackrock Mountain',
+               // size: '25-man',
+               // tier: 'Tier 1',
+               // resetMs: 7 * MS.d,
+               // resetDay: 3,
+               // resetHour: 9,
+               // bosses: [
+               //     { name: 'Lucifron', type: 'Boss' },
+               //     { name: 'Magmadar', type: 'Boss' },
+               //     { name: 'Gehennas', type: 'Boss' },
+               //     { name: 'Garr', type: 'Boss' },
+               //     { name: 'Shazzrah', type: 'Boss' },
+               //     { name: 'Baron Geddon', type: 'Boss' },
+               //     { name: 'Golemagg the Incinerator', type: 'Boss' },
+              //      { name: 'Sulfuron Harbinger', type: 'Boss' },
+               //     { name: 'Majordomo Executus', type: 'Boss' },
+                //    { name: 'Ragnaros', type: 'Final Boss' },
+                // ],
+                // note: '25-player. Weekly reset Wednesday. Bring fire resistance gear.'
+            //},
+            {
+                id: 'zg',
+                name: "Zul'Gurub",
+                icon: '🐍',
+                zone: 'Stranglethorn Vale',
+                size: '10-man',
+                tier: 'Minor Raid',
+                resetMs: 3 * MS.d,
+                resetDay: 3,
+                resetHour: 9,
+                bosses: [
+                    { name: "High Priest Venoxis", type: 'Boss' },
+                    { name: "High Priestess Jeklik", type: 'Boss' },
+                    { name: "High Priest Thekal", type: 'Boss' },
+                    { name: "High Priestess Arlokk", type: 'Boss' },
+                    { name: "High Priestess Mar'li", type: 'Boss' },
+                    { name: "Bloodlord Mandokir", type: 'Boss' },
+                    { name: "Jin'do the Hexxer", type: 'Boss' },
+                    { name: "Hakkar the Soulflayer", type: 'Final Boss' },
+                ],
+                note: '10-player. 3-day reset (resets twice per week).'
+            },
+            {
+                id: 'aq20',
+                name: 'Ruins of Ahn\'Qiraj',
+                icon: '🦂',
+                zone: 'Silithus',
+                size: '10-man',
+                tier: 'Minor Raid',
+                resetMs: 3 * MS.d,
+                resetDay: 3,
+                resetHour: 9,
+                bosses: [
+                    { name: 'Kurinnaxx', type: 'Boss' },
+                    { name: 'General Rajaxx', type: 'Boss' },
+                    { name: 'Moam', type: 'Boss' },
+                    { name: 'Buru the Gorger', type: 'Boss' },
+                    { name: 'Ayamiss the Hunter', type: 'Boss' },
+                    { name: "Ossirian the Unscarred", type: 'Final Boss' },
+                ],
+                note: '10-player. 3-day reset (resets twice per week).'
+            },
+            {
+                id: 'uldum',
+                name: 'Uldum',
+                icon: '🏺',
+                zone: 'Uldum',
+                size: '25-man',
+                tier: 'Tier 2 (Custom)',
+                resetMs: 7 * MS.d,
+                resetDay: 3,
+                resetHour: 9,
+                bosses: [
+                    { name: 'Unknown Bosses', type: 'Custom' },
+                ],
+                note: 'Project Epoch Tier 2 custom raid. Weekly reset. Full encounter list TBD at content release.'
+            },
+        ];
+
+        const WORLD_BOSSES = [
+            {
+                id: 'volchan',
+                name: 'Volchan',
+                icon: '🌋',
+                zone: 'Burning Steppes',
+                type: 'World Boss (Custom)',
+                spawnNote: 'Wanders Burning Steppes. 5-minute zone-wide alert before spawn. Zone goes PvP-enabled on spawn. 2-hour kill window.',
+                wbpvp: true,
+            },
+            {
+                id: 'kazzak',
+                name: 'Lord Kazzak',
+                icon: '😈',
+                zone: 'Blasted Lands',
+                type: 'World Boss',
+                spawnNote: '5-minute zone-wide alert before spawn. Zone goes PvP-enabled on spawn. 2-hour kill window.',
+                wbpvp: true,
+            },
+            {
+                id: 'azuregos',
+                name: 'Azuregos',
+                icon: '🐲',
+                zone: 'Azshara',
+                type: 'World Boss',
+                spawnNote: '5-minute zone-wide alert before spawn. Zone goes PvP-enabled on spawn. 2-hour kill window.',
+                wbpvp: true,
+            },
+            {
+                id: 'emeriss',
+                name: 'Emeriss',
+                icon: '🌿',
+                zone: 'Ashenvale / Feralas / Hinterlands / Duskwood',
+                type: 'Dragon of Nightmare',
+                spawnNote: 'One of four Dragon of Nightmare spawn locations. 5-minute alert before spawn. Zone PvP-enabled on spawn.',
+                wbpvp: true,
+            },
+            {
+                id: 'lethon',
+                name: 'Lethon',
+                icon: '🌑',
+                zone: 'Ashenvale / Feralas / Hinterlands / Duskwood',
+                type: 'Dragon of Nightmare',
+                spawnNote: 'One of four Dragon of Nightmare spawn locations. All four typically spawn at the same time.',
+                wbpvp: true,
+            },
+            {
+                id: 'taerar',
+                name: 'Taerar',
+                icon: '💀',
+                zone: 'Ashenvale / Feralas / Hinterlands / Duskwood',
+                type: 'Dragon of Nightmare',
+                spawnNote: 'One of four Dragon of Nightmare spawn locations. All four typically spawn at the same time.',
+                wbpvp: true,
+            },
+            {
+                id: 'ysondre',
+                name: 'Ysondre',
+                icon: '🟢',
+                zone: 'Ashenvale / Feralas / Hinterlands / Duskwood',
+                type: 'Dragon of Nightmare',
+                spawnNote: 'One of four Dragon of Nightmare spawn locations. All four typically spawn at the same time.',
+                wbpvp: true,
+            },
+        ];
+
+        // LocalStorage keys for saved kill times
+        const LS_KEY = 'epochdb_timers_v1';
+        function loadKillTimes() {
+            try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch(e) { return {}; }
+        }
+        function saveKillTime(id, ts) {
+            const d = loadKillTimes(); d[id] = ts; localStorage.setItem(LS_KEY, JSON.stringify(d));
+        }
+        function clearKillTime(id) {
+            const d = loadKillTimes(); delete d[id]; localStorage.setItem(LS_KEY, JSON.stringify(d));
+        }
+
+        function msToCountdown(ms) {
+            if (ms <= 0) return { str: 'OPEN NOW', cls: 'open', pct: 100 };
+            const d = Math.floor(ms / MS.d);
+            const h = Math.floor((ms % MS.d) / MS.h);
+            const m = Math.floor((ms % MS.h) / MS.m);
+            const s = Math.floor((ms % MS.m) / MS.s);
+            const str = d > 0 ? `${d}d ${h}h ${m}m ${s}s` : h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
+            const cls = ms < 2 * MS.h ? 'soon' : '';
+            return { str, cls, pct: null };
+        }
+
+        // Calculate next reset for a raid (fixed weekly/3-day resets)
+        function nextRaidReset(raid) {
+            const now = new Date();
+            const resetMs = raid.resetMs;
+            // Find the most recent reset anchor (next Wednesday 9am UTC rolling)
+            // Use a fixed epoch: Wednesday 2025-07-30 09:00 UTC as anchor
+            const anchor = new Date('2025-07-30T09:00:00Z').getTime();
+            const elapsed = Date.now() - anchor;
+            const cyclesPassed = Math.floor(elapsed / resetMs);
+            const lastReset = anchor + cyclesPassed * resetMs;
+            const nextReset = lastReset + resetMs;
+            return { lastReset, nextReset, msUntil: nextReset - Date.now(), totalMs: resetMs };
+        }
+
+        let timerInterval = null;
+
+        function renderTimers() {
+            const el = document.getElementById('timers-inner');
+
+            function build() {
+                const kills = loadKillTimes();
+                let html = `<div style="padding:1.5rem 0">`;
+
+                // Header
+                html += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.2rem">
+                    <div>
+                        <div style="font-family:'Cinzel',serif;font-size:1.4rem;font-weight:900;color:var(--gold);text-shadow:0 0 20px rgba(200,168,75,.3)">⏱ RAID TIMERS</div>
+                        <div style="font-size:.85rem;color:var(--text-dim);font-style:italic;margin-top:.2rem">Project Epoch — Gurubashi realm</div>
+                    </div>
+                    <div style="font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--text-dim);text-align:right">
+                        <div>Server time (UTC)</div>
+                        <div id="server-clock" style="font-size:1rem;color:var(--text)"></div>
+                    </div>
+                </div>`;
+
+                html += `<div class="timers-note">
+                    Raid resets are based on a fixed weekly Wednesday 09:00 UTC schedule for 7-day raids, and every 3 days for ZG/AQ20.
+                    World boss timers can be tracked manually — click <strong style="color:var(--gold)">Mark as Killed</strong> after a kill to start your personal countdown.
+                    World bosses on Project Epoch trigger a <strong style="color:var(--red-bright)">zone-wide PvP event</strong> — cross-faction groups are disbanded and the zone becomes a battleground 5 minutes before spawn.
+                </div>`;
+
+                // ── RAIDS ──
+                html += `<div class="timers-section-title">⚔ Raid Instances</div>`;
+                html += `<div class="timers-grid">`;
+                for (const raid of RAIDS) {
+                    const { msUntil, lastReset, nextReset, totalMs } = nextRaidReset(raid);
+                    const { str, cls } = msToCountdown(msUntil);
+                    const pct = Math.max(0, Math.min(100, ((totalMs - msUntil) / totalMs) * 100));
+                    const nextDate = new Date(nextReset).toUTCString().replace(' GMT', ' UTC').slice(0, -4);
+                    const lastDate = new Date(lastReset).toUTCString().replace(' GMT', ' UTC').slice(0, -4);
+
+                    html += `<div class="timer-card">
+                        <div class="timer-card-hdr">
+                            <span class="timer-card-icon">${raid.icon}</span>
+                            <span class="timer-card-name">${raid.name}</span>
+                            <span class="timer-card-size">${raid.size}</span>
+                        </div>
+                        <div class="timer-card-body">
+                            <div class="timer-meta-row"><span>Zone</span><span>${raid.zone}</span></div>
+                            <div class="timer-meta-row"><span>Tier</span><span style="color:var(--gold)">${raid.tier}</span></div>
+                            <div class="timer-meta-row"><span>Bosses</span><span>${raid.bosses.length}</span></div>
+                            <div class="timer-meta-row"><span>Last Reset</span><span>${lastDate}</span></div>
+                            <div class="timer-meta-row"><span>Next Reset</span><span>${nextDate}</span></div>
+                            <div class="timer-countdown-wrap">
+                                <div class="timer-countdown-label">Resets In</div>
+                                <div class="timer-countdown ${cls}" id="cd-${raid.id}">${str}</div>
+                                <div class="timer-bar-wrap"><div class="timer-bar ${cls}" style="width:${pct.toFixed(1)}%" id="bar-${raid.id}"></div></div>
+                            </div>
+                            <div class="timer-boss-list">
+                                ${raid.bosses.map(b => `<div class="timer-boss-row">
+                                    <span class="timer-boss-name">${b.name}</span>
+                                    <span class="timer-boss-type">${b.type}</span>
+                                </div>`).join('')}
+                            </div>
+                            ${raid.note ? `<div style="margin-top:.6rem;font-size:.78rem;color:var(--text-dim);font-style:italic">${raid.note}</div>` : ''}
+                        </div>
+                    </div>`;
+                }
+                html += `</div>`;
+
+                // ── WORLD BOSSES ──
+                html += `<div class="timers-section-title">🌍 World Bosses</div>`;
+                html += `<div class="timers-grid">`;
+                for (const wb of WORLD_BOSSES) {
+                    const killTime = kills[wb.id] ? parseInt(kills[wb.id]) : null;
+                    // World bosses have variable respawn — standard vanilla is 2-4 days (we use 3d window)
+                    const respawnMs = 3 * MS.d;
+                    const msUntilRespawn = killTime ? (killTime + respawnMs) - Date.now() : null;
+                    let cdStr, cdCls, cdPct;
+                    if (!killTime) {
+                        cdStr = 'Unknown'; cdCls = ''; cdPct = 0;
+                    } else if (msUntilRespawn <= 0) {
+                        cdStr = 'RESPAWNED'; cdCls = 'open'; cdPct = 100;
+                    } else {
+                        const { str, cls } = msToCountdown(msUntilRespawn);
+                        cdStr = str; cdCls = cls;
+                        cdPct = Math.max(0, Math.min(100, ((respawnMs - msUntilRespawn) / respawnMs) * 100));
+                    }
+                    const killDateStr = killTime ? new Date(killTime).toUTCString().replace(' GMT', ' UTC').slice(0, -4) : 'Not recorded';
+
+                    html += `<div class="timer-card">
+                        <div class="timer-card-hdr">
+                            <span class="timer-card-icon">${wb.icon}</span>
+                            <span class="timer-card-name">${wb.name}</span>
+                            <span class="timer-card-size" style="color:var(--red-bright);border-color:rgba(139,26,26,.5)">${wb.type}</span>
+                        </div>
+                        <div class="timer-card-body">
+                            <div class="timer-meta-row"><span>Zone</span><span>${wb.zone}</span></div>
+                            <div class="timer-meta-row"><span>Last Kill</span><span id="killdate-${wb.id}">${killDateStr}</span></div>
+                            <div class="timer-countdown-wrap">
+                                <div class="timer-countdown-label">Est. Respawn In</div>
+                                <div class="timer-countdown ${cdCls}" id="cd-${wb.id}">${cdStr}</div>
+                                <div class="timer-bar-wrap"><div class="timer-bar ${cdCls}" style="width:${cdPct.toFixed(1)}%" id="bar-${wb.id}"></div></div>
+                            </div>
+                            <div class="world-boss-alert">⚠ PvP Event — zone goes PvP-enabled 5 min before spawn. Cross-faction groups disbanded. 2-hour kill window.</div>
+                            <div style="margin-top:.5rem;font-size:.78rem;color:var(--text-dim);font-style:italic">${wb.spawnNote}</div>
+                            <button class="timer-set-btn" onclick="markWBKilled('${wb.id}')">☠ Mark as Killed Now</button>
+                            ${killTime ? `<button class="timer-reset-btn" onclick="clearWBKill('${wb.id}')">✕ Clear Kill Time</button>` : ''}
+                        </div>
+                    </div>`;
+                }
+                html += `</div></div>`;
+
+                el.innerHTML = html;
+                updateServerClock();
+            }
+
+            build();
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (document.getElementById('timers-view').classList.contains('hidden')) {
+                    clearInterval(timerInterval); timerInterval = null; return;
+                }
+                tickTimers();
+                updateServerClock();
+            }, 1000);
+        }
+
+        function updateServerClock() {
+            const el = document.getElementById('server-clock');
+            if (el) {
+                const now = new Date();
+                el.textContent = now.toUTCString().slice(17, 25) + ' UTC';
+            }
+        }
+
+        function tickTimers() {
+            const kills = loadKillTimes();
+            // Tick raids
+            for (const raid of RAIDS) {
+                const cdEl = document.getElementById(`cd-${raid.id}`);
+                const barEl = document.getElementById(`bar-${raid.id}`);
+                if (!cdEl) continue;
+                const { msUntil, totalMs } = nextRaidReset(raid);
+                const { str, cls } = msToCountdown(msUntil);
+                const pct = Math.max(0, Math.min(100, ((totalMs - msUntil) / totalMs) * 100));
+                cdEl.textContent = str;
+                cdEl.className = `timer-countdown ${cls}`;
+                if (barEl) { barEl.style.width = pct.toFixed(1) + '%'; barEl.className = `timer-bar ${cls}`; }
+            }
+            // Tick world bosses
+            const respawnMs = 3 * MS.d;
+            for (const wb of WORLD_BOSSES) {
+                const cdEl = document.getElementById(`cd-${wb.id}`);
+                const barEl = document.getElementById(`bar-${wb.id}`);
+                if (!cdEl) continue;
+                const killTime = kills[wb.id] ? parseInt(kills[wb.id]) : null;
+                if (!killTime) { cdEl.textContent = 'Unknown'; cdEl.className = 'timer-countdown'; continue; }
+                const msLeft = (killTime + respawnMs) - Date.now();
+                if (msLeft <= 0) {
+                    cdEl.textContent = 'RESPAWNED'; cdEl.className = 'timer-countdown open';
+                    if (barEl) { barEl.style.width = '100%'; barEl.className = 'timer-bar open'; }
+                } else {
+                    const { str, cls } = msToCountdown(msLeft);
+                    cdEl.textContent = str; cdEl.className = `timer-countdown ${cls}`;
+                    const pct = Math.max(0, Math.min(100, ((respawnMs - msLeft) / respawnMs) * 100));
+                    if (barEl) { barEl.style.width = pct.toFixed(1) + '%'; barEl.className = `timer-bar ${cls}`; }
+                }
+            }
+        }
+
+        function markWBKilled(id) {
+            saveKillTime(id, Date.now());
+            renderTimers();
+            toast(`☠ ${WORLD_BOSSES.find(w => w.id === id)?.name || id} kill recorded!`);
+        }
+
+        function clearWBKill(id) {
+            clearKillTime(id);
+            renderTimers();
         }
 
         showHome();
