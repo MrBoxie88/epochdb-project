@@ -137,7 +137,7 @@ exports.handler = async (event) => {
     if (event.httpMethod !== 'POST') return { statusCode: 405, headers: { 'Access-Control-Allow-Origin': '*' }, body: 'Method Not Allowed' };
 
     try {
-        await mongoose.connect(process.env.NETLIFY_DATABASE_URL || process.env.MONGODB_URI);
+        await mongoose.connect(process.env.MONGODB_URI);
 
         const parsed = parseLuaContent(event.body);
         const ops = [];

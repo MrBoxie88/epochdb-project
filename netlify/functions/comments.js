@@ -14,7 +14,7 @@ const Comment = mongoose.models.Comment || mongoose.model('Comment', CommentSche
 
 async function connect() {
     if (mongoose.connection.readyState === 1) return;
-    await mongoose.connect(process.env.NETLIFY_DATABASE_URL || process.env.MONGODB_URI);
+    await mongoose.connect(process.env.MONGODB_URI);
 }
 
 async function verifyToken(token) {
