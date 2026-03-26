@@ -89,10 +89,15 @@ function parseLuaFile(filePath) {
     const content = fs.readFileSync(filePath, 'utf8');
     const result = { kills: [], items: [], loot: [] };
 
+    console.log(`[PARSE] Starting Lua parse from: ${filePath}`);
+    console.log(`[PARSE] File size: ${content.length} bytes`);
+
     // ── KILLS ──
     const killsTable = extractTable('kills', content);
     if (killsTable) {
-        for (const { key, block } of parseEntries(killsTable)) {
+        const killEntries = parseEntries(killsTable);
+        console.log(`[PARSE] Found kills table with ${killEntries.length} entries`);
+        for (const { key, block } of killEntries) {
             result.kills.push({
                 key,
                 name:      getStr('name', block)      || key.split('|')[0],
@@ -104,12 +109,16 @@ function parseLuaFile(filePath) {
                 lastKill:  getStr('lastKill', block)  || '',
             });
         }
+    } else {
+        console.log(`[PARSE] No kills table found`);
     }
 
     // ── ITEMS ──
     const itemsTable = extractTable('items', content);
     if (itemsTable) {
-        for (const { key, block } of parseEntries(itemsTable)) {
+        const itemEntries = parseEntries(itemsTable);
+        console.log(`[PARSE] Found items table with ${itemEntries.length} entries`);
+        for (const { key, block } of itemEntries) {
             result.items.push({
                 id:        getStr('id', block)        || key,
                 name:      getStr('name', block)      || '',
@@ -121,12 +130,16 @@ function parseLuaFile(filePath) {
                 firstSeen: getStr('firstSeen', block) || '',
             });
         }
+    } else {
+        console.log(`[PARSE] No items table found`);
     }
 
     // ── LOOT ──
     const lootTable = extractTable('loot', content);
     if (lootTable) {
-        for (const { key, block } of parseEntries(lootTable)) {
+        const lootEntries = parseEntries(lootTable);
+        console.log(`[PARSE] Found loot table with ${lootEntries.length} entries`);
+        for (const { key, block } of lootEntries) {
             const sources = {};
             const sourcesInner = extractTable('sources', block);
             if (sourcesInner) {
@@ -149,8 +162,11 @@ function parseLuaFile(filePath) {
                 lastSeen:  getStr('lastSeen', block)  || '',
             });
         }
+    } else {
+        console.log(`[PARSE] No loot table found`);
     }
 
+    console.log(`[PARSE] Complete: ${result.kills.length} kills, ${result.items.length} items, ${result.loot.length} loot`);
     return result;
 }
 
@@ -161,7 +177,22 @@ app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
 
-        const parsed = parseLuaFile(req.file.path);
+        console.log(`[UPLOAD] Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
+        let parsed;
+        try {
+            parsed = parseLuaFile(req.file.path);
+        } catch (parseErr) {
+            console.error(`[UPLOAD] Parse error:`, parseErr.message);
+            fs.unlinkSync(req.file.path);
+            return res.status(400).json({ error: `Failed to parse Lua file: ${parseErr.message}` });
+        }
+
+        console.log(`[UPLOAD] Parse result: ${parsed.kills.length} kills, ${parsed.items.length} items, ${parsed.loot.length} loot`);
+
+        if (parsed.kills.length === 0 && parsed.items.length === 0 && parsed.loot.length === 0) {
+            console.warn(`[UPLOAD] Warning: No data extracted from file. Check Lua format.`);
+        }
+
         const ops = [];
 
         for (const npc of parsed.kills) {
@@ -213,7 +244,19 @@ app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
             });
         }
 
-        if (ops.length > 0) await Record.bulkWrite(ops);
+        if (ops.length > 0) {
+            try {
+                await Record.bulkWrite(ops);
+                console.log(`[UPLOAD] MongoDB bulk write successful: ${ops.length} operations`);
+            } catch (dbErr) {
+                console.error(`[UPLOAD] Database error:`, dbErr.message);
+                fs.unlinkSync(req.file.path);
+                return res.status(500).json({ error: `Database sync failed: ${dbErr.message}` });
+            }
+        } else {
+            console.warn(`[UPLOAD] No operations to write to database`);
+        }
+
         fs.unlinkSync(req.file.path);
 
         res.json({
@@ -222,7 +265,8 @@ app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
             breakdown: { kills: parsed.kills.length, items: parsed.items.length, loot: parsed.loot.length }
         });
     } catch (err) {
-        console.error('Upload Error:', err);
+        console.error('[UPLOAD] Unexpected error:', err);
+        if (req.file) fs.unlinkSync(req.file.path).catch(() => {});
         res.status(500).json({ error: 'Processing failed' });
     }
 });
