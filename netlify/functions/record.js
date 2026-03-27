@@ -9,7 +9,11 @@ const Record = mongoose.models.Record || mongoose.model('Record', RecordSchema);
 
 async function connect() {
     if (mongoose.connection.readyState === 1) return;
-    await mongoose.connect(process.env.MONGODB_URI);
+    const dbUri = process.env.NETLIFY_DATABASE_URL || process.env.MONGODB_URI;
+    if (!dbUri) {
+        throw new Error('Database URI not configured. Set NETLIFY_DATABASE_URL or MONGODB_URI environment variable.');
+    }
+    await mongoose.connect(dbUri);
 }
 
 exports.handler = async (event) => {
