@@ -13,8 +13,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve static frontend files from /public
+app.use(express.static(path.join(__dirname, 'public')));
+
 // ═══════════════════════════════════════════════════════════════
-// 1. SCHEMA
+// 1. SCHEMAS
 // ═══════════════════════════════════════════════════════════════
 const RecordSchema = new mongoose.Schema({
     type: String, id: String, name: String, quality: Number,
@@ -22,6 +25,17 @@ const RecordSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now }
 });
 const Record = mongoose.model('Record', RecordSchema);
+
+const CommentSchema = new mongoose.Schema({
+    type: String,
+    recordId: String,
+    author: String,
+    cls: String,
+    text: String,
+    ts: { type: Date, default: Date.now },
+    uid: String
+});
+const Comment = mongoose.model('Comment', CommentSchema);
 
 // ═══════════════════════════════════════════════════════════════
 // 2. DATABASE
@@ -32,13 +46,14 @@ mongoose.connect(MONGODB_URI)
     .catch(err => console.error('DB connection error:', err));
 
 // ═══════════════════════════════════════════════════════════════
-// 3. LUA PARSER
-// Handles the EpochDBData structure:
-//   EpochDBData = {
-//     ["kills"] = { ["NPC Name|Zone"] = { ["count"] = N, ... } }
-//     ["items"] = { ["itemId"]        = { ["name"] = "...", ... } }
-//     ["loot"]  = { ["itemId"]        = { ["sources"] = {...}, ... } }
-//   }
+// 3. HEALTH CHECK (Render uses this to verify the service is up)
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 4. LUA PARSER
 // ═══════════════════════════════════════════════════════════════
 
 function extractTable(tableName, content) {
@@ -92,17 +107,12 @@ function parseLuaFile(filePath) {
     console.log(`[PARSE] Starting Lua parse from: ${filePath}`);
     console.log(`[PARSE] File size: ${content.length} bytes`);
 
-    // Extract the EpochDBData table from SavedVariables format
-    // SavedVariables format: EpochDBData = { ... }
-    // We need to extract just the { ... } part for the parser
-    console.log(`[PARSE] Checking for SavedVariables format (EpochDBData = {...})`);
     const savedVarsMatch = content.match(/^EpochDBData\s*=\s*(\{[\s\S]*\})[\s\S]*$/);
-
     if (savedVarsMatch) {
         console.log(`[PARSE] Detected SavedVariables format, extracting data table`);
         content = savedVarsMatch[1];
     } else {
-        console.log(`[PARSE] Not SavedVariables format, using content as-is (raw table format)`);
+        console.log(`[PARSE] Not SavedVariables format, using content as-is`);
     }
 
     // ── KILLS ──
@@ -122,8 +132,6 @@ function parseLuaFile(filePath) {
                 lastKill:  getStr('lastKill', block)  || '',
             });
         }
-    } else {
-        console.log(`[PARSE] No kills table found`);
     }
 
     // ── ITEMS ──
@@ -143,8 +151,6 @@ function parseLuaFile(filePath) {
                 firstSeen: getStr('firstSeen', block) || '',
             });
         }
-    } else {
-        console.log(`[PARSE] No items table found`);
     }
 
     // ── LOOT ──
@@ -175,8 +181,6 @@ function parseLuaFile(filePath) {
                 lastSeen:  getStr('lastSeen', block)  || '',
             });
         }
-    } else {
-        console.log(`[PARSE] No loot table found`);
     }
 
     console.log(`[PARSE] Complete: ${result.kills.length} kills, ${result.items.length} items, ${result.loot.length} loot`);
@@ -184,7 +188,7 @@ function parseLuaFile(filePath) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 4. UPLOAD & SYNC ROUTE
+// 5. UPLOAD & SYNC ROUTE
 // ═══════════════════════════════════════════════════════════════
 app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
     try {
@@ -203,7 +207,7 @@ app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
         console.log(`[UPLOAD] Parse result: ${parsed.kills.length} kills, ${parsed.items.length} items, ${parsed.loot.length} loot`);
 
         if (parsed.kills.length === 0 && parsed.items.length === 0 && parsed.loot.length === 0) {
-            console.warn(`[UPLOAD] Warning: No data extracted from file. Check Lua format.`);
+            console.warn(`[UPLOAD] Warning: No data extracted from file.`);
         }
 
         const ops = [];
@@ -266,8 +270,6 @@ app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
                 fs.unlinkSync(req.file.path);
                 return res.status(500).json({ error: `Database sync failed: ${dbErr.message}` });
             }
-        } else {
-            console.warn(`[UPLOAD] No operations to write to database`);
         }
 
         fs.unlinkSync(req.file.path);
@@ -279,13 +281,13 @@ app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
         });
     } catch (err) {
         console.error('[UPLOAD] Unexpected error:', err);
-        if (req.file) fs.unlinkSync(req.file.path).catch(() => {});
+        try { if (req.file) fs.unlinkSync(req.file.path); } catch (_) {}
         res.status(500).json({ error: 'Processing failed' });
     }
 });
 
 // ═══════════════════════════════════════════════════════════════
-// 5. SEARCH & FETCH ROUTES
+// 6. SEARCH & FETCH ROUTES
 // ═══════════════════════════════════════════════════════════════
 app.get('/api/search', async (req, res) => {
     try {
@@ -299,7 +301,7 @@ app.get('/api/search', async (req, res) => {
 
 app.get('/api/list/:category', async (req, res) => {
     try {
-        const data = await Record.find({ type: req.params.category }).limit(100);
+        const data = await Record.find({ type: req.params.category }).limit(1000);
         res.json(data);
     } catch (err) {
         res.status(500).json({ error: 'Could not fetch list' });
@@ -317,7 +319,55 @@ app.get('/api/record/:type/:id', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// 6. START
+// 7. COMMENTS API (ported from Netlify function)
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/comments/:type/:id', async (req, res) => {
+    try {
+        const docs = await Comment.find({ type: req.params.type, recordId: req.params.id }).sort({ ts: -1 }).lean();
+        res.json(docs);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/comments/:type/:id', async (req, res) => {
+    try {
+        const { text, cls, author } = req.body;
+        if (!text) return res.status(400).json({ error: 'Missing text' });
+        const c = new Comment({
+            type: req.params.type,
+            recordId: req.params.id,
+            text,
+            cls: cls || '',
+            author: author || 'Anonymous',
+            ts: Date.now()
+        });
+        await c.save();
+        res.status(201).json(c);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/comments/:type/:id/:commentId', async (req, res) => {
+    try {
+        const result = await Comment.findByIdAndDelete(req.params.commentId);
+        if (!result) return res.status(404).json({ error: 'Comment not found' });
+        res.json({ deleted: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 8. SPA FALLBACK — serve index.html for all non-API routes
+// ═══════════════════════════════════════════════════════════════
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 9. START
 // ═══════════════════════════════════════════════════════════════
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`EpochDB Backend running on port ${PORT}`));

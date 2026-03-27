@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+        <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -3179,31 +3179,7 @@
             renderTimers();
         }
 
-        // Netlify Identity helpers (re-added to enable login/logout)
-        function initIdentity() {
-            if (!window.netlifyIdentity) return;
-            netlifyIdentity.on('init', user => updateAuthUI(user));
-            netlifyIdentity.on('login', user => { updateAuthUI(user); netlifyIdentity.close(); });
-            netlifyIdentity.on('logout', () => { updateAuthUI(null); });
-            netlifyIdentity.init();
-            updateAuthUI(netlifyIdentity.currentUser());
-        }
-
-        function updateAuthUI(user) {
-            window.EPOCH_USER = user || null;
-            const btn = document.getElementById('id-btn');
-            if (!btn) return;
-            if (user) {
-                const name = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user.email || 'User';
-                btn.textContent = `Logout (${name})`;
-            } else btn.textContent = 'Login';
-        }
-
-        function onAuthClick() {
-            if (!window.netlifyIdentity) { toast('Auth not available'); return; }
-            const u = netlifyIdentity.currentUser();
-            if (u) netlifyIdentity.logout(); else netlifyIdentity.open();
-        }
+        // Authentication is handled server-side; no Netlify Identity needed 
 
         initIdentity();
         showHome();
