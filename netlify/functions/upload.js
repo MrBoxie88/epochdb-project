@@ -166,8 +166,8 @@ exports.handler = async (event) => {
             return { statusCode: 400, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ error: 'No file data provided' }) };
         }
 
-        const dbUri = process.env.MONGODB_URI || process.env.NETLIFY_DATABASE_URL;
-        console.log(`[UPLOAD] Database URI source:`, process.env.MONGODB_URI ? 'NETLIFY_DATABASE_URL' : 'MONGODB_URI');
+        const dbUri = process.env.MONGODB_URI;
+        console.log(`[UPLOAD] Database URI source:`, process.env.MONGODB_URI ? 'MONGODB_URI');
         console.log(`[UPLOAD] Database URI (first 50 chars):`, dbUri ? dbUri.substring(0, 50) + '...' : 'UNDEFINED');
 
         if (!dbUri) {
