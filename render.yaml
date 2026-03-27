@@ -8,6 +8,24 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: MONGODB_URI
-        sync: false  # You'll set this manually in the Render dashboard
+        sync: false
       - key: NODE_ENV
         value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: BASE_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: RECAPTCHA_SITE_KEY
+        sync: false
+      - key: RECAPTCHA_SECRET_KEY
+        sync: false

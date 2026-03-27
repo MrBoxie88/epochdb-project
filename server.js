@@ -2,6 +2,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
@@ -32,19 +36,186 @@ const CommentSchema = new mongoose.Schema({
 });
 const Comment = mongoose.model('Comment', CommentSchema);
 
+const UserSchema = new mongoose.Schema({
+    email:    { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true },
+    name:     { type: String, default: '' },
+    verified: { type: Boolean, default: false },
+    verifyToken:   { type: String, default: null },
+    verifyExpires: { type: Date, default: null },
+    createdAt:     { type: Date, default: Date.now }
+});
+const User = mongoose.model('User', UserSchema);
+
+const JWT_SECRET = process.env.JWT_SECRET || 'epochdb-dev-secret-change-me';
+const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET_KEY || '';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
+
 // ═══════════════════════════════════════════════════════════════
 // 2. DATABASE
 // ═══════════════════════════════════════════════════════════════
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/epochdb';
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('DB connection error:', err));
+
+if (!process.env.MONGODB_URI) {
+    console.warn('WARNING: MONGODB_URI env var not set, using localhost fallback');
+}
+
+mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 15000,
+    socketTimeoutMS: 45000,
+})
+    .then(() => console.log('Connected to MongoDB:', MONGODB_URI.replace(/\/\/.*@/, '//<credentials>@')))
+    .catch(err => console.error('DB connection error:', err.message));
+
+mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected'));
+mongoose.connection.on('reconnected', () => console.log('MongoDB reconnected'));
 
 // ═══════════════════════════════════════════════════════════════
 // 3. HEALTH CHECK (Render uses this to verify the service is up)
 // ═══════════════════════════════════════════════════════════════
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', db: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' });
+    const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+    res.json({ status: 'ok', db: states[mongoose.connection.readyState] || 'unknown' });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 3b. EMAIL TRANSPORTER
+// ═══════════════════════════════════════════════════════════════
+const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: false,
+    auth: {
+        user: process.env.SMTP_USER || '',
+        pass: process.env.SMTP_PASS || ''
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// 3c. reCAPTCHA VERIFICATION
+// ═══════════════════════════════════════════════════════════════
+async function verifyCaptcha(token) {
+    if (!RECAPTCHA_SECRET) { console.warn('RECAPTCHA_SECRET_KEY not set, skipping verification'); return true; }
+    if (!token) return false;
+    try {
+        const params = new URLSearchParams({ secret: RECAPTCHA_SECRET, response: token });
+        const res = await fetch('https://www.google.com/recaptcha/api/siteverify', { method: 'POST', body: params });
+        const data = await res.json();
+        return data.success === true;
+    } catch (err) { console.error('reCAPTCHA verify error:', err); return false; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 3d. JWT MIDDLEWARE
+// ═══════════════════════════════════════════════════════════════
+function authMiddleware(req, res, next) {
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (!token) return res.status(401).json({ error: 'Login required' });
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) { return res.status(401).json({ error: 'Invalid or expired token' }); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 3e. AUTH ROUTES
+// ═══════════════════════════════════════════════════════════════
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { email, password, name, captchaToken } = req.body;
+        if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+        if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+        const captchaOk = await verifyCaptcha(captchaToken);
+        if (!captchaOk) return res.status(400).json({ error: 'Please complete the CAPTCHA' });
+
+        const existing = await User.findOne({ email: email.toLowerCase().trim() });
+        if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
+
+        const hash = await bcrypt.hash(password, 12);
+        const verifyToken = crypto.randomBytes(32).toString('hex');
+        const user = new User({
+            email: email.toLowerCase().trim(),
+            password: hash,
+            name: (name || email.split('@')[0]).trim(),
+            verified: false,
+            verifyToken,
+            verifyExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+        });
+        await user.save();
+
+        const verifyUrl = `${BASE_URL}/api/auth/verify/${verifyToken}`;
+        try {
+            await transporter.sendMail({
+                from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@epochdb.com',
+                to: user.email,
+                subject: 'EpochDB — Verify your email',
+                html: `<h2>Welcome to EpochDB!</h2>
+                       <p>Click the link below to verify your email:</p>
+                       <p><a href="${verifyUrl}">${verifyUrl}</a></p>
+                       <p>This link expires in 24 hours.</p>`
+            });
+            console.log(`[AUTH] Verification email sent to ${user.email}`);
+        } catch (mailErr) {
+            console.error('[AUTH] Email send failed:', mailErr.message);
+        }
+
+        res.status(201).json({ message: 'Account created! Check your email to verify.' });
+    } catch (err) {
+        console.error('[AUTH] Register error:', err);
+        res.status(500).json({ error: 'Registration failed' });
+    }
+});
+
+app.get('/api/auth/verify/:token', async (req, res) => {
+    try {
+        const user = await User.findOne({ verifyToken: req.params.token, verifyExpires: { $gt: new Date() } });
+        if (!user) return res.status(400).send('<h2>Invalid or expired verification link.</h2><p><a href="/">Return to EpochDB</a></p>');
+        user.verified = true;
+        user.verifyToken = null;
+        user.verifyExpires = null;
+        await user.save();
+        res.send('<h2 style="color:green">✔ Email verified!</h2><p>You can now log in. <a href="/">Return to EpochDB</a></p>');
+    } catch (err) {
+        console.error('[AUTH] Verify error:', err);
+        res.status(500).send('<h2>Verification failed.</h2>');
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password, captchaToken } = req.body;
+        if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+
+        const captchaOk = await verifyCaptcha(captchaToken);
+        if (!captchaOk) return res.status(400).json({ error: 'Please complete the CAPTCHA' });
+
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
+        if (!user) return res.status(401).json({ error: 'Invalid email or password' });
+
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) return res.status(401).json({ error: 'Invalid email or password' });
+
+        if (!user.verified) return res.status(403).json({ error: 'Please verify your email first. Check your inbox.' });
+
+        const token = jwt.sign({ id: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
+        res.json({ token, user: { id: user._id, email: user.email, name: user.name } });
+    } catch (err) {
+        console.error('[AUTH] Login error:', err);
+        res.status(500).json({ error: 'Login failed' });
+    }
+});
+
+app.get('/api/auth/me', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password -verifyToken');
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json({ id: user._id, email: user.email, name: user.name, verified: user.verified });
+    } catch (err) {
+        res.status(500).json({ error: 'Could not fetch user' });
+    }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -322,16 +493,17 @@ app.get('/api/comments/:type/:id', async (req, res) => {
     }
 });
 
-app.post('/api/comments/:type/:id', async (req, res) => {
+app.post('/api/comments/:type/:id', authMiddleware, async (req, res) => {
     try {
-        const { text, cls, author } = req.body;
+        const { text, cls } = req.body;
         if (!text) return res.status(400).json({ error: 'Missing text' });
         const c = new Comment({
             type: req.params.type,
             recordId: req.params.id,
             text,
             cls: cls || '',
-            author: author || 'Anonymous',
+            author: req.user.name || req.user.email,
+            uid: req.user.id,
             ts: Date.now()
         });
         await c.save();
@@ -341,10 +513,12 @@ app.post('/api/comments/:type/:id', async (req, res) => {
     }
 });
 
-app.delete('/api/comments/:type/:id/:commentId', async (req, res) => {
+app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res) => {
     try {
-        const result = await Comment.findByIdAndDelete(req.params.commentId);
-        if (!result) return res.status(404).json({ error: 'Comment not found' });
+        const c = await Comment.findById(req.params.commentId);
+        if (!c) return res.status(404).json({ error: 'Comment not found' });
+        if (c.uid !== req.user.id) return res.status(403).json({ error: 'You can only delete your own comments' });
+        await Comment.findByIdAndDelete(req.params.commentId);
         res.json({ deleted: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

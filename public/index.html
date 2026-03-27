@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EpochDB — Project Epoch Database</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -1484,6 +1485,32 @@
                 box-shadow: 0 0 18px rgba(200,168,75,.3)
             }
 
+        /* ── AUTH MODAL ── */
+        .auth-tabs { display: flex; border-bottom: 1px solid var(--border); }
+        .auth-tab {
+            flex: 1; padding: .7rem; text-align: center; cursor: pointer;
+            font-family: 'Cinzel',serif; font-size: .7rem; letter-spacing: .12em;
+            color: var(--text-dim); background: none; border: none; border-bottom: 2px solid transparent;
+            transition: all .15s;
+        }
+        .auth-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+        .auth-tab:hover { color: var(--text-bright); }
+        .auth-input {
+            width: 100%; padding: .6rem .8rem; margin-bottom: .7rem;
+            background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+            font-size: .9rem; font-family: 'Crimson Text',serif;
+        }
+        .auth-input:focus { outline: none; border-color: var(--gold-dark); }
+        .auth-input::placeholder { color: var(--text-dim); }
+        #auth-status {
+            padding: .55rem .8rem; margin-bottom: .7rem; display: none;
+            font-family: 'Share Tech Mono',monospace; font-size: .75rem;
+            border: 1px solid var(--border);
+        }
+        .auth-status-ok { color: var(--green-light); border-color: rgba(106,191,106,.4) !important; }
+        .auth-status-err { color: var(--red-bright); border-color: rgba(192,57,43,.4) !important; }
+        .g-recaptcha { margin-bottom: .7rem; }
+
         /* ── TOAST ── */
         .toast {
             position: fixed;
@@ -2030,12 +2057,39 @@
         </div>
     </div>
 
+    <!-- AUTH MODAL -->
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal">
+            <div class="modal-hdr"><div class="modal-title">🔒 Account</div><button class="modal-close" onclick="closeAuth()">✕</button></div>
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">LOGIN</button>
+                <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">REGISTER</button>
+            </div>
+            <div class="modal-body">
+                <div id="auth-status"></div>
+                <div id="auth-form-login">
+                    <input class="auth-input" id="login-email" type="email" placeholder="Email address">
+                    <input class="auth-input" id="login-password" type="password" placeholder="Password">
+                    <div id="login-captcha" class="g-recaptcha" data-sitekey="6Lfa65osAAAAAMcAgYmUlJtExyLkBGeMUHg_F9gL" data-theme="dark"></div>
+                    <button class="modal-submit" onclick="doLogin()">LOGIN</button>
+                </div>
+                <div id="auth-form-register" style="display:none">
+                    <input class="auth-input" id="reg-name" type="text" placeholder="Display name">
+                    <input class="auth-input" id="reg-email" type="email" placeholder="Email address">
+                    <input class="auth-input" id="reg-password" type="password" placeholder="Password (min 6 characters)">
+                    <input class="auth-input" id="reg-password2" type="password" placeholder="Confirm password">
+                    <div id="reg-captcha" class="g-recaptcha" data-sitekey="6Lfa65osAAAAAMcAgYmUlJtExyLkBGeMUHg_F9gL" data-theme="dark"></div>
+                    <button class="modal-submit" onclick="doRegister()">CREATE ACCOUNT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- WOW TOOLTIP -->
     <div id="wow-tooltip"><div class="tt-frame"><div class="tt-inner" id="tt-inner"></div></div></div>
 
     <script>
 
-        // Use Netlify Functions endpoints (redirects in netlify.toml map /api/* to functions)
         const API = '';
 
         // ═══════════════════════════════════════════════════════════════
@@ -2541,13 +2595,13 @@
             const id = idFromKey(key);
             const container = document.getElementById(id);
             if (!container) return;
-            const user = (window.netlifyIdentity && netlifyIdentity.currentUser()) || window.EPOCH_USER || null;
+            const user = window.EPOCH_USER || null;
 
             let formHtml = '';
             if (!user) {
-                formHtml = `<div style="padding:.8rem;color:var(--text-dim)">Please <a onclick="netlifyIdentity.open()">log in</a> to post comments.</div>`;
+                formHtml = `<div style="padding:.8rem;color:var(--text-dim)">Please <a href="#" onclick="onAuthClick();return false" style="color:var(--gold);cursor:pointer">log in</a> to post comments.</div>`;
             } else {
-                const name = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user.email || '';
+                const name = user.name || user.email || '';
                 formHtml = `
                     <div style="padding:.8rem">
                         <div style="display:flex;gap:.5rem;margin-bottom:.5rem;align-items:center">
@@ -2591,31 +2645,41 @@
         }
 
         async function postComment(key) {
+            const user = window.EPOCH_USER || null;
+            if (!user) { onAuthClick(); return; }
             const id = idFromKey(key);
             const classEl = document.getElementById('c-class-' + id);
             const textEl = document.getElementById('c-text-' + id);
             if (!textEl) return;
             const text = textEl.value.trim();
-            const author = (window.EPOCH_USER && window.EPOCH_USER.name) || 'Anonymous';
             const cls = classEl && classEl.value.trim() ? classEl.value.trim() : '';
             if (!text) { toast('Please enter a comment.'); return; }
             const [type, recId] = key.split(':');
             try {
+                const token = localStorage.getItem('epoch_token');
                 const res = await fetch(`${API || ''}${COMMENTS_API}/${type}/${recId}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, cls, author })
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify({ text, cls })
                 });
+                if (res.status === 401) { toast('Session expired. Please log in again.'); doLogout(); return; }
                 if (!res.ok) throw new Error('Post failed');
+                clearCommentForm(key);
                 await loadComments(key);
             } catch (err) { console.error(err); toast('Could not post comment.'); }
         }
 
         async function deleteComment(key, commentId) {
+            const user = window.EPOCH_USER || null;
+            if (!user) { toast('Login required'); return; }
             const [type, recId] = key.split(':');
             try {
+                const token = localStorage.getItem('epoch_token');
                 const res = await fetch(`${API || ''}${COMMENTS_API}/${type}/${recId}/${commentId}`, {
-                    method: 'DELETE', headers: { 'Content-Type': 'application/json' }
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
                 });
+                if (res.status === 401) { toast('Session expired. Please log in again.'); doLogout(); return; }
                 if (!res.ok) {
                     const j = await res.json().catch(() => null);
                     toast((j && j.error) || 'Could not delete comment');
@@ -3162,15 +3226,120 @@
             renderTimers();
         }
 
-        function initIdentity() { updateAuthUI(null); }
+        // ═══════════════════════════════════════════════════════════════
+        // AUTH SYSTEM
+        // ═══════════════════════════════════════════════════════════════
+        function openAuth() { document.getElementById('auth-modal').classList.add('open'); resetAuthStatus(); }
+        function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); resetAuthStatus(); }
+        document.getElementById('auth-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeAuth(); });
+
+        function switchAuthTab(tab) {
+            document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+            document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+            document.getElementById('auth-form-login').style.display = tab === 'login' ? '' : 'none';
+            document.getElementById('auth-form-register').style.display = tab === 'register' ? '' : 'none';
+            resetAuthStatus();
+        }
+
+        function authStatus(msg, ok) {
+            const el = document.getElementById('auth-status');
+            el.style.display = 'block';
+            el.textContent = msg;
+            el.className = ok ? 'auth-status-ok' : 'auth-status-err';
+        }
+        function resetAuthStatus() { const el = document.getElementById('auth-status'); el.style.display = 'none'; el.textContent = ''; }
+
+        function getCaptchaToken(containerId) {
+            const el = document.getElementById(containerId);
+            if (!el) return '';
+            const widgetId = el.getAttribute('data-widget-id');
+            if (widgetId != null && window.grecaptcha) {
+                try { return grecaptcha.getResponse(parseInt(widgetId)); } catch(e) { return ''; }
+            }
+            // fallback: find the textarea reCAPTCHA inserts
+            const ta = el.querySelector('textarea');
+            return ta ? ta.value : '';
+        }
+
+        function resetCaptchas() {
+            if (window.grecaptcha) try { grecaptcha.reset(); } catch(e) {}
+        }
+
+        async function doRegister() {
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const pw = document.getElementById('reg-password').value;
+            const pw2 = document.getElementById('reg-password2').value;
+            if (!email || !pw) { authStatus('Email and password are required', false); return; }
+            if (pw.length < 6) { authStatus('Password must be at least 6 characters', false); return; }
+            if (pw !== pw2) { authStatus('Passwords do not match', false); return; }
+            const captchaToken = getCaptchaToken('reg-captcha');
+            try {
+                const res = await fetch(`${API}/api/auth/register`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: pw, name, captchaToken })
+                });
+                const data = await res.json();
+                resetCaptchas();
+                if (res.ok) {
+                    authStatus('✔ ' + data.message, true);
+                    document.getElementById('reg-name').value = '';
+                    document.getElementById('reg-email').value = '';
+                    document.getElementById('reg-password').value = '';
+                    document.getElementById('reg-password2').value = '';
+                } else { authStatus(data.error || 'Registration failed', false); }
+            } catch (err) { authStatus('Could not reach server', false); }
+        }
+
+        async function doLogin() {
+            const email = document.getElementById('login-email').value.trim();
+            const pw = document.getElementById('login-password').value;
+            if (!email || !pw) { authStatus('Email and password are required', false); return; }
+            const captchaToken = getCaptchaToken('login-captcha');
+            try {
+                const res = await fetch(`${API}/api/auth/login`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: pw, captchaToken })
+                });
+                const data = await res.json();
+                resetCaptchas();
+                if (res.ok) {
+                    localStorage.setItem('epoch_token', data.token);
+                    updateAuthUI(data.user);
+                    toast('Welcome, ' + (data.user.name || data.user.email) + '!');
+                    closeAuth();
+                } else { authStatus(data.error || 'Login failed', false); }
+            } catch (err) { authStatus('Could not reach server', false); }
+        }
+
+        function doLogout() {
+            localStorage.removeItem('epoch_token');
+            updateAuthUI(null);
+            toast('Logged out');
+        }
+
         function updateAuthUI(user) {
             window.EPOCH_USER = user || null;
             const btn = document.getElementById('id-btn');
             if (!btn) return;
-            if (user) btn.textContent = 'Logout (' + (user.name || 'User') + ')';
+            if (user) btn.textContent = 'Logout (' + (user.name || user.email) + ')';
             else btn.textContent = 'Login';
         }
-        function onAuthClick() { toast('Authentication coming soon!'); }
+
+        function onAuthClick() {
+            if (window.EPOCH_USER) doLogout();
+            else openAuth();
+        }
+
+        async function initIdentity() {
+            const token = localStorage.getItem('epoch_token');
+            if (!token) { updateAuthUI(null); return; }
+            try {
+                const res = await fetch(`${API}/api/auth/me`, { headers: { 'Authorization': 'Bearer ' + token } });
+                if (res.ok) { const user = await res.json(); updateAuthUI(user); }
+                else { localStorage.removeItem('epoch_token'); updateAuthUI(null); }
+            } catch (err) { updateAuthUI(null); }
+        }
 
         initIdentity();
         showHome();
