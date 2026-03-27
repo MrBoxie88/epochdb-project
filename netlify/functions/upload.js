@@ -166,8 +166,8 @@ exports.handler = async (event) => {
             return { statusCode: 400, headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ error: 'No file data provided' }) };
         }
 
-        const dbUri = process.env.MONGODB_URI;
-        console.log(`[UPLOAD] Database URI source:`, process.env.MONGODB_URI ? 'MONGODB_URI');
+        const dbUri = process.env.NETLIFY_DATABASE_URL || process.env.MONGODB_URI;
+        console.log(`[UPLOAD] Database URI source:`, process.env.NETLIFY_DATABASE_URL ? 'NETLIFY_DATABASE_URL' : 'MONGODB_URI');
         console.log(`[UPLOAD] Database URI (first 50 chars):`, dbUri ? dbUri.substring(0, 50) + '...' : 'UNDEFINED');
 
         if (!dbUri) {
@@ -269,31 +269,8 @@ exports.handler = async (event) => {
 
         if (ops.length > 0) {
             console.log(`[UPLOAD] Executing ${ops.length} bulk write operations`);
-
-            // Log the first operation as sample
-            console.log(`[UPLOAD] Sample operation:`, JSON.stringify(ops[0], null, 2));
-
-            try {
-                const result = await Record.bulkWrite(ops);
-                console.log(`[UPLOAD] Bulk write result:`, {
-                    insertedCount: result.insertedCount,
-                    modifiedCount: result.modifiedCount,
-                    upsertedCount: result.upsertedCount,
-                    deletedCount: result.deletedCount,
-                    matchedCount: result.matchedCount
-                });
-                console.log(`[UPLOAD] MongoDB bulk write successful`);
-
-                // Verify data was written by querying back
-                const npcCount = await Record.countDocuments({ type: 'npcs' });
-                const itemCount = await Record.countDocuments({ type: 'items' });
-                const lootCount = await Record.countDocuments({ type: 'loot' });
-                console.log(`[UPLOAD] Database verification:`, { npcCount, itemCount, lootCount });
-            } catch (bulkErr) {
-                console.error(`[UPLOAD] Bulk write error:`, bulkErr.message);
-                console.error(`[UPLOAD] Bulk write stack:`, bulkErr.stack);
-                throw bulkErr;
-            }
+            await Record.bulkWrite(ops);
+            console.log(`[UPLOAD] MongoDB bulk write successful`);
         } else {
             console.warn(`[UPLOAD] No operations generated from parsed data`);
         }
