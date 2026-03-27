@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EpochDB — Project Epoch Database</title>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <style>
         *, *::before, *::after {
             box-sizing: border-box;
@@ -2515,7 +2514,7 @@
               </table></div>`;
         }
 
-        // Server-backed comments using Netlify Function at /api/comments
+        // Server-backed comments using Express API at /api/comments
         const COMMENTS_API = '/api/comments';
 
         function idFromKey(key) { return 'comments_' + String(key).replace(/[^a-zA-Z0-9_-]/g, '_'); }
@@ -2592,26 +2591,18 @@
         }
 
         async function postComment(key) {
-            const user = (window.netlifyIdentity && netlifyIdentity.currentUser()) || window.EPOCH_USER || null;
-            if (!user) { if (window.netlifyIdentity) netlifyIdentity.open(); else toast('Please log in to comment.'); return; }
             const id = idFromKey(key);
             const classEl = document.getElementById('c-class-' + id);
             const textEl = document.getElementById('c-text-' + id);
             if (!textEl) return;
             const text = textEl.value.trim();
-            const author = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || user.email || 'Anonymous';
+            const author = (window.EPOCH_USER && window.EPOCH_USER.name) || 'Anonymous';
             const cls = classEl && classEl.value.trim() ? classEl.value.trim() : '';
             if (!text) { toast('Please enter a comment.'); return; }
             const [type, recId] = key.split(':');
             try {
-                // get a JWT from netlifyIdentity
-                let token = null;
-                try { if (netlifyIdentity && netlifyIdentity.currentUser && typeof netlifyIdentity.currentUser().jwt === 'function') token = await netlifyIdentity.currentUser().jwt(); } catch (e) { /* ignore */ }
-                if (!token && user.token && user.token.access_token) token = user.token.access_token;
-                if (!token) { toast('Auth token not available. Please re-login.'); netlifyIdentity.open(); return; }
-
                 const res = await fetch(`${API || ''}${COMMENTS_API}/${type}/${recId}`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text, cls, author })
                 });
                 if (!res.ok) throw new Error('Post failed');
@@ -2620,18 +2611,10 @@
         }
 
         async function deleteComment(key, commentId) {
-            const user = (window.netlifyIdentity && netlifyIdentity.currentUser()) || window.EPOCH_USER || null;
-            if (!user) { toast('Login required'); return; }
             const [type, recId] = key.split(':');
             try {
-                let token = null;
-                try { if (netlifyIdentity && netlifyIdentity.currentUser && typeof netlifyIdentity.currentUser().jwt === 'function') token = await netlifyIdentity.currentUser().jwt(); } catch (e) { /* ignore */ }
-                if (!token && user.token && user.token.access_token) token = user.token.access_token;
-                if (!token) { toast('Auth token not available. Please re-login.'); netlifyIdentity.open(); return; }
-
                 const res = await fetch(`${API || ''}${COMMENTS_API}/${type}/${recId}/${commentId}`, {
-                    method: 'DELETE', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                    body: JSON.stringify({})
+                    method: 'DELETE', headers: { 'Content-Type': 'application/json' }
                 });
                 if (!res.ok) {
                     const j = await res.json().catch(() => null);
@@ -3179,7 +3162,15 @@
             renderTimers();
         }
 
-        // Authentication is handled server-side; no Netlify Identity needed 
+        function initIdentity() { updateAuthUI(null); }
+        function updateAuthUI(user) {
+            window.EPOCH_USER = user || null;
+            const btn = document.getElementById('id-btn');
+            if (!btn) return;
+            if (user) btn.textContent = 'Logout (' + (user.name || 'User') + ')';
+            else btn.textContent = 'Login';
+        }
+        function onAuthClick() { toast('Authentication coming soon!'); }
 
         initIdentity();
         showHome();

@@ -1,17 +1,12 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const multer = require('multer');
-const fs = require('fs');
 const path = require('path');
 
-const uploadDir = './uploads';
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-
-const upload = multer({ dest: 'uploads/' });
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.text({ limit: '10mb' }));
 
 // Serve static frontend files from /public
 app.use(express.static(path.join(__dirname, 'public')));
@@ -100,12 +95,11 @@ function parseEntries(tableContent) {
     return entries;
 }
 
-function parseLuaFile(filePath) {
-    let content = fs.readFileSync(filePath, 'utf8');
+function parseLuaContent(content) {
     const result = { kills: [], items: [], loot: [] };
 
-    console.log(`[PARSE] Starting Lua parse from: ${filePath}`);
-    console.log(`[PARSE] File size: ${content.length} bytes`);
+    console.log(`[PARSE] Starting Lua parse`);
+    console.log(`[PARSE] Content size: ${content.length} bytes`);
 
     const savedVarsMatch = content.match(/^EpochDBData\s*=\s*(\{[\s\S]*\})[\s\S]*$/);
     if (savedVarsMatch) {
@@ -190,17 +184,19 @@ function parseLuaFile(filePath) {
 // ═══════════════════════════════════════════════════════════════
 // 5. UPLOAD & SYNC ROUTE
 // ═══════════════════════════════════════════════════════════════
-app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
+app.post('/api/upload', async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
+        const content = req.body;
+        if (!content || typeof content !== 'string' || content.trim().length === 0) {
+            return res.status(400).json({ error: 'No file content received.' });
+        }
 
-        console.log(`[UPLOAD] Processing file: ${req.file.originalname} (${req.file.size} bytes)`);
+        console.log(`[UPLOAD] Processing upload (${content.length} bytes)`);
         let parsed;
         try {
-            parsed = parseLuaFile(req.file.path);
+            parsed = parseLuaContent(content);
         } catch (parseErr) {
             console.error(`[UPLOAD] Parse error:`, parseErr.message);
-            fs.unlinkSync(req.file.path);
             return res.status(400).json({ error: `Failed to parse Lua file: ${parseErr.message}` });
         }
 
@@ -267,12 +263,9 @@ app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
                 console.log(`[UPLOAD] MongoDB bulk write successful: ${ops.length} operations`);
             } catch (dbErr) {
                 console.error(`[UPLOAD] Database error:`, dbErr.message);
-                fs.unlinkSync(req.file.path);
                 return res.status(500).json({ error: `Database sync failed: ${dbErr.message}` });
             }
         }
-
-        fs.unlinkSync(req.file.path);
 
         res.json({
             message: 'Sync complete!',
@@ -281,7 +274,6 @@ app.post('/api/upload', upload.single('luaFile'), async (req, res) => {
         });
     } catch (err) {
         console.error('[UPLOAD] Unexpected error:', err);
-        try { if (req.file) fs.unlinkSync(req.file.path); } catch (_) {}
         res.status(500).json({ error: 'Processing failed' });
     }
 });
