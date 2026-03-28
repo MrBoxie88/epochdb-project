@@ -2509,10 +2509,11 @@
 
                 document.getElementById('hp-loot').innerHTML = loot.slice(0, 6).map(l => {
                     const d = l.data || l;
+                    const lootRate = d.samples > 0 ? (d.drops || 0) / d.samples : 0;
                     return `<div class="panel-row" onclick="showDetail('loot','${l.id}')">
                     <span class="panel-row-icon" style="color:${QCOL[l.quality || d.quality || 0]}">◆</span>
                     <a>${l.name || d.item || 'Unknown'}</a>
-                    <span class="panel-row-meta">${pct(d.rate || 0)}</span>
+                    <span class="panel-row-meta">${pct(lootRate)}</span>
                   </div>`;
                 }).join('') || '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">No data yet.</div>';
 
@@ -2599,10 +2600,10 @@
             loot: {
                 title: 'Loot Tables', icon: '💰',
                 cols: [
-                    { label: 'Item', render: r => `<td class="td-name"><span class="td-icon" style="color:${QCOL[r.quality || 0]}">◆</span><a class="${QCLS[r.quality || 0]}" onclick="showDetail('loot','${r.id}')">${r.name || 'Unknown'}</a></td>` },
+                    { label: 'Item', render: r => `<td class="td-name"><span class="td-icon" style="color:${QCOL[r.quality || 0]}">◆</span><a class="${QCLS[r.quality || 0]}" data-iid="${r.id}" onclick="showDetail('loot','${r.id}')">${r.name || 'Unknown'}</a></td>` },
                     { label: 'Source', render: r => `<td><a class="npc-name">${(r.data || r).source || '—'}</a></td>` },
                     { label: 'Quality', render: r => `<td class="${QCLS[r.quality || 0]}">${Q[r.quality || 0]}</td>` },
-                    { label: 'Drop Rate', render: r => `<td style="min-width:130px"><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill ${(r.quality || 0) >= 5 ? 'fill-leg' : (r.quality || 0) >= 4 ? 'fill-epic' : (r.quality || 0) >= 3 ? 'fill-rare' : ''}" style="width:${Math.min(((r.data || r).rate || 0) * 100, 100)}%"></div></div><span class="rate-text">${pct((r.data || r).rate || 0)}</span></div></td>` },
+                    { label: 'Drop Rate', render: r => { const d = r.data || r; const drops = d.drops || 0; const samples = d.samples || 0; const rate = samples > 0 ? drops / samples : 0; return `<td style="min-width:130px"><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill ${(r.quality || 0) >= 5 ? 'fill-leg' : (r.quality || 0) >= 4 ? 'fill-epic' : (r.quality || 0) >= 3 ? 'fill-rare' : ''}" style="width:${Math.min(rate * 100, 100)}%"></div></div><span class="rate-text">${pct(rate)}</span></div></td>`; } },
                     { label: 'Drops', render: r => `<td class="mono" style="color:var(--gold-dark)">${fmt((r.data || r).drops || 0)}</td>` },
                     { label: 'Samples', render: r => `<td class="mono">${fmt((r.data || r).samples || 0)}</td>` },
                 ],
@@ -2655,13 +2656,17 @@
             renderTable(LIST_CFG[curList]);
         }
         function filterList(q) { listQuery = q.toLowerCase(); curPage = 1; renderTable(LIST_CFG[curList]); }
+        function getSortVal(r, key) {
+            if (key === 'rate') { const d = r.data || r; return (d.samples > 0) ? (d.drops || 0) / d.samples : 0; }
+            return r[key] || (r.data && r.data[key]) || 0;
+        }
         function sortList(key) {
             if (!key) return;
             curPage = 1;
             const cfg = LIST_CFG[curList];
             const sorted = [...cachedList].sort((a, b) => {
-                const av = a[key] || (a.data && a.data[key]) || 0;
-                const bv = b[key] || (b.data && b.data[key]) || 0;
+                const av = getSortVal(a, key);
+                const bv = getSortVal(b, key);
                 return typeof av === 'number' ? bv - av : String(av).localeCompare(String(bv));
             });
             renderRows(cfg, sorted.filter(applyFilters));
