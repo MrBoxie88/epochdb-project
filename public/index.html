@@ -2455,21 +2455,20 @@
         }
 
         function showHome() {
-            hide('list-view'); hide('detail-view'); hide('timers-view'); show('home-view');
-            setMnav('home'); renderHomePanels();
+            hide('list-view'); hide('detail-view'); show('home-view'); show('timers-view');
+            setMnav('home'); renderHomePanels(); renderTimers();
         }
         function showList(type) {
             curList = type;
             activeFilters = {};
             listQuery = '';
             curPage = 1;
-            hide('home-view'); hide('detail-view'); show('list-view'); show('timers-view');
+            hide('home-view'); hide('detail-view'); hide('timers-view'); show('list-view');
             setMnav(type);
             renderList(type);
-            renderTimers();
         }
         function showTimers() {
-            showList(curList || 'npcs');
+            showHome();
         }
         async function showDetail(type, id) {
             hide('home-view'); hide('list-view'); hide('timers-view'); show('detail-view');
