@@ -163,6 +163,28 @@
             margin-left: auto;
         }
 
+        /* ── WOW ICON IMAGES ── */
+        .wow-icon {
+            width: 18px;
+            height: 18px;
+            vertical-align: middle;
+            border-radius: 2px;
+            border: 1px solid rgba(255,255,255,.12);
+            object-fit: cover;
+        }
+        .wow-icon-lg {
+            width: 40px;
+            height: 40px;
+            border-radius: 3px;
+            object-fit: cover;
+        }
+        .wow-icon-xl {
+            width: 52px;
+            height: 52px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+
         :root {
             --gold: #c8a84b;
             --gold-light: #e8cc7a;
@@ -2266,7 +2288,7 @@
 
             // name + icon
             h += `<div class="tt-name-row">
-                <div class="tt-item-icon ql-${item.quality}">${item.icon}</div>
+                <div class="tt-item-icon ql-${item.quality}">${item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}" class="wow-icon-lg" onerror="this.textContent='⚔'" alt="">` : (item.icon || '⚔')}</div>
                 <div class="tt-name-info">
                   <div class="tt-name" style="color:${qc}">${item.name}</div>
                   ${t.unique ? `<div class="tt-line white">Unique</div>` : ''}
@@ -2347,9 +2369,10 @@
 
         function buildBasicTooltip(item) {
             const qc = QCOL[item.quality || 0];
+            const iconHtml = item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}" class="wow-icon-lg" onerror="this.textContent='⚔'" alt="">` : (item.icon || '⚔');
             let h = '';
             h += `<div class="tt-name-row">
-                <div class="tt-item-icon ql-${item.quality || 0}">${item.icon || '⚔'}</div>
+                <div class="tt-item-icon ql-${item.quality || 0}">${iconHtml}</div>
                 <div class="tt-name-info">
                     <div class="tt-name" style="color:${qc}">${item.name || 'Unknown'}</div>
                     ${item.unique ? '<div class="tt-line white">Unique</div>' : ''}
@@ -2562,7 +2585,7 @@
             items: {
                 title: 'Items', icon: '⚔',
                 cols: [
-                    { label: 'Item', render: r => `<td class="td-name"><span class="td-icon">${(r.data || r).icon || '⚔'}</span><a class="${QCLS[r.quality || 0]}" data-iid="${r.id}" onclick="showDetail('items','${r.id}')">${r.name}</a></td>` },
+                    { label: 'Item', render: r => `<td class="td-name"><span class="td-icon">${iconImg((r.data || r).icon, '⚔')}</span><a class="${QCLS[r.quality || 0]}" data-iid="${r.id}" onclick="showDetail('items','${r.id}')">${r.name}</a></td>` },
                     { label: 'Slot', render: r => `<td style="color:var(--text-dim)">${mapSlot((r.data || r).slot)}</td>` },
                     { label: 'iLvl', render: r => `<td class="mono">${r.level || '—'}</td>` },
                     { label: 'Quality', render: r => `<td class="${QCLS[r.quality || 0]}">${Q[r.quality || 0]}</td>` },
@@ -2583,6 +2606,7 @@
                 title: 'Quests', icon: '📜',
                 cols: [
                     { label: 'Quest', render: r => `<td class="td-name"><span class="td-icon">${(r.data || r).icon || '📜'}</span><a onclick="showDetail('quests','${r.id}')">${r.name}</a></td>` },
+                    { label: 'Quest ID', render: r => `<td class="mono">${(r.data || r).questId || r.id || '—'}</td>` },
                     { label: 'Zone', render: r => `<td style="color:var(--text-dim)">${(r.data || r).zone || '—'}</td>` },
                     { label: 'Level', render: r => `<td class="mono">${r.level || '—'}</td>` },
                     { label: 'Type', render: r => `<td><span class="badge badge-${(r.data || r).type || 'solo'}">${cap((r.data || r).type || 'solo')}</span></td>` },
@@ -2990,7 +3014,7 @@
             }
 
             document.getElementById('detail-title-block').innerHTML = `
-                <div class="detail-big-icon">${item.icon || '⚔'}</div>
+                <div class="detail-big-icon">${iconImg(item.icon, '⚔', 'wow-icon-xl')}</div>
                 <div class="detail-info">
                   <div class="detail-name ${QCLS[item.quality || 0]}">${item.name}</div>
                   <div class="detail-subtitle">${item.type || 'Item'}${item.subType ? ' — ' + item.subType : ''}${item.ilvl ? ' · Item Level ' + item.ilvl : ''}</div>
@@ -3090,12 +3114,14 @@
             const groupSize = q.suggestedGroup && q.suggestedGroup > 0 ? q.suggestedGroup : null;
 
             // ── Title block ──
+            const questIdDisplay = q.questId || q.id || '';
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon">${q.icon || '📜'}</div>
                 <div class="detail-info">
                   <div class="detail-name">${q.name}</div>
-                  <div class="detail-subtitle">${q.zone || 'Unknown'} · Level ${q.level || '?'}${groupSize ? ' · Group (' + groupSize + ')' : ''}</div>
+                  <div class="detail-subtitle">${q.zone || 'Unknown'} · Level ${q.level || '?'}${groupSize ? ' · Group (' + groupSize + ')' : ''}${questIdDisplay ? ' · Quest ID ' + questIdDisplay : ''}</div>
                   <div class="detail-pills">
+                    ${questIdDisplay ? `<span class="dpill" style="font-family:'Share Tech Mono',monospace">ID: ${questIdDisplay}</span>` : ''}
                     <span class="badge badge-${q.type || 'solo'}">${typeLabel}</span>
                     <span class="dpill">${q.zone || 'Unknown'}</span>
                     ${groupSize ? `<span class="dpill">Suggested: ${groupSize} players</span>` : ''}
@@ -3241,6 +3267,7 @@
 
             // ── Summary grid ──
             const summaryRows = [
+                ['Quest ID', questIdDisplay || '—', 'mono'],
                 ['Zone', q.zone || '—'],
                 ['Level', q.level || '—'],
                 ['Type', typeLabel],
@@ -3280,6 +3307,7 @@
             let sidebarHtml = `
                 <div class="sb-panel">
                   <div class="sb-title">Quest Info</div>
+                  ${questIdDisplay ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Quest ID</span><span class="sb-row-meta" style="font-family:'Share Tech Mono',monospace">${questIdDisplay}</span></div>` : ''}
                   <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Zone</span><span class="sb-row-meta">${q.zone || '—'}</span></div>
                   <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Level</span><span class="sb-row-meta">${q.level || '—'}</span></div>
                   <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Type</span><span class="sb-row-meta">${typeLabel}</span></div>
@@ -3362,8 +3390,9 @@
                 effectsHtml += '</div>';
             }
 
+            const lootIconUrl = (linkedItem && linkedItem.icon) || loot.icon || '';
             document.getElementById('detail-title-block').innerHTML = `
-                <div class="detail-big-icon" style="color:${QCOL[loot.quality || 0]}">◆</div>
+                <div class="detail-big-icon" style="color:${QCOL[loot.quality || 0]}">${iconImg(lootIconUrl, '◆', 'wow-icon-xl')}</div>
                 <div class="detail-info">
                   <div class="detail-name ${QCLS[loot.quality || 0]}">${loot.item || loot.name || 'Unknown'}</div>
                   <div class="detail-subtitle">Dropped by: ${sourceEntries.length > 1 ? sourceEntries.length + ' sources' : (loot.source || 'Unknown')}</div>
@@ -3580,6 +3609,14 @@
         function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
         function pct(r) { return r < 0.001 ? '<0.1%' : r >= 1 ? '100%' : (r * 100).toFixed(1) + '%'; }
         function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3200); }
+
+        // WoW icon helper — returns <img> for CDN icons, emoji fallback otherwise
+        function iconImg(url, fallback, cls) {
+            if (url && url.startsWith('http')) {
+                return `<img src="${url}" class="${cls || 'wow-icon'}" onerror="this.style.display='none';this.nextElementSibling.style.display=''" alt=""><span style="display:none">${fallback || '⚔'}</span>`;
+            }
+            return fallback || '⚔';
+        }
 
         function animCount(el, target, dur) {
             const n = parseInt(String(target).replace(/,/g, '')); let s = 0; const step = n / (dur / 16);

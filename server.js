@@ -319,6 +319,14 @@ function cleanSourceName(name) {
     return name.replace(/\s*\([\d.]+,\s*[\d.]+\)\s*$/, '');
 }
 
+function wowIconUrl(iconPath) {
+    if (!iconPath || typeof iconPath !== 'string') return '';
+    // WoW GetItemInfo returns paths like "Interface\\Icons\\INV_Sword_04"
+    const name = iconPath.replace(/^Interface\\Icons\\/i, '').replace(/^Interface\/Icons\//i, '').toLowerCase();
+    if (!name) return '';
+    return `https://wow.zamimg.com/images/wow/icons/medium/${name}.jpg`;
+}
+
 const BIND_MAP = {
     'BOP': 'Binds when picked up',
     'BOE': 'Binds when equipped',
@@ -484,6 +492,7 @@ function parseLuaContent(content) {
                 slotName,
                 ilvl:       getNum('ilvl', block) || 0,
                 quality:    getNum('quality', block) ?? 1,
+                icon:       wowIconUrl(getStr('icon', block)),
                 binding:    bindingStr,
                 bindType,
                 armorType,
@@ -579,8 +588,10 @@ function parseLuaContent(content) {
                     });
                 }
             }
+            const questId = getStr('questId', block) || getNum('questId', block) || null;
             result.quests.push({
                 key,
+                questId:        questId ? String(questId) : null,
                 name:           getStr('name', block) || key,
                 zone:           getStr('zone', block) || '',
                 coords:         getStr('coords', block) || '',
@@ -615,8 +626,9 @@ function parseLuaContent(content) {
                     const iName = getStr('name', sub);
                     const iQuality = getNum('quality', sub);
                     const iPrice = getNum('priceCopper', sub);
+                    const iIcon = wowIconUrl(getStr('icon', sub));
                     if (iId && iName) {
-                        vendorItems.push({ id: iId, name: iName, quality: iQuality, priceCopper: iPrice });
+                        vendorItems.push({ id: iId, name: iName, quality: iQuality, priceCopper: iPrice, icon: iIcon });
                     }
                 }
             }
@@ -715,6 +727,7 @@ app.post('/api/upload', async (req, res) => {
                 'data.type': item.type, 'data.subType': item.subType,
                 'data.slot': mappedSlot, 'data.armorType': item.armorType,
             };
+            if (item.icon) setFields['data.icon'] = item.icon;
             if (item.effects.length) setFields.effects = item.effects;
             if (item.binding) setFields['data.binding'] = item.binding;
             if (item.bindType) setFields['data.bindType'] = item.bindType;
@@ -759,10 +772,13 @@ app.post('/api/upload', async (req, res) => {
         // ── QUESTS ──
         for (const quest of parsed.quests) {
             if (!quest.name) continue;
+            // Use questId as record id when available, fall back to key (name) for old data
+            const questRecordId = quest.questId || quest.key;
             const setFields = {
                 name: quest.name,
                 'data.zone': quest.zone, 'data.coords': quest.coords,
             };
+            if (quest.questId) setFields['data.questId'] = quest.questId;
             // Store text fields (only overwrite if non-empty so we don't blank out existing data)
             if (quest.questText)      setFields['data.questText']      = quest.questText;
             if (quest.objectiveText)  setFields['data.objectiveText']  = quest.objectiveText;
@@ -778,7 +794,7 @@ app.post('/api/upload', async (req, res) => {
             }
             ops.push({
                 updateOne: {
-                    filter: { type: 'quests', id: quest.key },
+                    filter: { type: 'quests', id: questRecordId },
                     update: {
                         $set: setFields,
                         $inc: { 'data.completions': quest.completions, ...rewardInc },
