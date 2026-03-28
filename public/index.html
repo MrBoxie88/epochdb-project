@@ -2130,7 +2130,6 @@
                 <div class="cat-card" onclick="showList('items')"><div class="cat-icon">⚔</div><div class="cat-name">Items</div></div>
                 <div class="cat-card" onclick="showList('quests')"><div class="cat-icon">📜</div><div class="cat-name">Quests</div></div>
                 <div class="cat-card" onclick="showList('loot')"><div class="cat-icon">💰</div><div class="cat-name">Loot Tables</div></div>
-                <div class="cat-card" onclick="openUpload()">
                 <a class="cat-card" href="https://github.com/MrBoxie88/EpochDB" target="_blank" style="text-decoration:none"><div class="cat-icon">⬇</div><div class="cat-name">Get Addon</div><div class="cat-count">Download EpochDB</div></a>
             </div>
             <div class="home-panels">
@@ -2642,7 +2641,7 @@
             sel.innerHTML = `<option value="">Sort by…</option>` + cfg.sort.map(s => `<option value="${s}">${cap(s)}</option>`).join('');
             const psEl = document.getElementById('list-pagesize');
             if (psEl) psEl.value = pageSize;
-            document.getElementById('filter-panel').innerHTML
+            document.getElementById('filter-panel').innerHTML = cfg.filters.map(g =>
                 `<div class="fp-group"><div class="fp-title">${g.label}</div>${g.items.map(it =>
                     `<div class="fp-item" data-field="${g.field}" data-val="${it.val}" onclick="setFilter(this)">
                     <span class="fp-dot" style="background:${it.dot}"></span>${it.label}
