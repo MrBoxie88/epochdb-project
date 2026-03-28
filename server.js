@@ -853,8 +853,10 @@ app.post('/api/upload', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 app.get('/api/search', async (req, res) => {
     try {
-        const query = req.query.q;
-        const results = await Record.find({ name: { $regex: query, $options: 'i' } }).limit(10);
+        const query = (req.query.q || '').trim();
+        if (!query) return res.json([]);
+        const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const results = await Record.find({ name: { $regex: escaped, $options: 'i' } }).limit(50);
         res.json(results);
     } catch (err) {
         res.status(500).json({ error: 'Search failed' });

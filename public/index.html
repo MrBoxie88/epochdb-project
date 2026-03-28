@@ -3485,39 +3485,45 @@
         // ═══════════════════════════════════════════════════════════════
         // SEARCH
         // ═══════════════════════════════════════════════════════════════
-        // Search uses the backend — no local ALL array needed
+        const TYPE_ICONS = { npcs: '👹', items: '⚔', quests: '📜', loot: '💰' };
+        const TYPE_LABELS = { npcs: 'NPCs & Mobs', items: 'Items', quests: 'Quests', loot: 'Loot' };
+        let searchDebounce = null;
 
         async function onSearch(v) {
             const val = v.trim();
             const sug = document.getElementById('suggestions');
-
-            // If search is too short, close the suggestions
-            if (val.length < 2) {
-                if (sug) sug.classList.remove('open');
-                return;
-            }
-
-            // 1. Fetch real-time results from your Node.js backend
-            try {
-                const response = await fetch(`${API}/api/search?q=${val}`);
-                const results = await response.json();
-
-                // 2. Display the results if found
-                if (results.length > 0 && sug) {
-                    sug.innerHTML = results.map(r => `
-                    <div class="sug-item" onclick="showDetail('${r.id}')">
-                      <span class="sug-icon">📜</span>
-                      <span style="flex:1;color:var(--text)">${r.name}</span>
-                      <span class="sug-meta">${r.type.toUpperCase()} ID: ${r.id}</span>
-                    </div>
-                  `).join('');
-                    sug.classList.add('open');
-                } else if (sug) {
-                    sug.classList.remove('open');
-                }
-            } catch (err) {
-                console.error("Search error:", err);
-            }
+            if (val.length < 2) { if (sug) sug.classList.remove('open'); return; }
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(async () => {
+                try {
+                    const response = await fetch(`${API}/api/search?q=${encodeURIComponent(val)}`);
+                    const results = await response.json();
+                    if (results.length > 0 && sug) {
+                        const grouped = {};
+                        results.forEach(r => { if (!grouped[r.type]) grouped[r.type] = []; grouped[r.type].push(r); });
+                        let html = '';
+                        for (const type of ['npcs', 'items', 'quests', 'loot']) {
+                            const items = grouped[type];
+                            if (!items || !items.length) continue;
+                            html += `<div class="sug-group-label">${TYPE_ICONS[type] || ''} ${TYPE_LABELS[type] || cap(type)} (${items.length})</div>`;
+                            html += items.slice(0, 8).map(r => {
+                                const qcls = (type === 'items' || type === 'loot') ? QCLS[r.quality || 0] : (type === 'npcs' ? 'npc-name' : '');
+                                return `<div class="sug-item" onclick="showDetail('${r.type}','${r.id}')">
+                                    <span class="sug-icon">${TYPE_ICONS[r.type] || '📜'}</span>
+                                    <span style="flex:1" class="${qcls}">${r.name}</span>
+                                    <span class="sug-meta">${r.level ? 'Lvl ' + r.level : ''}${r.quality != null && (type === 'items' || type === 'loot') ? ' ' + Q[r.quality] : ''}</span>
+                                </div>`;
+                            }).join('');
+                        }
+                        html += `<div class="sug-item" onclick="doSearch()" style="justify-content:center;color:var(--gold);font-size:.82rem;border-top:1px solid var(--border)">Show all ${results.length} results →</div>`;
+                        sug.innerHTML = html;
+                        sug.classList.add('open');
+                    } else if (sug) {
+                        sug.innerHTML = `<div style="padding:.8rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.85rem">No results for "${val}"</div>`;
+                        sug.classList.add('open');
+                    }
+                } catch (err) { console.error('Search error:', err); }
+            }, 200);
         }
         function onSearchKey(e) {
             if (e.key === 'Enter') doSearch();
@@ -3530,11 +3536,48 @@
             try {
                 const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`);
                 const results = await res.json();
-                if (results.length > 0) showDetail(results[0].type, results[0].id);
-                else toast('No results found for "' + q + '"');
+                if (results.length === 0) { toast('No results found for "' + q + '"'); return; }
+                if (results.length === 1) { showDetail(results[0].type, results[0].id); return; }
+                showSearchResults(q, results);
             } catch (err) {
                 toast('Could not reach server. Please try again.');
             }
+        }
+        function showSearchResults(query, results) {
+            hide('home-view'); hide('detail-view'); hide('timers-view'); show('list-view');
+            setMnav('');
+            document.getElementById('list-icon').textContent = '🔍';
+            document.getElementById('list-heading').textContent = `Search: "${query}"`;
+            document.getElementById('list-count').textContent = `(${results.length} results)`;
+            document.getElementById('filter-panel').innerHTML = '';
+            document.getElementById('list-search-box').value = '';
+            const sel = document.getElementById('list-sort');
+            sel.innerHTML = '<option value="">Sort by…</option>';
+            const grouped = {};
+            results.forEach(r => { if (!grouped[r.type]) grouped[r.type] = []; grouped[r.type].push(r); });
+            let tbodyHtml = '';
+            for (const type of ['npcs', 'items', 'quests', 'loot']) {
+                const items = grouped[type];
+                if (!items || !items.length) continue;
+                tbodyHtml += `<tr><td colspan="5" style="background:var(--bg-card);padding:.5rem .8rem;border-bottom:1px solid var(--border-gold)"><span style="font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-dark)">${TYPE_ICONS[type]} ${TYPE_LABELS[type]} (${items.length})</span></td></tr>`;
+                items.forEach(r => {
+                    const d = r.data || r;
+                    const qcls = (type === 'items' || type === 'loot') ? QCLS[r.quality || 0] : (type === 'npcs' ? 'npc-name' : '');
+                    const col2 = type === 'npcs' ? (d.zone || '—') : type === 'items' ? mapSlot(d.slot) : type === 'quests' ? (d.zone || '—') : (d.source || '—');
+                    const col3 = r.level || '—';
+                    const col4 = type === 'items' || type === 'loot' ? `<span class="${QCLS[r.quality||0]}">${Q[r.quality||0]}</span>` : type === 'npcs' ? `<span class="badge badge-${d.type||'normal'}">${cap(d.type||'normal')}</span>` : `<span class="badge badge-${d.type||'solo'}">${cap(d.type||'solo')}</span>`;
+                    tbodyHtml += `<tr onclick="showDetail('${r.type}','${r.id}')" style="cursor:pointer">
+                        <td class="td-name"><span class="td-icon">${TYPE_ICONS[type]}</span><a class="${qcls}">${r.name}</a></td>
+                        <td style="color:var(--text-dim)">${col2}</td>
+                        <td class="mono">${col3}</td>
+                        <td>${col4}</td>
+                        <td class="mono" style="color:var(--text-dim);font-size:.7rem">${cap(type)}</td>
+                    </tr>`;
+                });
+            }
+            document.getElementById('list-thead').innerHTML = '<tr><th>Name</th><th>Zone / Slot</th><th>Level</th><th>Type</th><th>Category</th></tr>';
+            document.getElementById('list-tbody').innerHTML = tbodyHtml || '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-dim);font-style:italic">No results found.</td></tr>';
+            document.getElementById('paginator').innerHTML = '';
         }
         document.addEventListener('click', e => {
             if (!e.target.closest('.home-search-wrap')) {
@@ -3739,7 +3782,7 @@
             const resetMs = raid.resetMs;
             // Find the most recent reset anchor (next Wednesday 9am UTC rolling)
             // Use a fixed epoch: Wednesday 2025-07-30 09:00 UTC as anchor
-            const anchor = new Date('2025-07-30T09:00:00Z').getTime();
+            const anchor = new Date('2026-03-28T09:00:00Z').getTime();
             const elapsed = Date.now() - anchor;
             const cyclesPassed = Math.floor(elapsed / resetMs);
             const lastReset = anchor + cyclesPassed * resetMs;
