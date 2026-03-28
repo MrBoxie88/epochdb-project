@@ -2102,7 +2102,6 @@
         <button class="mnav-tab" onclick="showList('items')">Items</button>
         <button class="mnav-tab" onclick="showList('quests')">Quests</button>
         <button class="mnav-tab" onclick="showList('loot')">Loot Tables</button>
-        <button class="mnav-tab" onclick="showList('zones')">Zones</button>
         <button class="mnav-tab" onclick="showTimers()">⏱ Raid Timers</button>
     </div>
 
@@ -2131,8 +2130,7 @@
                 <div class="cat-card" onclick="showList('items')"><div class="cat-icon">⚔</div><div class="cat-name">Items</div></div>
                 <div class="cat-card" onclick="showList('quests')"><div class="cat-icon">📜</div><div class="cat-name">Quests</div></div>
                 <div class="cat-card" onclick="showList('loot')"><div class="cat-icon">💰</div><div class="cat-name">Loot Tables</div></div>
-                <div class="cat-card" onclick="showList('zones')"><div class="cat-icon">🗺</div><div class="cat-name">Zones</div></div>
-                <div class="cat-card" onclick="openUpload()"><div class="cat-icon">⬆</div><div class="cat-name">Contribute</div><div class="cat-count">Upload your .lua</div></div>
+                <div class="cat-card" onclick="openUpload()">
                 <a class="cat-card" href="https://github.com/MrBoxie88/EpochDB" target="_blank" style="text-decoration:none"><div class="cat-icon">⬇</div><div class="cat-name">Get Addon</div><div class="cat-count">Download EpochDB</div></a>
             </div>
             <div class="home-panels">
@@ -2149,6 +2147,11 @@
                 <div class="list-controls">
                     <input class="list-search" id="list-search-box" type="text" placeholder="Filter…" oninput="filterList(this.value)">
                     <select class="list-select" id="list-sort" onchange="sortList(this.value)"><option value="">Sort by…</option></select>
+                    <select class="list-select" id="list-pagesize" onchange="setPageSize(Number(this.value))">
+                        <option value="25">25 per page</option>
+                        <option value="50">50 per page</option>
+                        <option value="100">100 per page</option>
+                    </select>
                 </div>
             </div>
             <div class="list-body">
@@ -2453,12 +2456,13 @@
         // NAV
         // ═══════════════════════════════════════════════════════════════
         let curList = 'npcs', activeFilters = {}, listQuery = '';
+                let curPage = 1, pageSize = 25;
         let uploadedFile = null;
 
         function show(id) { document.getElementById(id).classList.remove('hidden'); }
         function hide(id) { document.getElementById(id).classList.add('hidden'); }
         function setMnav(tab) {
-            const names = ['home', 'npcs', 'items', 'quests', 'loot', 'zones', 'timers'];
+            const names = ['home', 'npcs', 'items', 'quests', 'loot', 'timers'];
             document.querySelectorAll('.mnav-tab').forEach((b, i) => b.classList.toggle('active', names[i] === tab));
         }
 
@@ -2470,6 +2474,7 @@
             curList = type;
             activeFilters = {};
             listQuery = '';
+            curPage = 1;
             hide('home-view'); hide('detail-view'); hide('timers-view'); show('list-view');
             setMnav(type);
             renderList(type);
@@ -2623,22 +2628,6 @@
                 }],
                 sort: ['rate', 'drops', 'name'],
             },
-            zones: {
-                title: 'Zones', icon: '🗺',
-                cols: [
-                    { label: 'Zone', render: r => `<td class="td-name"><span class="td-icon">${(r.data || r).icon || '🗺'}</span><a onclick="showDetail('zones','${r.id}')">${r.name}</a></td>` },
-                    { label: 'Type', render: r => `<td style="color:var(--text-dim)">${(r.data || r).zoneType || '—'}</td>` },
-                    { label: 'Levels', render: r => `<td class="mono">${(r.data || r).levels || '—'}</td>` },
-                    { label: 'Bosses', render: r => `<td class="mono">${(r.data || r).bosses || '—'}</td>` },
-                    { label: 'Players', render: r => `<td class="mono" style="color:var(--gold-dark)">${fmt((r.data || r).players || 0)}</td>` },
-                ],
-                filters: [{
-                    label: 'Type', field: '_zoneType', items: [
-                        { label: 'All', val: '', dot: '#888' }, { label: 'Raid', val: 'Raid', dot: QCOL[4] }, { label: 'Zone', val: 'Zone', dot: QCOL[2] },
-                    ]
-                }],
-                sort: ['players', 'name'],
-            },
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -2651,7 +2640,9 @@
             document.getElementById('list-count').textContent = '(Loading…)';
             const sel = document.getElementById('list-sort');
             sel.innerHTML = `<option value="">Sort by…</option>` + cfg.sort.map(s => `<option value="${s}">${cap(s)}</option>`).join('');
-            document.getElementById('filter-panel').innerHTML = cfg.filters.map(g =>
+            const psEl = document.getElementById('list-pagesize');
+            if (psEl) psEl.value = pageSize;
+            document.getElementById('filter-panel').innerHTML
                 `<div class="fp-group"><div class="fp-title">${g.label}</div>${g.items.map(it =>
                     `<div class="fp-item" data-field="${g.field}" data-val="${it.val}" onclick="setFilter(this)">
                     <span class="fp-dot" style="background:${it.dot}"></span>${it.label}
@@ -2674,11 +2665,13 @@
             el.classList.add('active');
             if (val === '') delete activeFilters[field];
             else activeFilters[field] = isNaN(val) ? val : Number(val);
+            curPage = 1;
             renderTable(LIST_CFG[curList]);
         }
-        function filterList(q) { listQuery = q.toLowerCase(); renderTable(LIST_CFG[curList]); }
+        function filterList(q) { listQuery = q.toLowerCase(); curPage = 1; renderTable(LIST_CFG[curList]); }
         function sortList(key) {
             if (!key) return;
+            curPage = 1;
             const cfg = LIST_CFG[curList];
             const sorted = [...cachedList].sort((a, b) => {
                 const av = a[key] || (a.data && a.data[key]) || 0;
@@ -2702,17 +2695,43 @@
             renderRows(cfg, rows);
         }
         function renderRows(cfg, rows) {
-            document.getElementById('list-tbody').innerHTML = rows.length
-                ? rows.map(r => `<tr onclick="showDetail('${curList}','${r.id}')">${cfg.cols.map(c => c.render(r)).join('')}</tr>`).join('')
+            const totalPages = Math.ceil(rows.length / pageSize) || 1;
+            if (curPage > totalPages) curPage = totalPages;
+            if (curPage < 1) curPage = 1;
+            const start = (curPage - 1) * pageSize;
+            const pageRows = rows.slice(start, start + pageSize);
+
+            document.getElementById('list-tbody').innerHTML = pageRows.length
+                ? pageRows.map(r => `<tr onclick="showDetail('${curList}','${r.id}')">${cfg.cols.map(c => c.render(r)).join('')}</tr>`).join('')
                 : `<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--text-dim);font-style:italic">No records yet — upload your .lua file to contribute!</td></tr>`;
-            document.getElementById('paginator').innerHTML = rows.length > 20
-                ? `<button class="pager-btn active">1</button><button class="pager-btn">2</button><button class="pager-btn">3</button><span style="color:var(--text-dim);padding:0 4px;font-size:.7rem">…</span>` : '';
+
+            let pagHtml = '';
+            if (totalPages > 1) {
+                const end = Math.min(start + pageSize, rows.length);
+                pagHtml += `<span style="color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:.7rem;margin-right:8px">${start + 1}–${end} of ${rows.length}</span>`;
+                pagHtml += `<button class="pager-btn" onclick="goPage(1)" ${curPage <= 1 ? 'disabled style="opacity:.4;cursor:default"' : ''}>«</button>`;
+                pagHtml += `<button class="pager-btn" onclick="goPage(${curPage - 1})" ${curPage <= 1 ? 'disabled style="opacity:.4;cursor:default"' : ''}>‹</button>`;
+                let pStart = Math.max(1, curPage - 2);
+                let pEnd = Math.min(totalPages, pStart + 4);
+                if (pEnd - pStart < 4) pStart = Math.max(1, pEnd - 4);
+                if (pStart > 1) pagHtml += `<span style="color:var(--text-dim);padding:0 4px;font-size:.7rem">…</span>`;
+                for (let p = pStart; p <= pEnd; p++) {
+                    pagHtml += `<button class="pager-btn ${p === curPage ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`;
+                }
+                if (pEnd < totalPages) pagHtml += `<span style="color:var(--text-dim);padding:0 4px;font-size:.7rem">…</span>`;
+                pagHtml += `<button class="pager-btn" onclick="goPage(${curPage + 1})" ${curPage >= totalPages ? 'disabled style="opacity:.4;cursor:default"' : ''}>›</button>`;
+                pagHtml += `<button class="pager-btn" onclick="goPage(${totalPages})" ${curPage >= totalPages ? 'disabled style="opacity:.4;cursor:default"' : ''}>»</button>`;
+            }
+            document.getElementById('paginator').innerHTML = pagHtml;
         }
+
+        function goPage(p) { curPage = p; renderTable(LIST_CFG[curList]); window.scrollTo(0, document.getElementById('list-view').offsetTop); }
+        function setPageSize(n) { pageSize = n; curPage = 1; renderTable(LIST_CFG[curList]); }
 
         // ═══════════════════════════════════════════════════════════════
         // DETAIL
         // ═══════════════════════════════════════════════════════════════
-        const LIST_NAMES = { npcs: 'NPCs & Mobs', items: 'Items', quests: 'Quests', loot: 'Loot Tables', zones: 'Zones' };
+        const LIST_NAMES = { npcs: 'NPCs & Mobs', items: 'Items', quests: 'Quests', loot: 'Loot Tables' };
 
         async function renderDetail(type, id) {
             // Show a loading state while we wait for the server
@@ -2751,7 +2770,6 @@
             if (type === 'items') await renderItemDetail(entry, commentsKey);
             if (type === 'quests') await renderQuestDetail(entry, commentsKey);
             if (type === 'loot') await renderLootDetail(entry, commentsKey);
-            if (type === 'zones') renderZoneDetail(entry, commentsKey);
         }
 
         function setTabs(tabs) {
@@ -3324,7 +3342,9 @@
             const sourceEntries = Object.entries(allSources).sort((a, b) => b[1] - a[1]);
             const totalDrops = loot.drops || sourceEntries.reduce((sum, [, c]) => sum + c, 0);
             const totalSamples = loot.samples || 0;
-            const overallRate = totalSamples ? totalDrops / totalSamples : (loot.rate || 0);
+            const overallRate = sourceEntries.length
+                ? Math.max(...sourceEntries.map(([, cnt]) => totalSamples ? cnt / totalSamples : 0))
+                : (loot.rate || 0);
 
             // Try to find the matching item record for richer info
             let linkedItem = null;
