@@ -48,6 +48,121 @@
                 color: #1eff00;
             }
 
+        /* ── QUEST DETAIL STYLES ── */
+        .quest-text-block {
+            padding: 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--gold-dark);
+            margin: .8rem;
+            font-size: .92rem;
+            color: var(--text);
+            line-height: 1.7;
+            font-style: italic;
+        }
+        .quest-text-label {
+            font-family: 'Cinzel', serif;
+            font-size: .58rem;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: var(--gold-dark);
+            margin-bottom: .4rem;
+            font-style: normal;
+        }
+        .quest-objective-block {
+            padding: .8rem 1rem;
+            margin: .8rem;
+            background: rgba(30,255,0,.04);
+            border: 1px solid rgba(30,255,0,.15);
+            border-left: 3px solid var(--q2);
+        }
+        .quest-objective-item {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .3rem 0;
+            font-size: .9rem;
+            color: var(--text);
+        }
+        .quest-objective-item::before {
+            content: '◆';
+            color: var(--q2);
+            font-size: .7rem;
+            flex-shrink: 0;
+        }
+        .quest-reward-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            padding: .8rem;
+        }
+        .quest-reward-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: .6rem .8rem;
+            display: flex;
+            align-items: center;
+            gap: .6rem;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        .quest-reward-card:hover {
+            border-color: var(--border-gold);
+            background: var(--bg-hover);
+        }
+        .quest-reward-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+            width: 28px;
+            text-align: center;
+        }
+        .quest-reward-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .quest-reward-name {
+            font-size: .88rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .quest-reward-detail {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .65rem;
+            color: var(--text-dim);
+        }
+        .quest-money {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .85rem;
+        }
+        .quest-gold { color: #ffd100; }
+        .quest-silver { color: #c8c8c8; }
+        .quest-copper { color: #c87832; }
+        .quest-section-wrap {
+            padding: .6rem .8rem;
+        }
+        .quest-required-item {
+            display: flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .35rem .6rem;
+            font-size: .88rem;
+            color: var(--text);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            margin-bottom: 4px;
+        }
+        .quest-required-count {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: .72rem;
+            color: var(--text-dim);
+            margin-left: auto;
+        }
+
         :root {
             --gold: #c8a84b;
             --gold-light: #e8cc7a;
@@ -2609,7 +2724,7 @@
             const commentsKey = `${type}:${id}`;
             if (type === 'npcs') await renderNpcDetail(entry, commentsKey);
             if (type === 'items') await renderItemDetail(entry, commentsKey);
-            if (type === 'quests') renderQuestDetail(entry, commentsKey);
+            if (type === 'quests') await renderQuestDetail(entry, commentsKey);
             if (type === 'loot') await renderLootDetail(entry, commentsKey);
             if (type === 'zones') renderZoneDetail(entry, commentsKey);
         }
@@ -2915,25 +3030,256 @@
             document.getElementById('detail-sidebar').innerHTML = sidebarHtml;
         }
 
-        function renderQuestDetail(q, commentKey) {
+        async function renderQuestDetail(q, commentKey) {
+            // ── Money formatting helper ──
+            function formatMoney(copper) {
+                if (!copper || copper <= 0) return '—';
+                const g = Math.floor(copper / 10000);
+                const s = Math.floor((copper % 10000) / 100);
+                const c = copper % 100;
+                let parts = [];
+                if (g > 0) parts.push(`<span class="quest-gold">${g}g</span>`);
+                if (s > 0) parts.push(`<span class="quest-silver">${s}s</span>`);
+                if (c > 0) parts.push(`<span class="quest-copper">${c}c</span>`);
+                return `<span class="quest-money">${parts.join(' ')}</span>`;
+            }
+
+            // Determine quest type label
+            const typeLabel = cap(q.type === 'elite2' ? 'elite' : q.type || 'solo');
+            const groupSize = q.suggestedGroup && q.suggestedGroup > 0 ? q.suggestedGroup : null;
+
+            // ── Title block ──
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon">${q.icon || '📜'}</div>
                 <div class="detail-info">
                   <div class="detail-name">${q.name}</div>
-                  <div class="detail-subtitle">${q.zone || 'Unknown'} · Level ${q.level || '?'}</div>
+                  <div class="detail-subtitle">${q.zone || 'Unknown'} · Level ${q.level || '?'}${groupSize ? ' · Group (' + groupSize + ')' : ''}</div>
                   <div class="detail-pills">
-                    <span class="badge badge-${q.type || 'solo'}">${cap(q.type === 'elite2' ? 'elite' : q.type || 'solo')}</span>
+                    <span class="badge badge-${q.type || 'solo'}">${typeLabel}</span>
                     <span class="dpill">${q.zone || 'Unknown'}</span>
+                    ${groupSize ? `<span class="dpill">Suggested: ${groupSize} players</span>` : ''}
+                    ${q.rewardMoney ? `<span class="dpill">${formatMoney(q.rewardMoney)}</span>` : ''}
                     <span class="dpill gold">${fmt(q.completions || 0)} completions</span>
                   </div>
                 </div>`;
+
+            // ── Build quest text / objectives tab ──
+            let questInfoHtml = '';
+
+            // Quest body text
+            if (q.questText) {
+                questInfoHtml += `<div class="quest-text-block">
+                    <div class="quest-text-label">Quest Description</div>
+                    ${q.questText.split('\\n').map(p => `<p style="margin-bottom:.4rem">${escapeHtml(p)}</p>`).join('')}
+                </div>`;
+            }
+
+            // Objective text
+            if (q.objectiveText) {
+                questInfoHtml += `<div class="quest-objective-block">
+                    <div class="quest-text-label" style="color:var(--q2)">Objectives</div>
+                    ${q.objectiveText.split('\\n').filter(l => l.trim()).map(obj =>
+                        `<div class="quest-objective-item">${escapeHtml(obj)}</div>`
+                    ).join('')}
+                </div>`;
+            }
+
+            // Progress text (NPC dialogue when quest is in progress)
+            if (q.progressText) {
+                questInfoHtml += `<div class="quest-text-block" style="border-left-color:var(--text-dim)">
+                    <div class="quest-text-label">Progress</div>
+                    ${q.progressText.split('\\n').map(p => `<p style="margin-bottom:.4rem">${escapeHtml(p)}</p>`).join('')}
+                </div>`;
+            }
+
+            // Reward text (completion dialogue)
+            if (q.rewardText) {
+                questInfoHtml += `<div class="quest-text-block" style="border-left-color:var(--q2)">
+                    <div class="quest-text-label">Completion</div>
+                    ${q.rewardText.split('\\n').map(p => `<p style="margin-bottom:.4rem">${escapeHtml(p)}</p>`).join('')}
+                </div>`;
+            }
+
+            if (!questInfoHtml) {
+                questInfoHtml = `<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No quest text data yet — install the addon and accept/complete this quest to contribute!</div>`;
+            }
+
+            // ── Build required items section ──
+            const requiredItems = q.requiredItems || [];
+            let requiredHtml = '';
+            if (requiredItems.length) {
+                requiredHtml += `<div class="quest-section-wrap">
+                    <div class="quest-text-label">Required Items</div>
+                    ${requiredItems.map(ri => `
+                        <div class="quest-required-item">
+                            <span style="color:var(--text-dim);font-size:.85rem">📦</span>
+                            <span>${escapeHtml(ri.name || 'Item #' + ri.id)}</span>
+                            <span class="quest-required-count">×${ri.count || 1}</span>
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
+
+            // ── Build rewards tab ──
+            const choiceRewards = q.rewards ? Object.entries(q.rewards) : [];
+            const fixedRewards = q.rewardItems || [];
+            let rewardsHtml = '';
+
+            // Collect all item IDs to resolve
+            const allItemIds = [
+                ...choiceRewards.map(([id]) => id),
+                ...fixedRewards.map(r => r.id),
+                ...requiredItems.map(r => r.id),
+            ].filter(Boolean);
+
+            // Resolve items from server
+            let resolvedItems = {};
+            if (allItemIds.length > 0) {
+                try {
+                    const riRes = await fetch(`${API}/api/resolve-items`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ids: allItemIds })
+                    });
+                    if (riRes.ok) {
+                        const resolved = await riRes.json();
+                        for (const item of resolved) {
+                            resolvedItems[item.id] = item;
+                        }
+                    }
+                } catch (e) { console.warn('Could not resolve reward items', e); }
+            }
+
+            // Helper to render a reward card
+            function rewardCard(id, name, count, extra) {
+                const item = resolvedItems[id];
+                const qcls = item ? QCLS[item.quality || 0] : 'q1';
+                const qcol = item ? QCOL[item.quality || 0] : QCOL[1];
+                const displayName = (item && item.name) || name || 'Item #' + id;
+                const detail = extra || (item ? `${Q[item.quality||0]}${item.slot ? ' · ' + mapSlot(item.slot) : ''}` : '');
+                return `<div class="quest-reward-card" ${item ? `data-iid="${item.id}" onclick="showDetail('items','${item.id}')"` : ''}>
+                    <div class="quest-reward-icon" style="color:${qcol}">◆</div>
+                    <div class="quest-reward-info">
+                        <div class="quest-reward-name ${qcls}">${escapeHtml(displayName)}${count > 1 ? ` ×${count}` : ''}</div>
+                        <div class="quest-reward-detail">${detail}</div>
+                    </div>
+                </div>`;
+            }
+
+            // Money reward
+            if (q.rewardMoney && q.rewardMoney > 0) {
+                rewardsHtml += `<div class="quest-section-wrap">
+                    <div class="quest-text-label">Money Reward</div>
+                    <div style="padding:.3rem 0;font-size:1rem">${formatMoney(q.rewardMoney)}</div>
+                </div>`;
+            }
+
+            // Fixed rewards (always given)
+            if (fixedRewards.length) {
+                rewardsHtml += `<div class="quest-section-wrap">
+                    <div class="quest-text-label">Guaranteed Rewards</div>
+                    <div class="quest-reward-grid">
+                        ${fixedRewards.map(r => rewardCard(r.id, r.name, r.count || 1, '')).join('')}
+                    </div>
+                </div>`;
+            }
+
+            // Choice rewards (pick one)
+            if (choiceRewards.length) {
+                rewardsHtml += `<div class="quest-section-wrap">
+                    <div class="quest-text-label">Choice Rewards <span style="font-size:.7rem;color:var(--text-dim)">(pick one)</span></div>
+                    <div class="quest-reward-grid">
+                        ${choiceRewards.map(([id, count]) => rewardCard(id, null, count, '')).join('')}
+                    </div>
+                </div>`;
+            }
+
+            if (!rewardsHtml) {
+                rewardsHtml = `<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No reward data yet — complete this quest with the addon to contribute!</div>`;
+            }
+
+            // ── Summary grid ──
+            const summaryRows = [
+                ['Zone', q.zone || '—'],
+                ['Level', q.level || '—'],
+                ['Type', typeLabel],
+                ['Completions', fmt(q.completions || 0)],
+            ];
+            if (groupSize) summaryRows.push(['Suggested Group', groupSize + ' players']);
+            if (q.rewardMoney) summaryRows.push(['Gold Reward', formatMoney(q.rewardMoney)]);
+            if (q.coords) summaryRows.push(['Coordinates', q.coords]);
+            if (fixedRewards.length) summaryRows.push(['Guaranteed Rewards', fixedRewards.length + ' item(s)']);
+            if (choiceRewards.length) summaryRows.push(['Choice Rewards', choiceRewards.length + ' item(s)']);
+            if (requiredItems.length) summaryRows.push(['Required Items', requiredItems.length + ' item(s)']);
+
+            // ── Build tabs ──
+            const totalRewards = fixedRewards.length + choiceRewards.length + (q.rewardMoney ? 1 : 0);
             const commentsId3 = idFromKey(commentKey);
-            setTabs([
-                { label: 'Summary', html: sgrid([['Zone', q.zone || '—'], ['Level', q.level || '—'], ['Type', cap(q.type === 'elite2' ? 'elite' : q.type || 'solo')], ['XP Reward', q.xp || '—', 'q2'], ['Gold Reward', q.reward || '—'], ['Completions', fmt(q.completions || 0)]]) },
+            const tabs = [
+                { label: 'Summary', html: sgrid(summaryRows) },
+                { label: 'Quest Text', html: questInfoHtml + requiredHtml },
+                { label: 'Rewards', count: totalRewards, html: rewardsHtml },
                 { label: 'Comments', count: 0, html: `<div id="${commentsId3}">Loading comments…</div>` },
-            ]);
+            ];
+            setTabs(tabs);
             loadComments(commentKey);
-            document.getElementById('detail-sidebar').innerHTML = '';
+
+            // ── Sidebar ──
+            let sidebarHtml = `
+                <div class="sb-panel">
+                  <div class="sb-title">Quest Info</div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Zone</span><span class="sb-row-meta">${q.zone || '—'}</span></div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Level</span><span class="sb-row-meta">${q.level || '—'}</span></div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Type</span><span class="sb-row-meta">${typeLabel}</span></div>
+                  ${groupSize ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Group Size</span><span class="sb-row-meta">${groupSize}</span></div>` : ''}
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Completions</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(q.completions || 0)}</span></div>
+                  ${q.coords ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Coordinates</span><span class="sb-row-meta">${q.coords}</span></div>` : ''}
+                </div>`;
+
+            if (q.rewardMoney && q.rewardMoney > 0) {
+                sidebarHtml += `<div class="sb-panel">
+                    <div class="sb-title">Money Reward</div>
+                    <div class="sb-row" style="cursor:default"><span style="font-size:.95rem">${formatMoney(q.rewardMoney)}</span></div>
+                </div>`;
+            }
+
+            if (fixedRewards.length) {
+                sidebarHtml += `<div class="sb-panel"><div class="sb-title">Guaranteed Rewards</div>${fixedRewards.map(r => {
+                    const item = resolvedItems[r.id];
+                    const qcls = item ? QCLS[item.quality||0] : 'q1';
+                    const qcol = item ? QCOL[item.quality||0] : QCOL[1];
+                    const name = (item && item.name) || r.name || 'Item #' + r.id;
+                    return `<div class="sb-row" ${item ? `data-iid="${item.id}" onclick="showDetail('items','${item.id}')"` : ''}>
+                        <span class="sb-row-icon" style="color:${qcol}">◆</span>
+                        <span class="${qcls}" style="font-size:.85rem">${escapeHtml(name)}${r.count > 1 ? ' ×' + r.count : ''}</span>
+                    </div>`;
+                }).join('')}</div>`;
+            }
+
+            if (choiceRewards.length) {
+                sidebarHtml += `<div class="sb-panel"><div class="sb-title">Choice Rewards</div>${choiceRewards.map(([id, count]) => {
+                    const item = resolvedItems[id];
+                    const qcls = item ? QCLS[item.quality||0] : 'q1';
+                    const qcol = item ? QCOL[item.quality||0] : QCOL[1];
+                    const name = (item && item.name) || 'Item #' + id;
+                    return `<div class="sb-row" ${item ? `data-iid="${item.id}" onclick="showDetail('items','${item.id}')"` : ''}>
+                        <span class="sb-row-icon" style="color:${qcol}">◆</span>
+                        <span class="${qcls}" style="font-size:.85rem">${escapeHtml(name)}${count > 1 ? ' ×' + count : ''}</span>
+                    </div>`;
+                }).join('')}</div>`;
+            }
+
+            if (requiredItems.length) {
+                sidebarHtml += `<div class="sb-panel"><div class="sb-title">Required Items</div>${requiredItems.map(r => {
+                    return `<div class="sb-row" style="cursor:default">
+                        <span class="sb-row-icon" style="color:var(--text-dim)">📦</span>
+                        <span style="font-size:.85rem">${escapeHtml(r.name || 'Item #' + r.id)}</span>
+                        <span class="sb-row-meta">×${r.count || 1}</span>
+                    </div>`;
+                }).join('')}</div>`;
+            }
+
+            document.getElementById('detail-sidebar').innerHTML = sidebarHtml;
         }
 
         async function renderLootDetail(loot, commentKey) {

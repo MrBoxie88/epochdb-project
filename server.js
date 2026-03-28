@@ -543,6 +543,7 @@ function parseLuaContent(content) {
         const questEntries = parseEntries(questsTable);
         console.log(`[PARSE] Found quests table with ${questEntries.length} entries`);
         for (const { key, block } of questEntries) {
+            // Choice rewards (pick one)
             const rewards = {};
             const rewardsInner = extractTable('rewards', block);
             if (rewardsInner) {
@@ -552,13 +553,47 @@ function parseLuaContent(content) {
                     rewards[rm[1]] = parseInt(rm[2]);
                 }
             }
+            // Fixed rewards (always given) — stored as subtable { [id] = { id, name, count } }
+            const rewardItems = [];
+            const rewardItemsInner = extractTable('rewardItems', block);
+            if (rewardItemsInner) {
+                const riEntries = parseEntries(rewardItemsInner);
+                for (const ri of riEntries) {
+                    rewardItems.push({
+                        id:    getStr('id', ri.block) || ri.key,
+                        name:  getStr('name', ri.block) || '',
+                        count: getNum('count', ri.block) || 1,
+                    });
+                }
+            }
+            // Required items — stored as subtable { [id] = { id, name, count } }
+            const requiredItems = [];
+            const requiredItemsInner = extractTable('requiredItems', block);
+            if (requiredItemsInner) {
+                const rqEntries = parseEntries(requiredItemsInner);
+                for (const rq of rqEntries) {
+                    requiredItems.push({
+                        id:    getStr('id', rq.block) || rq.key,
+                        name:  getStr('name', rq.block) || '',
+                        count: getNum('count', rq.block) || 1,
+                    });
+                }
+            }
             result.quests.push({
                 key,
-                name:        getStr('name', block) || key,
-                zone:        getStr('zone', block) || '',
-                coords:      getStr('coords', block) || '',
-                completions: getNum('completions', block) || 1,
+                name:           getStr('name', block) || key,
+                zone:           getStr('zone', block) || '',
+                coords:         getStr('coords', block) || '',
+                completions:    getNum('completions', block) || 1,
+                questText:      getStr('questText', block) || '',
+                objectiveText:  getStr('objectiveText', block) || '',
+                progressText:   getStr('progressText', block) || '',
+                rewardText:     getStr('rewardText', block) || '',
+                rewardMoney:    getNum('rewardMoney', block) || 0,
+                suggestedGroup: getNum('suggestedGroup', block) || 0,
                 rewards,
+                rewardItems,
+                requiredItems,
             });
         }
     }
@@ -728,6 +763,15 @@ app.post('/api/upload', async (req, res) => {
                 name: quest.name,
                 'data.zone': quest.zone, 'data.coords': quest.coords,
             };
+            // Store text fields (only overwrite if non-empty so we don't blank out existing data)
+            if (quest.questText)      setFields['data.questText']      = quest.questText;
+            if (quest.objectiveText)  setFields['data.objectiveText']  = quest.objectiveText;
+            if (quest.progressText)   setFields['data.progressText']   = quest.progressText;
+            if (quest.rewardText)     setFields['data.rewardText']     = quest.rewardText;
+            if (quest.rewardMoney)    setFields['data.rewardMoney']    = quest.rewardMoney;
+            if (quest.suggestedGroup) setFields['data.suggestedGroup'] = quest.suggestedGroup;
+            if (quest.rewardItems && quest.rewardItems.length)   setFields['data.rewardItems']   = quest.rewardItems;
+            if (quest.requiredItems && quest.requiredItems.length) setFields['data.requiredItems'] = quest.requiredItems;
             const rewardInc = {};
             for (const [itemId, cnt] of Object.entries(quest.rewards)) {
                 rewardInc[`data.rewards.${itemId}`] = cnt;
@@ -867,16 +911,42 @@ app.get('/api/npc-drops/:name', async (req, res) => {
                 rate: (l.data && l.data.samples) ? (npcDrops / l.data.samples) : 0,
             };
         });
-        drops.sort((a, b) => b.quality - a.quality || b.drops - a.drops);
-        res.json(drops);
-    } catch (err) {
-        res.status(500).json({ error: 'Could not fetch NPC drops' });
-    }
-});
+            drops.sort((a, b) => b.quality - a.quality || b.drops - a.drops);
+                res.json(drops);
+            } catch (err) {
+                res.status(500).json({ error: 'Could not fetch NPC drops' });
+            }
+        });
 
-// ═══════════════════════════════════════════════════════════════
-// 7. COMMENTS API (ported from Netlify function)
-// ═══════════════════════════════════════════════════════════════
+        // Cross-reference: resolve item IDs to item details (for quest rewards display)
+        app.post('/api/resolve-items', async (req, res) => {
+            try {
+                const { ids } = req.body;
+                if (!ids || !Array.isArray(ids) || ids.length === 0) return res.json([]);
+                // Search by item ID in the record id field, limited to items type
+                const items = await Record.find({
+                    type: 'items',
+                    $or: ids.map(id => ({ id: String(id) }))
+                }).limit(100).lean();
+                const result = items.map(i => ({
+                    id: i.id,
+                    name: i.name || 'Unknown',
+                    quality: i.quality || 0,
+                    level: i.level || 0,
+                    slot: (i.data && i.data.slot) || '',
+                    type: (i.data && i.data.type) || '',
+                    subType: (i.data && i.data.subType) || '',
+                    icon: (i.data && i.data.icon) || '⚔',
+                }));
+                res.json(result);
+            } catch (err) {
+                res.status(500).json({ error: 'Could not resolve items' });
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // 7. COMMENTS API (ported from Netlify function)
+        // ═══════════════════════════════════════════════════════════════
 app.get('/api/comments/:type/:id', async (req, res) => {
     try {
         const docs = await Comment.find({ type: req.params.type, recordId: req.params.id }).sort({ ts: -1 }).lean();
