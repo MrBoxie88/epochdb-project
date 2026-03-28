@@ -2100,6 +2100,23 @@
         const QCOL = ['#9d9d9d', '#e8dfc8', '#1eff00', '#0070dd', '#a335ee', '#ff8000', '#e6cc80'];
         const CLS_COLORS = { 'Death Knight': '#C41E3A', 'Priest': '#fff', 'Warrior': '#C69B3A', 'Druid': '#FF7C0A', 'Mage': '#3FC7EB', 'Paladin': '#F48CBA', 'Rogue': '#FFF468', 'Shaman': '#0070DD', 'Warlock': '#8788EE', 'Hunter': '#AAD372' };
 
+        const SLOT_MAP = {
+            'INVTYPE_HEAD': 'Head', 'INVTYPE_NECK': 'Neck', 'INVTYPE_SHOULDER': 'Shoulder',
+            'INVTYPE_BODY': 'Shirt', 'INVTYPE_CHEST': 'Chest', 'INVTYPE_ROBE': 'Chest',
+            'INVTYPE_WAIST': 'Waist', 'INVTYPE_LEGS': 'Legs', 'INVTYPE_FEET': 'Feet',
+            'INVTYPE_WRIST': 'Wrist', 'INVTYPE_HAND': 'Hands', 'INVTYPE_FINGER': 'Finger',
+            'INVTYPE_TRINKET': 'Trinket', 'INVTYPE_CLOAK': 'Back', 'INVTYPE_WEAPON': 'One-Hand',
+            'INVTYPE_SHIELD': 'Off Hand', 'INVTYPE_2HWEAPON': 'Two-Hand',
+            'INVTYPE_WEAPONMAINHAND': 'Main Hand', 'INVTYPE_WEAPONOFFHAND': 'Off Hand',
+            'INVTYPE_HOLDABLE': 'Held In Off-Hand', 'INVTYPE_RANGED': 'Ranged',
+            'INVTYPE_THROWN': 'Thrown', 'INVTYPE_RANGEDRIGHT': 'Ranged',
+            'INVTYPE_RELIC': 'Relic', 'INVTYPE_TABARD': 'Tabard', 'INVTYPE_BAG': 'Bag',
+            'INVTYPE_QUIVER': 'Quiver', 'INVTYPE_AMMO': 'Ammo',
+        };
+        function mapSlot(s) { return SLOT_MAP[s] || s || '—'; }
+
+        const ITEM_CACHE = {};
+
         // Data is loaded from the backend — no hardcoded arrays
 
         // ═══════════════════════════════════════════════════════════════
@@ -2112,7 +2129,7 @@
 
         function buildTooltip(item) {
             const t = item.tt;
-            if (!t) return '';
+            if (!t) return buildBasicTooltip(item);
             const qc = QCOL[item.quality];
             let h = '';
 
@@ -2197,9 +2214,67 @@
             return h;
         }
 
-        function showTT(itemId, anchor) {
-            const item = ITEMS.find(i => i.id === itemId);
-            if (!item) return;
+        function buildBasicTooltip(item) {
+            const qc = QCOL[item.quality || 0];
+            let h = '';
+            h += `<div class="tt-name-row">
+                <div class="tt-item-icon ql-${item.quality || 0}">${item.icon || '⚔'}</div>
+                <div class="tt-name-info">
+                    <div class="tt-name" style="color:${qc}">${item.name || 'Unknown'}</div>
+                    ${item.unique ? '<div class="tt-line white">Unique</div>' : ''}
+                    ${item.binding ? `<div class="tt-binding">${item.binding}</div>` : ''}
+                </div>
+            </div>`;
+            if (item.ilvl || item.level) h += `<div class="tt-ilvl">Item Level ${item.ilvl || item.level}</div>`;
+            h += `<div class="tt-sep"></div>`;
+            const slot = mapSlot(item.slot);
+            if (slot && slot !== '—') {
+                if (item.subType) {
+                    h += `<div class="tt-row-2col"><span>${slot}</span><span>${item.subType}</span></div>`;
+                } else {
+                    h += `<div class="tt-line">${slot}</div>`;
+                }
+            }
+            if (item.dmg) {
+                h += `<div class="tt-row-2col"><span>${item.dmg}</span>${item.speed ? `<span>Speed ${item.speed}</span>` : ''}</div>`;
+                if (item.dps) h += `<div class="tt-line grey">(${item.dps} damage per second)</div>`;
+            }
+            if (item.armor) h += `<div class="tt-line">${item.armor} Armor</div>`;
+            if (item.type) {
+                h += `<div class="tt-line grey">${item.type}</div>`;
+            }
+            // Stats
+            const stats = item.stats || [];
+            if (stats.length) {
+                h += `<div class="tt-sep"></div>`;
+                stats.forEach(s => { h += `<div class="tt-line green">${s}</div>`; });
+            }
+            // Effects (Equip/Use lines)
+            const effects = item.effects || [];
+            if (effects.length) {
+                h += `<div class="tt-sep"></div>`;
+                effects.forEach(e => { h += `<div class="tt-line green">${e}</div>`; });
+            }
+            if (item.reqLevel) {
+                h += `<div class="tt-sep"></div>`;
+                h += `<div class="tt-req">Requires Level ${item.reqLevel}</div>`;
+            }
+            h += `<div class="tt-sep"></div>`;
+            h += `<div class="tt-line" style="color:${qc}">${Q[item.quality || 0]}</div>`;
+            return h;
+        }
+
+        async function showTT(itemId, anchor) {
+            let item = ITEM_CACHE[itemId];
+            if (!item) {
+                try {
+                    const res = await fetch(`${API}/api/record/items/${itemId}`);
+                    if (!res.ok) return;
+                    const raw = await res.json();
+                    item = raw.data ? { ...raw, ...raw.data } : raw;
+                    ITEM_CACHE[itemId] = item;
+                } catch (e) { return; }
+            }
             const h = buildTooltip(item);
             if (!h) return;
             ttIn.innerHTML = h;
@@ -2225,7 +2300,7 @@
 
         document.addEventListener('mouseover', e => {
             const el = e.target.closest('[data-iid]');
-            if (el) { showTT(+el.dataset.iid, el); return; }
+            if (el) { showTT(el.dataset.iid, el); return; }
             if (!e.target.closest('#wow-tooltip')) hideTT();
         });
         document.addEventListener('mousemove', e => {
@@ -2279,7 +2354,7 @@
             return `<a class="${cls}" data-iid="${item.id}">${text || item.name}</a>`;
         }
         function iLinkById(itemId, text, extraCls) {
-            const item = ITEMS.find(i => i.id === itemId);
+            const item = ITEM_CACHE[itemId];
             if (!item) return `<span>${text || ''}</span>`;
             return iLink(item, text || item.name, extraCls);
         }
@@ -2355,8 +2430,8 @@
             items: {
                 title: 'Items', icon: '⚔',
                 cols: [
-                    { label: 'Item', render: r => `<td class="td-name"><span class="td-icon">${(r.data || r).icon || '⚔'}</span><a class="${QCLS[r.quality || 0]}" onclick="showDetail('items','${r.id}')">${r.name}</a></td>` },
-                    { label: 'Slot', render: r => `<td style="color:var(--text-dim)">${(r.data || r).slot || '—'}</td>` },
+                    { label: 'Item', render: r => `<td class="td-name"><span class="td-icon">${(r.data || r).icon || '⚔'}</span><a class="${QCLS[r.quality || 0]}" data-iid="${r.id}" onclick="showDetail('items','${r.id}')">${r.name}</a></td>` },
+                    { label: 'Slot', render: r => `<td style="color:var(--text-dim)">${mapSlot((r.data || r).slot)}</td>` },
                     { label: 'iLvl', render: r => `<td class="mono">${r.level || '—'}</td>` },
                     { label: 'Quality', render: r => `<td class="${QCLS[r.quality || 0]}">${Q[r.quality || 0]}</td>` },
                     { label: 'Seen', render: r => `<td class="mono" style="color:var(--gold-dark)">${fmt((r.data || r).seen || 0)}</td>` },
@@ -2689,7 +2764,7 @@
             } catch (err) { toast('Could not delete comment.'); }
         }
 
-        function renderNpcDetail(npc, commentKey) {
+        async function renderNpcDetail(npc, commentKey) {
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon">${npc.icon || '👹'}</div>
                 <div class="detail-info">
@@ -2703,9 +2778,21 @@
                   </div>
                 </div>`;
             const commentsId = idFromKey(commentKey);
+
+            // Fetch drops for this NPC
+            let npcDrops = [];
+            try {
+                const dRes = await fetch(`${API}/api/npc-drops/${encodeURIComponent(npc.name)}`);
+                if (dRes.ok) npcDrops = await dRes.json();
+            } catch (e) { console.warn('Could not load NPC drops', e); }
+
+            const dropsHtml = npcDrops.length
+                ? dropTable(npcDrops, 'Item', d => `<span class="td-icon" style="color:${QCOL[d.quality]}">◆</span><a class="${QCLS[d.quality]}" onclick="showDetail('loot','${d.id}')">${d.name}</a>`)
+                : '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop data yet — upload your .lua to contribute!</div>';
+
             setTabs([
                 { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Level', npc.level || '—'], ['Classification', npc.class || '—'], ['Faction', npc.faction || '—'], ['Type', cap(npc.type || 'normal')], ['Total Kills', fmt(npc.kills || 0)]]) },
-                { label: 'Drops', count: 0, html: '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop data yet.</div>' },
+                { label: 'Drops', count: npcDrops.length, html: dropsHtml },
                 { label: 'Comments', count: 0, html: `<div id="${commentsId}">Loading comments…</div>` },
             ]);
             loadComments(commentKey);
@@ -2714,29 +2801,116 @@
                   <div class="sb-title">Quick Stats</div>
                   <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Kills</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(npc.kills || 0)}</span></div>
                   <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Level</span><span class="sb-row-meta">${npc.level || '—'}</span></div>
-                </div>`;
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Known Drops</span><span class="sb-row-meta">${npcDrops.length}</span></div>
+                </div>
+                ${npcDrops.length ? `<div class="sb-panel"><div class="sb-title">Notable Drops</div>${npcDrops.filter(d => d.quality >= 3).slice(0, 5).map(d => `<div class="sb-row" onclick="showDetail('loot','${d.id}')"><span class="sb-row-icon" style="color:${QCOL[d.quality]}">◆</span><span class="${QCLS[d.quality]}" style="font-size:.85rem">${d.name}</span><span class="sb-row-meta">${pct(d.rate)}</span></div>`).join('')}</div>` : ''}`;
         }
 
-        function renderItemDetail(item, commentKey) {
+        async function renderItemDetail(item, commentKey) {
+            // Build effects display HTML
+            const effects = item.effects || [];
+            const stats = item.stats || [];
+            let effectsHtml = '';
+            if (effects.length || stats.length || item.binding || item.unique || item.armor || item.dmg) {
+                effectsHtml = '<div class="effects-container">';
+                if (item.unique) effectsHtml += '<div class="tt-line white" style="font-size:.9rem">Unique</div>';
+                if (item.binding) effectsHtml += `<div class="tt-line" style="color:#c8c0a8;font-size:.9rem">${item.binding}</div>`;
+                if (item.dmg) {
+                    effectsHtml += `<div style="display:flex;justify-content:space-between;font-size:.9rem;color:#c8c0a8"><span>${item.dmg}</span>${item.speed ? `<span>Speed ${item.speed}</span>` : ''}</div>`;
+                    if (item.dps) effectsHtml += `<div style="font-size:.85rem;color:#888">(${item.dps} damage per second)</div>`;
+                }
+                if (item.armor) effectsHtml += `<div style="font-size:.9rem;color:#c8c0a8">${item.armor} Armor</div>`;
+                if (stats.length) {
+                    effectsHtml += '<div class="detail-section-header">Stats</div>';
+                    stats.forEach(s => { effectsHtml += `<div class="item-effect" style="font-style:normal;color:#fff">${s}</div>`; });
+                }
+                if (effects.length) {
+                    effectsHtml += '<div class="detail-section-header">Effects</div>';
+                    effects.forEach(e => { effectsHtml += `<div class="item-effect">${e}</div>`; });
+                }
+                effectsHtml += '</div>';
+            }
+
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon">${item.icon || '⚔'}</div>
                 <div class="detail-info">
                   <div class="detail-name ${QCLS[item.quality || 0]}">${item.name}</div>
-                  <div class="detail-subtitle">${item.type || 'Item'}${item.ilvl ? ' · Item Level ' + item.ilvl : ''}</div>
+                  <div class="detail-subtitle">${item.type || 'Item'}${item.subType ? ' — ' + item.subType : ''}${item.ilvl ? ' · Item Level ' + item.ilvl : ''}</div>
                   <div class="detail-pills">
-                    ${item.slot ? `<span class="dpill">${item.slot}</span>` : ''}
+                    ${item.slot ? `<span class="dpill">${mapSlot(item.slot)}</span>` : ''}
                     <span class="dpill ${QCLS[item.quality || 0]}">${Q[item.quality || 0]}</span>
                     ${item.ilvl ? `<span class="dpill">iLvl ${item.ilvl}</span>` : ''}
+                    ${item.reqLevel ? `<span class="dpill">Req Lvl ${item.reqLevel}</span>` : ''}
                     <span class="dpill gold">${fmt(item.seen || 0)} times seen</span>
                   </div>
+                  ${effectsHtml}
                 </div>`;
+
+            // Fetch drop sources for this item
+            let itemSources = [];
+            try {
+                const sRes = await fetch(`${API}/api/item-sources/${encodeURIComponent(item.name)}`);
+                if (sRes.ok) itemSources = await sRes.json();
+            } catch (e) { console.warn('Could not load item sources', e); }
+
+            const sourcesHtml = itemSources.length
+                ? `<div style="overflow-x:auto"><table class="drop-table">
+                    <thead><tr><th>Source NPC</th><th>Drop Rate</th><th>Drops</th><th>Samples</th></tr></thead>
+                    <tbody>${itemSources.map(s => {
+                        const allSources = s.sources || {};
+                        const sourceNames = Object.keys(allSources);
+                        const rows = sourceNames.length > 0 ? sourceNames.map(src => {
+                            const cnt = allSources[src] || 0;
+                            const srcRate = s.samples ? cnt / s.samples : 0;
+                            return `<tr onclick="showDetail('npcs','${src.replace(/[.']/g,'_')}')" style="cursor:pointer">
+                                <td class="td-name"><span class="td-icon">👹</span><a class="npc-name">${src}</a></td>
+                                <td><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill" style="width:${Math.min(srcRate*100,100)}%"></div></div><span class="rate-text">${pct(srcRate)}</span></div></td>
+                                <td class="mono" style="color:var(--gold-dark)">${fmt(cnt)}</td>
+                                <td class="mono">${fmt(s.samples)}</td>
+                            </tr>`;
+                        }).join('') : `<tr><td class="td-name"><span class="td-icon">👹</span><a class="npc-name">${s.source}</a></td><td><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill" style="width:${Math.min(s.rate*100,100)}%"></div></div><span class="rate-text">${pct(s.rate)}</span></div></td><td class="mono" style="color:var(--gold-dark)">${fmt(s.drops)}</td><td class="mono">${fmt(s.samples)}</td></tr>`;
+                        return rows;
+                    }).join('')}</tbody></table></div>`
+                : '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop source data yet — upload your .lua to contribute!</div>';
+
+            const summaryRows = [
+                ['Type', item.type || '—'],
+                ['Sub-Type', item.subType || '—'],
+                ['Slot', mapSlot(item.slot)],
+                ['Item Level', item.ilvl || '—'],
+                ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]],
+                ['Times Seen', fmt(item.seen || 0)],
+            ];
+            if (item.reqLevel) summaryRows.push(['Required Level', item.reqLevel]);
+            if (item.binding) summaryRows.push(['Binding', item.binding]);
+            if (item.armor) summaryRows.push(['Armor', item.armor]);
+
             const commentsId2 = idFromKey(commentKey);
             setTabs([
-                { label: 'Summary', html: sgrid([['Type', item.type || '—'], ['Slot', item.slot || '—'], ['Item Level', item.ilvl || '—'], ['Quality', Q[item.quality || 0], '' + QCLS[item.quality || 0]], ['Source', item.source || '—'], ['Times Seen', fmt(item.seen || 0)]]) },
+                { label: 'Summary', html: sgrid(summaryRows) },
+                { label: 'Dropped By', count: itemSources.length, html: sourcesHtml },
                 { label: 'Comments', count: 0, html: `<div id="${commentsId2}">Loading comments…</div>` },
             ]);
             loadComments(commentKey);
-            document.getElementById('detail-sidebar').innerHTML = '';
+
+            // Sidebar with quick stats and effects
+            let sidebarHtml = `
+                <div class="sb-panel">
+                  <div class="sb-title">Item Info</div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Quality</span><span class="sb-row-meta ${QCLS[item.quality||0]}">${Q[item.quality||0]}</span></div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Item Level</span><span class="sb-row-meta">${item.ilvl || '—'}</span></div>
+                  ${item.slot ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Slot</span><span class="sb-row-meta">${mapSlot(item.slot)}</span></div>` : ''}
+                  ${item.reqLevel ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Req Level</span><span class="sb-row-meta">${item.reqLevel}</span></div>` : ''}
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Times Seen</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(item.seen || 0)}</span></div>
+                </div>`;
+            if (effects.length) {
+                sidebarHtml += `<div class="sb-panel"><div class="sb-title">Effects</div>${effects.map(e => `<div class="sb-row" style="cursor:default"><span class="effect-line">${e}</span></div>`).join('')}</div>`;
+            }
+            if (itemSources.length) {
+                const topSource = itemSources[0];
+                sidebarHtml += `<div class="sb-panel"><div class="sb-title">Top Source</div><div class="sb-row"><span class="sb-row-icon">👹</span><span class="npc-name" style="font-size:.85rem">${topSource.source}</span><span class="sb-row-meta">${pct(topSource.rate)}</span></div></div>`;
+            }
+            document.getElementById('detail-sidebar').innerHTML = sidebarHtml;
         }
 
         function renderQuestDetail(q, commentKey) {
@@ -2760,25 +2934,102 @@
             document.getElementById('detail-sidebar').innerHTML = '';
         }
 
-        function renderLootDetail(loot, commentKey) {
+        async function renderLootDetail(loot, commentKey) {
+            // Build sources list from data.sources object
+            const allSources = loot.sources || {};
+            const sourceEntries = Object.entries(allSources).sort((a, b) => b[1] - a[1]);
+            const totalDrops = loot.drops || sourceEntries.reduce((sum, [, c]) => sum + c, 0);
+            const totalSamples = loot.samples || 0;
+            const overallRate = totalSamples ? totalDrops / totalSamples : (loot.rate || 0);
+
+            // Try to find the matching item record for richer info
+            let linkedItem = null;
+            try {
+                const iRes = await fetch(`${API}/api/search?q=${encodeURIComponent(loot.item || loot.name)}`);
+                if (iRes.ok) {
+                    const results = await iRes.json();
+                    linkedItem = results.find(r => r.type === 'items' && r.name === (loot.item || loot.name));
+                    if (linkedItem && linkedItem.data) linkedItem = { ...linkedItem, ...linkedItem.data };
+                }
+            } catch (e) {}
+
+            // Effects from linked item
+            const effects = (linkedItem && linkedItem.effects) || loot.effects || [];
+            let effectsHtml = '';
+            if (effects.length) {
+                effectsHtml = '<div class="effects-container"><div class="detail-section-header">Effects</div>';
+                effects.forEach(e => { effectsHtml += `<div class="item-effect">${e}</div>`; });
+                effectsHtml += '</div>';
+            }
+
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon" style="color:${QCOL[loot.quality || 0]}">◆</div>
                 <div class="detail-info">
                   <div class="detail-name ${QCLS[loot.quality || 0]}">${loot.item || loot.name || 'Unknown'}</div>
-                  <div class="detail-subtitle">Dropped by: ${loot.source || 'Unknown'}</div>
+                  <div class="detail-subtitle">Dropped by: ${sourceEntries.length > 1 ? sourceEntries.length + ' sources' : (loot.source || 'Unknown')}</div>
                   <div class="detail-pills">
                     <span class="dpill ${QCLS[loot.quality || 0]}">${Q[loot.quality || 0]}</span>
-                    <span class="dpill gold">${pct(loot.rate || 0)} drop rate</span>
-                    <span class="dpill">${fmt(loot.drops || 0)} drops / ${fmt(loot.samples || 0)} kills</span>
+                    <span class="dpill gold">${pct(overallRate)} drop rate</span>
+                    <span class="dpill">${fmt(totalDrops)} drops / ${fmt(totalSamples)} kills</span>
+                    ${linkedItem ? `<span class="dpill" style="cursor:pointer;border-color:var(--gold-dark)" onclick="showDetail('items','${linkedItem.id}')">View Item →</span>` : ''}
                   </div>
+                  ${effectsHtml}
                 </div>`;
+
+            // Build sources tab
+            const sourcesHtml = sourceEntries.length
+                ? `<div style="overflow-x:auto"><table class="drop-table">
+                    <thead><tr><th>Source NPC</th><th>Drops from this NPC</th><th>Drop Rate</th></tr></thead>
+                    <tbody>${sourceEntries.map(([src, cnt]) => {
+                        const srcRate = totalSamples ? cnt / totalSamples : 0;
+                        return `<tr style="cursor:pointer" onclick="showDetail('npcs','${src.replace(/[.']/g,'_')}')">
+                            <td class="td-name"><span class="td-icon">👹</span><a class="npc-name">${src}</a></td>
+                            <td class="mono" style="color:var(--gold-dark)">${fmt(cnt)}</td>
+                            <td><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill ${(loot.quality||0)>=4?'fill-epic':(loot.quality||0)>=3?'fill-rare':''}" style="width:${Math.min(srcRate*100,100)}%"></div></div><span class="rate-text">${pct(srcRate)}</span></div></td>
+                        </tr>`;
+                    }).join('')}</tbody></table></div>`
+                : `<div style="padding:1rem"><div class="sb-row" style="cursor:pointer" onclick="showDetail('npcs','${(loot.source||'').replace(/[.']/g,'_')}')"><span class="sb-row-icon">👹</span><a class="npc-name">${loot.source || 'Unknown'}</a></div></div>`;
+
+            const summaryRows = [
+                ['Primary Source', `<a class="npc-name" style="cursor:pointer" onclick="showDetail('npcs','${(loot.source||'').replace(/[.']/g,'_')}')">${loot.source || '—'}</a>`],
+                ['Drop Rate', pct(overallRate), 'q2'],
+                ['Sample Size', fmt(totalSamples) + ' kills'],
+                ['Total Drops', fmt(totalDrops)],
+                ['Quality', Q[loot.quality || 0], '' + QCLS[loot.quality || 0]],
+                ['Sources', sourceEntries.length + ' NPC(s)'],
+            ];
+
             const commentsId4 = idFromKey(commentKey);
             setTabs([
-                { label: 'Summary', html: sgrid([['Source', loot.source || '—'], ['Drop Rate', pct(loot.rate || 0), 'q2'], ['Sample Size', fmt(loot.samples || 0) + ' kills'], ['Total Drops', fmt(loot.drops || 0)], ['Quality', Q[loot.quality || 0], '' + QCLS[loot.quality || 0]]]) },
+                { label: 'Summary', html: sgrid(summaryRows) },
+                { label: 'Sources', count: sourceEntries.length, html: sourcesHtml },
                 { label: 'Comments', count: 0, html: `<div id="${commentsId4}">Loading comments…</div>` },
             ]);
             loadComments(commentKey);
-            document.getElementById('detail-sidebar').innerHTML = '';
+
+            // Sidebar with linked item info
+            let sidebarHtml = `
+                <div class="sb-panel">
+                  <div class="sb-title">Drop Info</div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Drop Rate</span><span class="sb-row-meta" style="color:var(--q2)">${pct(overallRate)}</span></div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Drops</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(totalDrops)}</span></div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Sample Size</span><span class="sb-row-meta">${fmt(totalSamples)}</span></div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Sources</span><span class="sb-row-meta">${sourceEntries.length}</span></div>
+                </div>`;
+            if (linkedItem) {
+                sidebarHtml += `<div class="sb-panel"><div class="sb-title">Item Details</div>
+                  <div class="sb-row" style="cursor:pointer" onclick="showDetail('items','${linkedItem.id}')"><span class="sb-row-icon" style="color:${QCOL[linkedItem.quality||0]}">◆</span><span class="${QCLS[linkedItem.quality||0]}" style="font-size:.85rem">${linkedItem.name}</span></div>
+                  ${linkedItem.slot ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Slot</span><span class="sb-row-meta">${mapSlot(linkedItem.slot)}</span></div>` : ''}
+                  ${linkedItem.ilvl || linkedItem.level ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Item Level</span><span class="sb-row-meta">${linkedItem.ilvl || linkedItem.level}</span></div>` : ''}
+                </div>`;
+            }
+            if (effects.length) {
+                sidebarHtml += `<div class="sb-panel"><div class="sb-title">Effects</div>${effects.map(e => `<div class="sb-row" style="cursor:default"><span class="effect-line">${e}</span></div>`).join('')}</div>`;
+            }
+            if (sourceEntries.length) {
+                sidebarHtml += `<div class="sb-panel"><div class="sb-title">Source NPCs</div>${sourceEntries.slice(0,5).map(([src, cnt]) => `<div class="sb-row" onclick="showDetail('npcs','${src.replace(/[.']/g,'_')}')"><span class="sb-row-icon">👹</span><span class="npc-name" style="font-size:.85rem">${src}</span><span class="sb-row-meta">${fmt(cnt)} drops</span></div>`).join('')}</div>`;
+            }
+            document.getElementById('detail-sidebar').innerHTML = sidebarHtml;
         }
 
         function renderZoneDetail(zone, commentKey) {

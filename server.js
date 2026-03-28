@@ -219,6 +219,23 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// 3f. INVTYPE SLOT MAPPING
+// ═══════════════════════════════════════════════════════════════
+const SLOT_MAP = {
+    'INVTYPE_HEAD': 'Head', 'INVTYPE_NECK': 'Neck', 'INVTYPE_SHOULDER': 'Shoulder',
+    'INVTYPE_BODY': 'Shirt', 'INVTYPE_CHEST': 'Chest', 'INVTYPE_ROBE': 'Chest',
+    'INVTYPE_WAIST': 'Waist', 'INVTYPE_LEGS': 'Legs', 'INVTYPE_FEET': 'Feet',
+    'INVTYPE_WRIST': 'Wrist', 'INVTYPE_HAND': 'Hands', 'INVTYPE_FINGER': 'Finger',
+    'INVTYPE_TRINKET': 'Trinket', 'INVTYPE_CLOAK': 'Back', 'INVTYPE_WEAPON': 'One-Hand',
+    'INVTYPE_SHIELD': 'Off Hand', 'INVTYPE_2HWEAPON': 'Two-Hand',
+    'INVTYPE_WEAPONMAINHAND': 'Main Hand', 'INVTYPE_WEAPONOFFHAND': 'Off Hand',
+    'INVTYPE_HOLDABLE': 'Held In Off-Hand', 'INVTYPE_RANGED': 'Ranged',
+    'INVTYPE_THROWN': 'Thrown', 'INVTYPE_RANGEDRIGHT': 'Ranged',
+    'INVTYPE_RELIC': 'Relic', 'INVTYPE_TABARD': 'Tabard', 'INVTYPE_BAG': 'Bag',
+    'INVTYPE_QUIVER': 'Quiver', 'INVTYPE_AMMO': 'Ammo',
+};
+
+// ═══════════════════════════════════════════════════════════════
 // 4. LUA PARSER
 // ═══════════════════════════════════════════════════════════════
 
@@ -244,6 +261,23 @@ function getStr(field, block) {
 function getNum(field, block) {
     const m = block.match(new RegExp(`\\["${field}"\\]\\s*=\\s*(-?\\d+)`));
     return m ? parseInt(m[1]) : null;
+}
+
+function getBool(field, block) {
+    const m = block.match(new RegExp(`\\["${field}"\\]\\s*=\\s*(true|false)`));
+    return m ? m[1] === 'true' : null;
+}
+
+function getArray(field, block) {
+    const inner = extractTable(field, block);
+    if (!inner) return [];
+    const results = [];
+    const re = /"([^"]*)"/g;
+    let m;
+    while ((m = re.exec(inner)) !== null) {
+        if (m[1].trim()) results.push(m[1]);
+    }
+    return results;
 }
 
 function parseEntries(tableContent) {
@@ -314,6 +348,15 @@ function parseLuaContent(content) {
                 ilvl:      getNum('ilvl', block)      || 0,
                 quality:   getNum('quality', block)   ?? 1,
                 firstSeen: getStr('firstSeen', block) || '',
+                effects:   getArray('effects', block),
+                binding:   getStr('binding', block)   || '',
+                reqLevel:  getNum('reqLevel', block)   || 0,
+                armor:     getNum('armor', block)      || 0,
+                stats:     getArray('stats', block),
+                unique:    getBool('unique', block)    || false,
+                dmg:       getStr('dmg', block)        || '',
+                speed:     getStr('speed', block)      || '',
+                dps:       getStr('dps', block)        || '',
             });
         }
     }
@@ -395,13 +438,27 @@ app.post('/api/upload', async (req, res) => {
         }
 
         for (const item of parsed.items) {
+            if (!item.name) continue;
+            const mappedSlot = SLOT_MAP[item.slot] || item.slot;
+            const setFields = {
+                name: item.name, quality: item.quality, level: item.ilvl,
+                'data.type': item.type, 'data.subType': item.subType,
+                'data.slot': mappedSlot, 'data.firstSeen': item.firstSeen,
+            };
+            if (item.effects.length) setFields.effects = item.effects;
+            if (item.binding) setFields['data.binding'] = item.binding;
+            if (item.reqLevel) setFields['data.reqLevel'] = item.reqLevel;
+            if (item.armor) setFields['data.armor'] = item.armor;
+            if (item.stats.length) setFields['data.stats'] = item.stats;
+            if (item.unique) setFields['data.unique'] = true;
+            if (item.dmg) setFields['data.dmg'] = item.dmg;
+            if (item.speed) setFields['data.speed'] = item.speed;
+            if (item.dps) setFields['data.dps'] = item.dps;
             ops.push({
                 updateOne: {
                     filter: { type: 'items', id: item.id },
                     update: {
-                        $set: { name: item.name, quality: item.quality, level: item.ilvl,
-                                'data.type': item.type, 'data.subType': item.subType,
-                                'data.slot': item.slot, 'data.firstSeen': item.firstSeen },
+                        $set: setFields,
                         $inc: { 'data.seen': 1 },
                     },
                     upsert: true
@@ -410,6 +467,7 @@ app.post('/api/upload', async (req, res) => {
         }
 
         for (const drop of parsed.loot) {
+            if (!drop.name) continue;
             const sourceInc = {};
             for (const [src, cnt] of Object.entries(drop.sources)) {
                 sourceInc[`data.sources.${src.replace(/[.\$]/g, '_')}`] = cnt;
@@ -464,7 +522,7 @@ app.get('/api/search', async (req, res) => {
 
 app.get('/api/list/:category', async (req, res) => {
     try {
-        const data = await Record.find({ type: req.params.category }).limit(1000);
+        const data = await Record.find({ type: req.params.category, name: { $exists: true, $ne: '' } }).limit(1000);
         res.json(data);
     } catch (err) {
         res.status(500).json({ error: 'Could not fetch list' });
@@ -478,6 +536,60 @@ app.get('/api/record/:type/:id', async (req, res) => {
         res.json(record);
     } catch (err) {
         res.status(500).json({ error: 'Internal error' });
+    }
+});
+
+// Cross-reference: find all loot records that drop a given item (by name)
+app.get('/api/item-sources/:name', async (req, res) => {
+    try {
+        const itemName = decodeURIComponent(req.params.name);
+        const lootRecords = await Record.find({
+            type: 'loot',
+            name: { $regex: `^${itemName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' }
+        }).limit(50).lean();
+        const sources = lootRecords.map(l => ({
+            id: l.id,
+            source: (l.data && l.data.source) || 'Unknown',
+            sources: (l.data && l.data.sources) || {},
+            drops: (l.data && l.data.drops) || 0,
+            samples: (l.data && l.data.samples) || 0,
+            rate: (l.data && l.data.samples) ? (l.data.drops / l.data.samples) : 0,
+            quality: l.quality || 0,
+        }));
+        res.json(sources);
+    } catch (err) {
+        res.status(500).json({ error: 'Could not fetch item sources' });
+    }
+});
+
+// Cross-reference: find all loot dropped by a given NPC (by source name)
+app.get('/api/npc-drops/:name', async (req, res) => {
+    try {
+        const npcName = decodeURIComponent(req.params.name);
+        const escapedName = npcName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const lootRecords = await Record.find({
+            type: 'loot',
+            $or: [
+                { 'data.source': { $regex: `^${escapedName}$`, $options: 'i' } },
+                { [`data.sources.${npcName.replace(/[.\$]/g, '_')}`]: { $exists: true } }
+            ]
+        }).limit(100).lean();
+        const drops = lootRecords.map(l => {
+            const srcKey = npcName.replace(/[.\$]/g, '_');
+            const npcDrops = (l.data && l.data.sources && l.data.sources[srcKey]) || (l.data && l.data.drops) || 0;
+            return {
+                id: l.id,
+                name: l.name || 'Unknown',
+                quality: l.quality || 0,
+                drops: npcDrops,
+                samples: (l.data && l.data.samples) || 0,
+                rate: (l.data && l.data.samples) ? (npcDrops / l.data.samples) : 0,
+            };
+        });
+        drops.sort((a, b) => b.quality - a.quality || b.drops - a.drops);
+        res.json(drops);
+    } catch (err) {
+        res.status(500).json({ error: 'Could not fetch NPC drops' });
     }
 });
 
