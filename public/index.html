@@ -1889,11 +1889,9 @@
         }
         /* ── TIMERS VIEW ── */
         #timers-view {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1.5rem;
-            position: relative;
-            z-index: 1;
+            padding: 1.5rem 0;
+            border-top: 1px solid var(--border);
+            margin-top: 1.5rem;
         }
         .timers-section-title {
             font-family: 'Cinzel', serif;
@@ -2079,17 +2077,11 @@
             </div>
             <div><div class="logo-text">EPOCHDB</div><div class="logo-sub">Project Epoch Database</div></div>
         </div>
-        <div id="search-wrap">
-            <input id="search-input" type="text" placeholder="Search items, NPCs, quests, zones…" autocomplete="off" oninput="onSearch(this.value)" onkeydown="onSearchKey(event)">
-            <button id="search-go" onclick="doSearch()">🔍</button>
-            <div id="suggestions"></div>
-        </div>
         <div id="topnav">
             <button class="tnav-btn" onclick="showList('npcs')">NPCs</button>
             <button class="tnav-btn" onclick="showList('items')">Items</button>
             <button class="tnav-btn" onclick="showList('quests')">Quests</button>
             <button class="tnav-btn" onclick="showList('loot')">Loot</button>
-            <button class="tnav-btn" onclick="showTimers()">⏱ Timers</button>
             <button id="id-btn" class="tnav-btn upload-btn" onclick="onAuthClick()">Login</button>
             <a class="download-btn" href="https://github.com/MrBoxie88/EpochDB" target="_blank">⬇ Get Addon</a>
             <button class="upload-btn" onclick="openUpload()">⬆ Upload Data</button>
@@ -2102,7 +2094,6 @@
         <button class="mnav-tab" onclick="showList('items')">Items</button>
         <button class="mnav-tab" onclick="showList('quests')">Quests</button>
         <button class="mnav-tab" onclick="showList('loot')">Loot Tables</button>
-        <button class="mnav-tab" onclick="showTimers()">⏱ Raid Timers</button>
     </div>
 
     <div id="page">
@@ -2172,9 +2163,7 @@
             </div>
         </div>
 
-    </div>
-
-        <!-- TIMERS VIEW -->
+        <!-- TIMERS VIEW (shown below list) -->
         <div id="timers-view" class="hidden">
             <div id="timers-inner"></div>
         </div>
@@ -2461,7 +2450,7 @@
         function show(id) { document.getElementById(id).classList.remove('hidden'); }
         function hide(id) { document.getElementById(id).classList.add('hidden'); }
         function setMnav(tab) {
-            const names = ['home', 'npcs', 'items', 'quests', 'loot', 'timers'];
+            const names = ['home', 'npcs', 'items', 'quests', 'loot'];
             document.querySelectorAll('.mnav-tab').forEach((b, i) => b.classList.toggle('active', names[i] === tab));
         }
 
@@ -2474,14 +2463,13 @@
             activeFilters = {};
             listQuery = '';
             curPage = 1;
-            hide('home-view'); hide('detail-view'); hide('timers-view'); show('list-view');
+            hide('home-view'); hide('detail-view'); show('list-view'); show('timers-view');
             setMnav(type);
             renderList(type);
+            renderTimers();
         }
         function showTimers() {
-            hide('home-view'); hide('list-view'); hide('detail-view'); show('timers-view');
-            setMnav('timers');
-            renderTimers();
+            showList(curList || 'npcs');
         }
         async function showDetail(type, id) {
             hide('home-view'); hide('list-view'); hide('timers-view'); show('detail-view');
@@ -3467,7 +3455,7 @@
 
             // If search is too short, close the suggestions
             if (val.length < 2) {
-                sug.classList.remove('open');
+                if (sug) sug.classList.remove('open');
                 return;
             }
 
@@ -3477,7 +3465,7 @@
                 const results = await response.json();
 
                 // 2. Display the results if found
-                if (results.length > 0) {
+                if (results.length > 0 && sug) {
                     sug.innerHTML = results.map(r => `
                     <div class="sug-item" onclick="showDetail('${r.id}')">
                       <span class="sug-icon">📜</span>
@@ -3486,7 +3474,7 @@
                     </div>
                   `).join('');
                     sug.classList.add('open');
-                } else {
+                } else if (sug) {
                     sug.classList.remove('open');
                 }
             } catch (err) {
@@ -3495,11 +3483,11 @@
         }
         function onSearchKey(e) {
             if (e.key === 'Enter') doSearch();
-            if (e.key === 'Escape') document.getElementById('suggestions').classList.remove('open');
+            if (e.key === 'Escape') { const s = document.getElementById('suggestions'); if (s) s.classList.remove('open'); }
         }
         async function doSearch() {
-            document.getElementById('suggestions').classList.remove('open');
-            const q = (document.getElementById('search-input').value || document.querySelector('.home-search')?.value || '').trim();
+            const sug = document.getElementById('suggestions'); if (sug) sug.classList.remove('open');
+            const q = (document.querySelector('.home-search')?.value || '').trim();
             if (!q) return;
             try {
                 const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}`);
@@ -3511,8 +3499,9 @@
             }
         }
         document.addEventListener('click', e => {
-            if (!e.target.closest('#search-wrap') && !e.target.closest('.home-search-wrap'))
-                document.getElementById('suggestions').classList.remove('open');
+            if (!e.target.closest('.home-search-wrap')) {
+                const sug = document.getElementById('suggestions'); if (sug) sug.classList.remove('open');
+            }
         });
 
         // ═══════════════════════════════════════════════════════════════
