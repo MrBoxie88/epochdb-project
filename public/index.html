@@ -456,11 +456,34 @@
         }
 
             .upload-btn:hover {
-                filter: brightness(1.12);
-                box-shadow: 0 0 14px rgba(200,168,75,.35)
+                    filter: brightness(1.12);
+                    box-shadow: 0 0 14px rgba(200,168,75,.35)
+                }
+
+            .download-btn {
+                font-family: 'Cinzel',serif;
+                font-size: .6rem;
+                letter-spacing: .1em;
+                background: linear-gradient(135deg, #1a6b1a, #2eaa2e);
+                color: #fff;
+                border: none;
+                padding: .4rem 1rem;
+                font-weight: 600;
+                transition: all .15s;
+                clip-path: polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);
+                text-decoration: none;
+                display: inline-block;
+                cursor: pointer;
             }
 
-        /* ── MAIN NAV ── */
+                .download-btn:hover {
+                    filter: brightness(1.15);
+                    box-shadow: 0 0 14px rgba(46,170,46,.4);
+                    color: #fff;
+                    text-decoration: none;
+                }
+
+            /* ── MAIN NAV ── */
         #mainnav {
             background: var(--bg-panel);
             border-bottom: 1px solid var(--border);
@@ -2068,6 +2091,7 @@
             <button class="tnav-btn" onclick="showList('loot')">Loot</button>
             <button class="tnav-btn" onclick="showTimers()">⏱ Timers</button>
             <button id="id-btn" class="tnav-btn upload-btn" onclick="onAuthClick()">Login</button>
+            <a class="download-btn" href="https://github.com/MrBoxie88/EpochDB" target="_blank">⬇ Get Addon</a>
             <button class="upload-btn" onclick="openUpload()">⬆ Upload Data</button>
         </div>
     </div>
@@ -2109,6 +2133,7 @@
                 <div class="cat-card" onclick="showList('loot')"><div class="cat-icon">💰</div><div class="cat-name">Loot Tables</div></div>
                 <div class="cat-card" onclick="showList('zones')"><div class="cat-icon">🗺</div><div class="cat-name">Zones</div></div>
                 <div class="cat-card" onclick="openUpload()"><div class="cat-icon">⬆</div><div class="cat-name">Contribute</div><div class="cat-count">Upload your .lua</div></div>
+                <a class="cat-card" href="https://github.com/MrBoxie88/EpochDB" target="_blank" style="text-decoration:none"><div class="cat-icon">⬇</div><div class="cat-name">Get Addon</div><div class="cat-count">Download EpochDB</div></a>
             </div>
             <div class="home-panels">
                 <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">☠ Most Killed</span><a onclick="showList('npcs')">See all →</a></div><div id="hp-kills"></div></div>
@@ -2159,7 +2184,7 @@
         <div class="modal">
             <div class="modal-hdr"><div class="modal-title">⬆ Upload Addon Data</div><button class="modal-close" onclick="closeUpload()">✕</button></div>
             <div class="modal-body">
-                <div class="instructions">Your data is saved at:<br><code>WoW\WTF\Account\[NAME]\SavedVariables\EpochDB.lua</code><br>Upload after each session to contribute your kills, loot, items, and quests to the community.</div>
+                <div class="instructions">Don't have the addon yet? <a href="https://github.com/MrBoxie88/EpochDB" target="_blank" style="color:var(--gold);font-weight:600">⬇ Download EpochDB Addon</a><br><br>Your data is saved at:<br><code>WoW\WTF\Account\[NAME]\SavedVariables\EpochDB.lua</code><br>Upload after each session to contribute your kills, loot, items, and quests to the community.</div>
                 <div class="upload-zone" id="drop-zone" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event)" onclick="document.getElementById('file-input').click()">
                     <span class="upload-icon">📁</span>
                     <div class="upload-text">Drop EpochDB.lua here</div>
@@ -3212,13 +3237,24 @@
             if (choiceRewards.length) summaryRows.push(['Choice Rewards', choiceRewards.length + ' item(s)']);
             if (requiredItems.length) summaryRows.push(['Required Items', requiredItems.length + ' item(s)']);
 
-            // ── Build tabs ──
+            // ── Build single overview tab ──
             const totalRewards = fixedRewards.length + choiceRewards.length + (q.rewardMoney ? 1 : 0);
             const commentsId3 = idFromKey(commentKey);
+
+            let overviewHtml = sgrid(summaryRows);
+
+            if (questInfoHtml || requiredHtml) {
+                overviewHtml += `<div class="detail-section-header" style="padding:.6rem 1rem;margin:0;border-top:1px solid var(--border)">📜 Quest Text</div>`;
+                overviewHtml += questInfoHtml + requiredHtml;
+            }
+
+            if (rewardsHtml) {
+                overviewHtml += `<div class="detail-section-header" style="padding:.6rem 1rem;margin:0;border-top:1px solid var(--border)">🎁 Rewards${totalRewards ? ' (' + totalRewards + ')' : ''}</div>`;
+                overviewHtml += rewardsHtml;
+            }
+
             const tabs = [
-                { label: 'Summary', html: sgrid(summaryRows) },
-                { label: 'Quest Text', html: questInfoHtml + requiredHtml },
-                { label: 'Rewards', count: totalRewards, html: rewardsHtml },
+                { label: 'Overview', html: overviewHtml },
                 { label: 'Comments', count: 0, html: `<div id="${commentsId3}">Loading comments…</div>` },
             ];
             setTabs(tabs);
