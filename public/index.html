@@ -2769,11 +2769,11 @@
                 <div class="detail-big-icon">${npc.icon || '👹'}</div>
                 <div class="detail-info">
                   <div class="detail-name npc-name">${npc.name}</div>
-                  <div class="detail-subtitle">${npc.class || 'Unknown'} · Level ${npc.level || '?'}</div>
+                  <div class="detail-subtitle">${npc.creatureType || 'Unknown'} · Level ${npc.level || '?'}${npc.maxHp ? ' · ' + fmt(npc.maxHp) + ' HP' : ''}</div>
                   <div class="detail-pills">
                     <span class="dpill">${npc.zone || 'Unknown'}</span>
                     <span class="badge badge-${npc.type || 'normal'}">${cap(npc.type || 'normal')}</span>
-                    <span class="dpill">${npc.faction || 'Unknown'}</span>
+                    ${npc.creatureType ? `<span class="dpill">${npc.creatureType}</span>` : ''}
                     <span class="dpill gold">${fmt(npc.kills || 0)} kills recorded</span>
                   </div>
                 </div>`;
@@ -2791,7 +2791,7 @@
                 : '<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No drop data yet — upload your .lua to contribute!</div>';
 
             setTabs([
-                { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Level', npc.level || '—'], ['Classification', npc.class || '—'], ['Faction', npc.faction || '—'], ['Type', cap(npc.type || 'normal')], ['Total Kills', fmt(npc.kills || 0)]]) },
+                { label: 'Summary', html: sgrid([['Zone', npc.zone || '—'], ['Level', npc.level || '—'], ['Creature Type', npc.creatureType || '—'], ['Classification', cap(npc.classification || npc.type || 'normal')], ['Max HP', npc.maxHp ? fmt(npc.maxHp) : '—'], ['Total Kills', fmt(npc.kills || 0)]]) },
                 { label: 'Drops', count: npcDrops.length, html: dropsHtml },
                 { label: 'Comments', count: 0, html: `<div id="${commentsId}">Loading comments…</div>` },
             ]);
@@ -2801,6 +2801,8 @@
                   <div class="sb-title">Quick Stats</div>
                   <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Total Kills</span><span class="sb-row-meta" style="color:var(--gold)">${fmt(npc.kills || 0)}</span></div>
                   <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Level</span><span class="sb-row-meta">${npc.level || '—'}</span></div>
+                  ${npc.maxHp ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Max HP</span><span class="sb-row-meta">${fmt(npc.maxHp)}</span></div>` : ''}
+                  ${npc.creatureType ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Creature Type</span><span class="sb-row-meta">${npc.creatureType}</span></div>` : ''}
                   <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Known Drops</span><span class="sb-row-meta">${npcDrops.length}</span></div>
                 </div>
                 ${npcDrops.length ? `<div class="sb-panel"><div class="sb-title">Notable Drops</div>${npcDrops.filter(d => d.quality >= 3).slice(0, 5).map(d => `<div class="sb-row" onclick="showDetail('loot','${d.id}')"><span class="sb-row-icon" style="color:${QCOL[d.quality]}">◆</span><span class="${QCLS[d.quality]}" style="font-size:.85rem">${d.name}</span><span class="sb-row-meta">${pct(d.rate)}</span></div>`).join('')}</div>` : ''}`;
@@ -3147,8 +3149,15 @@
                     });
                     const result = await response.json();
                     if (response.ok) {
-                        status.textContent = `✔ Success! ${result.items} records updated.`;
-                        setTimeout(closeUpload, 2000);
+                        const b = result.breakdown || {};
+                        const parts = [];
+                        if (b.kills) parts.push(`${b.kills} NPCs`);
+                        if (b.items) parts.push(`${b.items} items`);
+                        if (b.loot) parts.push(`${b.loot} loot`);
+                        if (b.quests) parts.push(`${b.quests} quests`);
+                        if (b.vendors) parts.push(`${b.vendors} vendors`);
+                        status.textContent = `✔ Success! ${result.items} records synced (${parts.join(', ')}).`;
+                        setTimeout(closeUpload, 2500);
                     } else {
                         status.textContent = "❌ Upload failed: " + (result.error || "Unknown Error");
                         status.style.borderColor = "var(--red)";

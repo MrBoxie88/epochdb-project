@@ -280,6 +280,58 @@ function getArray(field, block) {
     return results;
 }
 
+function getFloat(field, block) {
+    const m = block.match(new RegExp(`\\["${field}"\\]\\s*=\\s*(-?[\\d.]+)`));
+    return m ? parseFloat(m[1]) : null;
+}
+
+function parseSubTables(tableContent) {
+    const results = [];
+    let depth = 0, start = -1;
+    for (let i = 0; i < tableContent.length; i++) {
+        if (tableContent[i] === '{') {
+            if (depth === 0) start = i + 1;
+            depth++;
+        } else if (tableContent[i] === '}') {
+            depth--;
+            if (depth === 0 && start >= 0) {
+                results.push(tableContent.slice(start, i));
+                start = -1;
+            }
+        }
+    }
+    return results;
+}
+
+function parseKVNums(tableName, block) {
+    const inner = extractTable(tableName, block);
+    if (!inner) return null;
+    const result = {};
+    const re = /\["([^"]+)"\]\s*=\s*(-?[\d.]+)/g;
+    let m;
+    while ((m = re.exec(inner)) !== null) {
+        result[m[1]] = parseFloat(m[2]);
+    }
+    return Object.keys(result).length ? result : null;
+}
+
+function cleanSourceName(name) {
+    return name.replace(/\s*\([\d.]+,\s*[\d.]+\)\s*$/, '');
+}
+
+const BIND_MAP = {
+    'BOP': 'Binds when picked up',
+    'BOE': 'Binds when equipped',
+    'BOU': 'Binds when used',
+    'QUEST': 'Quest Item',
+};
+
+const STAT_LABELS = {
+    str: 'Strength', agi: 'Agility', sta: 'Stamina', int: 'Intellect', spi: 'Spirit',
+    crit: 'Critical Strike Rating', hit: 'Hit Rating', haste: 'Haste Rating',
+    ap: 'Attack Power', sp: 'Spell Power', mp5: 'MP5', def: 'Defense Rating',
+};
+
 function parseEntries(tableContent) {
     const entries = [];
     const keyRe = /\["([^"]+)"\]\s*=\s*\{/g;
@@ -301,7 +353,7 @@ function parseEntries(tableContent) {
 }
 
 function parseLuaContent(content) {
-    const result = { kills: [], items: [], loot: [] };
+    const result = { kills: [], items: [], loot: [], quests: [], vendors: [], meta: null };
 
     console.log(`[PARSE] Starting Lua parse`);
     console.log(`[PARSE] Content size: ${content.length} bytes`);
@@ -322,13 +374,16 @@ function parseLuaContent(content) {
         for (const { key, block } of killEntries) {
             result.kills.push({
                 key,
-                name:      getStr('name', block)      || key.split('|')[0],
-                zone:      getStr('zone', block)      || '',
-                subZone:   getStr('subZone', block)   || '',
-                coords:    getStr('coords', block)    || '',
-                count:     getNum('count', block)     || 1,
-                firstKill: getStr('firstKill', block) || '',
-                lastKill:  getStr('lastKill', block)  || '',
+                name:           getStr('name', block)           || key.split('|')[0],
+                npcId:          getNum('npcId', block)          || null,
+                zone:           getStr('zone', block)           || '',
+                subZone:        getStr('subZone', block)        || '',
+                coords:         getStr('coords', block)         || '',
+                level:          getNum('level', block)          || null,
+                classification: getStr('classification', block) || null,
+                creatureType:   getStr('creatureType', block)   || null,
+                maxHp:          getNum('maxHp', block)          || null,
+                count:          getNum('count', block)          || 1,
             });
         }
     }
@@ -339,24 +394,110 @@ function parseLuaContent(content) {
         const itemEntries = parseEntries(itemsTable);
         console.log(`[PARSE] Found items table with ${itemEntries.length} entries`);
         for (const { key, block } of itemEntries) {
+            const rawSlot = getStr('slot', block) || '';
+
+            // Parse the extras subtable (tooltip-scanned rich data)
+            const extrasBlock = extractTable('extras', block);
+            let bindType = '', slotName = '', armorType = '';
+            let armorVal = 0, attrs = null, weapon = null;
+            let effects = [], requires = [], setBonuses = [];
+
+            if (extrasBlock) {
+                bindType  = getStr('bindType', extrasBlock) || '';
+                slotName  = getStr('slotName', extrasBlock) || '';
+                armorType = getStr('armorType', extrasBlock) || '';
+                armorVal  = getNum('armor', extrasBlock) || 0;
+
+                // Parse attrs table { str=N, agi=N, ... }
+                attrs = parseKVNums('attrs', extrasBlock);
+
+                // Parse weapon table { min=N, max=N, dps=N, speed=N }
+                const weaponInner = extractTable('weapon', extrasBlock);
+                if (weaponInner) {
+                    weapon = {};
+                    const wMin = getFloat('min', weaponInner);
+                    const wMax = getFloat('max', weaponInner);
+                    const wDps = getFloat('dps', weaponInner);
+                    const wSpd = getFloat('speed', weaponInner);
+                    if (wMin != null) weapon.min = wMin;
+                    if (wMax != null) weapon.max = wMax;
+                    if (wDps != null) weapon.dps = wDps;
+                    if (wSpd != null) weapon.speed = wSpd;
+                    if (!Object.keys(weapon).length) weapon = null;
+                }
+
+                // Parse effects array of { type, text } sub-tables
+                const effectsInner = extractTable('effects', extrasBlock);
+                if (effectsInner) {
+                    const subs = parseSubTables(effectsInner);
+                    for (const sub of subs) {
+                        const t = getStr('type', sub);
+                        const txt = getStr('text', sub);
+                        if (t && txt) effects.push({ type: t, text: txt });
+                    }
+                }
+
+                // Parse requires array of strings
+                requires = getArray('requires', extrasBlock);
+
+                // Parse setBonuses array of strings
+                setBonuses = getArray('setBonuses', extrasBlock);
+            }
+
+            // Format effects as display strings
+            const effectStrings = effects.map(e => {
+                const prefix = e.type === 'equip' ? 'Equip' : e.type === 'use' ? 'Use' : e.type === 'chance' ? 'Chance on hit' : e.type;
+                return `${prefix}: ${e.text}`;
+            });
+
+            // Format attrs as display strings
+            const statStrings = [];
+            if (attrs) {
+                for (const [k, v] of Object.entries(attrs)) {
+                    const label = STAT_LABELS[k] || k;
+                    statStrings.push(`+${v} ${label}`);
+                }
+            }
+
+            // Format weapon as display strings
+            const dmgStr = weapon && weapon.min != null && weapon.max != null
+                ? `${weapon.min} - ${weapon.max} Damage` : '';
+            const spdStr = weapon && weapon.speed != null ? String(weapon.speed) : '';
+            const dpsStr = weapon && weapon.dps != null ? String(weapon.dps) : '';
+
+            // Map binding code to display string
+            const bindingStr = BIND_MAP[bindType] || '';
+
+            // Extract reqLevel from requires array
+            let reqLevel = 0;
+            for (const req of requires) {
+                const lvlMatch = req.match(/Requires Level (\d+)/i);
+                if (lvlMatch) reqLevel = parseInt(lvlMatch[1]);
+            }
+
             result.items.push({
-                id:        getStr('id', block)        || key,
-                name:      getStr('name', block)      || '',
-                type:      getStr('type', block)      || '',
-                subType:   getStr('subType', block)   || '',
-                slot:      getStr('slot', block)      || '',
-                ilvl:      getNum('ilvl', block)      || 0,
-                quality:   getNum('quality', block)   ?? 1,
-                firstSeen: getStr('firstSeen', block) || '',
-                effects:   getArray('effects', block),
-                binding:   getStr('binding', block)   || '',
-                reqLevel:  getNum('reqLevel', block)   || 0,
-                armor:     getNum('armor', block)      || 0,
-                stats:     getArray('stats', block),
-                unique:    getBool('unique', block)    || false,
-                dmg:       getStr('dmg', block)        || '',
-                speed:     getStr('speed', block)      || '',
-                dps:       getStr('dps', block)        || '',
+                id:         getStr('id', block) || key,
+                name:       getStr('name', block) || '',
+                type:       getStr('type', block) || '',
+                subType:    getStr('subType', block) || '',
+                slot:       rawSlot,
+                slotName,
+                ilvl:       getNum('ilvl', block) || 0,
+                quality:    getNum('quality', block) ?? 1,
+                binding:    bindingStr,
+                bindType,
+                armorType,
+                armor:      armorVal,
+                attrs,
+                weapon,
+                effects:    effectStrings,
+                stats:      statStrings,
+                requires,
+                setBonuses,
+                reqLevel,
+                dmg:        dmgStr,
+                speed:      spdStr,
+                dps:        dpsStr,
             });
         }
     }
@@ -367,31 +508,115 @@ function parseLuaContent(content) {
         const lootEntries = parseEntries(lootTable);
         console.log(`[PARSE] Found loot table with ${lootEntries.length} entries`);
         for (const { key, block } of lootEntries) {
-            const sources = {};
+            // Parse raw sources with coordinate suffixes
+            const rawSources = {};
             const sourcesInner = extractTable('sources', block);
             if (sourcesInner) {
                 const srcRe = /\["([^"]+)"\]\s*=\s*(\d+)/g;
                 let sm;
                 while ((sm = srcRe.exec(sourcesInner)) !== null) {
-                    sources[sm[1]] = parseInt(sm[2]);
+                    rawSources[sm[1]] = parseInt(sm[2]);
                 }
+            }
+            // Clean source names by stripping coordinate suffixes and merging
+            const sources = {};
+            for (const [src, cnt] of Object.entries(rawSources)) {
+                const clean = cleanSourceName(src);
+                sources[clean] = (sources[clean] || 0) + cnt;
             }
             const totalDrops = Object.values(sources).reduce((a, b) => a + b, 0);
             result.loot.push({
-                id:        getStr('id', block)        || key,
-                name:      getStr('name', block)      || '',
-                quality:   getNum('quality', block)   ?? 1,
-                count:     getNum('count', block)     || 1,
+                id:         getStr('id', block) || key,
+                name:       getStr('name', block) || '',
+                quality:    getNum('quality', block) ?? 1,
+                count:      getNum('count', block) || 1,
                 sources,
-                source:    Object.keys(sources)[0]   || '',
+                source:     Object.keys(sources)[0] || '',
                 totalDrops,
-                firstSeen: getStr('firstSeen', block) || '',
-                lastSeen:  getStr('lastSeen', block)  || '',
             });
         }
     }
 
-    console.log(`[PARSE] Complete: ${result.kills.length} kills, ${result.items.length} items, ${result.loot.length} loot`);
+    // ── QUESTS ──
+    const questsTable = extractTable('quests', content);
+    if (questsTable) {
+        const questEntries = parseEntries(questsTable);
+        console.log(`[PARSE] Found quests table with ${questEntries.length} entries`);
+        for (const { key, block } of questEntries) {
+            const rewards = {};
+            const rewardsInner = extractTable('rewards', block);
+            if (rewardsInner) {
+                const rwRe = /\["([^"]+)"\]\s*=\s*(\d+)/g;
+                let rm;
+                while ((rm = rwRe.exec(rewardsInner)) !== null) {
+                    rewards[rm[1]] = parseInt(rm[2]);
+                }
+            }
+            result.quests.push({
+                key,
+                name:        getStr('name', block) || key,
+                zone:        getStr('zone', block) || '',
+                coords:      getStr('coords', block) || '',
+                completions: getNum('completions', block) || 1,
+                rewards,
+            });
+        }
+    }
+
+    // ── VENDORS ──
+    const vendorsTable = extractTable('vendors', content);
+    if (vendorsTable) {
+        const vendorEntries = parseEntries(vendorsTable);
+        console.log(`[PARSE] Found vendors table with ${vendorEntries.length} entries`);
+        for (const { key, block } of vendorEntries) {
+            const itemsInner = extractTable('items', block);
+            let itemCount = 0;
+            const vendorItems = [];
+            if (itemsInner) {
+                const subs = parseSubTables(itemsInner);
+                itemCount = subs.length;
+                for (const sub of subs) {
+                    const iId = getStr('id', sub) || String(getNum('id', sub) || '');
+                    const iName = getStr('name', sub);
+                    const iQuality = getNum('quality', sub);
+                    const iPrice = getNum('priceCopper', sub);
+                    if (iId && iName) {
+                        vendorItems.push({ id: iId, name: iName, quality: iQuality, priceCopper: iPrice });
+                    }
+                }
+            }
+            result.vendors.push({
+                key,
+                name:      getStr('name', block) || key,
+                npcId:     getNum('npcId', block) || null,
+                zone:      getStr('zone', block) || '',
+                subZone:   getStr('subZone', block) || '',
+                canRepair: getBool('canRepair', block) || false,
+                lastSeen:  getStr('lastSeen', block) || '',
+                itemCount,
+                items:     vendorItems,
+            });
+        }
+    }
+
+    // ── META ──
+    const metaTable = extractTable('meta', content);
+    if (metaTable) {
+        console.log(`[PARSE] Found meta table`);
+        result.meta = {
+            player:    getStr('player', metaTable) || '',
+            realm:     getStr('realm', metaTable) || '',
+            class:     getStr('class', metaTable) || '',
+            race:      getStr('race', metaTable) || '',
+            faction:   getStr('faction', metaTable) || '',
+            level:     getNum('level', metaTable) || 0,
+            sessions:  getNum('sessions', metaTable) || 0,
+            lastSeen:  getStr('lastSeen', metaTable) || '',
+            firstSeen: getStr('firstSeen', metaTable) || '',
+        };
+    }
+
+    console.log(`[PARSE] Complete: ${result.kills.length} kills, ${result.items.length} items, ${result.loot.length} loot, ${result.quests.length} quests, ${result.vendors.length} vendors`);
     return result;
 }
 
@@ -414,58 +639,70 @@ app.post('/api/upload', async (req, res) => {
             return res.status(400).json({ error: `Failed to parse Lua file: ${parseErr.message}` });
         }
 
-        console.log(`[UPLOAD] Parse result: ${parsed.kills.length} kills, ${parsed.items.length} items, ${parsed.loot.length} loot`);
+        console.log(`[UPLOAD] Parse result: ${parsed.kills.length} kills, ${parsed.items.length} items, ${parsed.loot.length} loot, ${parsed.quests.length} quests, ${parsed.vendors.length} vendors`);
 
-        if (parsed.kills.length === 0 && parsed.items.length === 0 && parsed.loot.length === 0) {
+        if (parsed.kills.length === 0 && parsed.items.length === 0 && parsed.loot.length === 0 && parsed.quests.length === 0 && parsed.vendors.length === 0) {
             console.warn(`[UPLOAD] Warning: No data extracted from file.`);
         }
 
         const ops = [];
 
+        // ── KILLS → npcs ──
         for (const npc of parsed.kills) {
+            const setFields = {
+                name: npc.name,
+                'data.zone': npc.zone, 'data.subZone': npc.subZone, 'data.coords': npc.coords,
+            };
+            if (npc.npcId) setFields['data.npcId'] = npc.npcId;
+            if (npc.level) { setFields['data.level'] = npc.level; setFields.level = npc.level; }
+            if (npc.classification) {
+                setFields['data.classification'] = npc.classification;
+                const typeMap = { worldboss: 'boss', rareelite: 'rare', rare: 'rare', elite: 'elite', normal: 'normal' };
+                setFields['data.type'] = typeMap[npc.classification] || npc.classification;
+            }
+            if (npc.creatureType) setFields['data.creatureType'] = npc.creatureType;
+            if (npc.maxHp) setFields['data.maxHp'] = npc.maxHp;
             ops.push({
                 updateOne: {
                     filter: { type: 'npcs', id: npc.key },
-                    update: {
-                        $set: { name: npc.name, 'data.zone': npc.zone, 'data.subZone': npc.subZone, 'data.coords': npc.coords },
-                        $inc: { 'data.kills': npc.count },
-                        $min: { 'data.firstKill': npc.firstKill },
-                        $max: { 'data.lastKill': npc.lastKill },
-                    },
+                    update: { $set: setFields, $inc: { 'data.kills': npc.count } },
                     upsert: true
                 }
             });
         }
 
+        // ── ITEMS ──
         for (const item of parsed.items) {
             if (!item.name) continue;
-            const mappedSlot = SLOT_MAP[item.slot] || item.slot;
+            const mappedSlot = SLOT_MAP[item.slot] || item.slotName || item.slot;
             const setFields = {
                 name: item.name, quality: item.quality, level: item.ilvl,
                 'data.type': item.type, 'data.subType': item.subType,
-                'data.slot': mappedSlot, 'data.firstSeen': item.firstSeen,
+                'data.slot': mappedSlot, 'data.armorType': item.armorType,
             };
             if (item.effects.length) setFields.effects = item.effects;
             if (item.binding) setFields['data.binding'] = item.binding;
+            if (item.bindType) setFields['data.bindType'] = item.bindType;
             if (item.reqLevel) setFields['data.reqLevel'] = item.reqLevel;
             if (item.armor) setFields['data.armor'] = item.armor;
             if (item.stats.length) setFields['data.stats'] = item.stats;
-            if (item.unique) setFields['data.unique'] = true;
+            if (item.attrs) setFields['data.attrs'] = item.attrs;
+            if (item.weapon) setFields['data.weapon'] = item.weapon;
             if (item.dmg) setFields['data.dmg'] = item.dmg;
             if (item.speed) setFields['data.speed'] = item.speed;
             if (item.dps) setFields['data.dps'] = item.dps;
+            if (item.requires.length) setFields['data.requires'] = item.requires;
+            if (item.setBonuses.length) setFields['data.setBonuses'] = item.setBonuses;
             ops.push({
                 updateOne: {
                     filter: { type: 'items', id: item.id },
-                    update: {
-                        $set: setFields,
-                        $inc: { 'data.seen': 1 },
-                    },
+                    update: { $set: setFields, $inc: { 'data.seen': 1 } },
                     upsert: true
                 }
             });
         }
 
+        // ── LOOT ──
         for (const drop of parsed.loot) {
             if (!drop.name) continue;
             const sourceInc = {};
@@ -476,10 +713,51 @@ app.post('/api/upload', async (req, res) => {
                 updateOne: {
                     filter: { type: 'loot', id: drop.id },
                     update: {
-                        $set: { name: drop.name, quality: drop.quality,
-                                'data.source': drop.source, 'data.lastSeen': drop.lastSeen },
-                        $inc: { 'data.drops': drop.totalDrops, 'data.samples': 1, ...sourceInc },
-                        $min: { 'data.firstSeen': drop.firstSeen },
+                        $set: { name: drop.name, quality: drop.quality, 'data.source': drop.source },
+                        $inc: { 'data.drops': drop.totalDrops, 'data.samples': drop.count, ...sourceInc },
+                    },
+                    upsert: true
+                }
+            });
+        }
+
+        // ── QUESTS ──
+        for (const quest of parsed.quests) {
+            if (!quest.name) continue;
+            const setFields = {
+                name: quest.name,
+                'data.zone': quest.zone, 'data.coords': quest.coords,
+            };
+            const rewardInc = {};
+            for (const [itemId, cnt] of Object.entries(quest.rewards)) {
+                rewardInc[`data.rewards.${itemId}`] = cnt;
+            }
+            ops.push({
+                updateOne: {
+                    filter: { type: 'quests', id: quest.key },
+                    update: {
+                        $set: setFields,
+                        $inc: { 'data.completions': quest.completions, ...rewardInc },
+                    },
+                    upsert: true
+                }
+            });
+        }
+
+        // ── VENDORS ──
+        for (const vendor of parsed.vendors) {
+            if (!vendor.name) continue;
+            ops.push({
+                updateOne: {
+                    filter: { type: 'vendors', id: vendor.key },
+                    update: {
+                        $set: {
+                            name: vendor.name,
+                            'data.zone': vendor.zone, 'data.subZone': vendor.subZone,
+                            'data.npcId': vendor.npcId, 'data.canRepair': vendor.canRepair,
+                            'data.lastSeen': vendor.lastSeen, 'data.itemCount': vendor.itemCount,
+                            'data.items': vendor.items,
+                        },
                     },
                     upsert: true
                 }
@@ -499,7 +777,10 @@ app.post('/api/upload', async (req, res) => {
         res.json({
             message: 'Sync complete!',
             items: ops.length,
-            breakdown: { kills: parsed.kills.length, items: parsed.items.length, loot: parsed.loot.length }
+            breakdown: {
+                kills: parsed.kills.length, items: parsed.items.length, loot: parsed.loot.length,
+                quests: parsed.quests.length, vendors: parsed.vendors.length,
+            }
         });
     } catch (err) {
         console.error('[UPLOAD] Unexpected error:', err);
