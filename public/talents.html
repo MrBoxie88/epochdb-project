@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talent Calculator - EpochDB</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0a0a12;--surface:#12121e;--surface2:#1a1a2e;--border:#2a2a3e;
+  --gold:#d4a843;--gold-dim:#8a6d2b;--text:#c8c8d4;--text-dim:#6a6a7e;
+  --accent:#5865f2;--red:#e74c3c;--green:#2ecc71;
+}
+body{background:var(--bg);color:var(--text);font-family:'Crimson Text',serif;min-height:100vh;}
+a{color:var(--gold);text-decoration:none;}
+a:hover{color:#f0c45a;}
+
+/* Topbar */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:18px;}
+.topbar .logo{font-family:'Cinzel',serif;font-size:1.3rem;color:var(--gold);font-weight:700;}
+.topbar .logo small{font-size:0.65em;color:var(--text-dim);font-weight:400;margin-left:4px;}
+.tnav-btn{background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:5px 14px;border-radius:6px;font-family:'Crimson Text',serif;font-size:0.95rem;cursor:pointer;}
+.tnav-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+/* Class Bar */
+.class-bar{display:flex;justify-content:center;gap:6px;padding:16px 12px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.class-btn{width:48px;height:48px;border-radius:8px;border:2px solid var(--border);cursor:pointer;overflow:hidden;transition:border-color .2s,transform .2s;background:var(--surface2);}
+.class-btn img{width:100%;height:100%;display:block;}
+.class-btn:hover{border-color:var(--gold);transform:scale(1.1);}
+.class-btn.active{border-color:var(--gold);box-shadow:0 0 10px rgba(212,168,67,0.4);}
+
+/* Controls */
+.controls{display:flex;justify-content:center;align-items:center;gap:16px;padding:12px;background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.controls .class-name{font-family:'Cinzel',serif;font-size:1.2rem;font-weight:700;min-width:120px;text-align:center;}
+.controls .points-display{font-family:'Share Tech Mono',monospace;font-size:0.95rem;color:var(--text-dim);}
+.controls .points-display span{color:var(--gold);font-weight:700;}
+.btn{background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:6px 16px;border-radius:6px;font-family:'Crimson Text',serif;font-size:0.9rem;cursor:pointer;transition:all .2s;}
+.btn:hover{border-color:var(--gold);color:var(--gold);}
+.btn.share-btn{border-color:var(--accent);color:var(--accent);}
+.btn.share-btn:hover{background:var(--accent);color:#fff;}
+
+/* Trees */
+.trees-wrap{display:flex;justify-content:center;gap:12px;padding:20px 12px;flex-wrap:wrap;max-width:1200px;margin:0 auto;}
+.tree-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;flex:1;min-width:280px;max-width:380px;position:relative;}
+.tree-header{text-align:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.tree-header .tree-name{font-family:'Cinzel',serif;font-size:1.05rem;font-weight:700;}
+.tree-header .tree-points{font-family:'Share Tech Mono',monospace;font-size:0.85rem;color:var(--text-dim);margin-top:2px;}
+.tree-grid{display:grid;grid-template-columns:repeat(4,48px);grid-auto-rows:48px;gap:8px;justify-content:center;position:relative;}
+.tree-arrows{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;}
+.tree-arrows line,.tree-arrows polyline{stroke:var(--gold-dim);stroke-width:2;fill:none;}
+.talent-cell{position:relative;}
+.talent{width:48px;height:48px;border-radius:6px;border:2px solid var(--border);cursor:pointer;overflow:hidden;position:relative;transition:border-color .2s,filter .2s;background:#111;}
+.talent img{width:100%;height:100%;display:block;}
+.talent.locked{filter:grayscale(1) brightness(0.4);border-color:#333;cursor:not-allowed;}
+.talent.available{border-color:#555;filter:brightness(0.85);}
+.talent.available:hover{border-color:var(--gold);filter:brightness(1);}
+.talent.has-points{border-color:var(--green);filter:none;}
+.talent.has-points:hover{border-color:#5dde9e;box-shadow:0 0 8px rgba(46,204,113,0.3);}
+.talent.maxed{border-color:var(--gold);filter:none;box-shadow:0 0 8px rgba(212,168,67,0.3);}
+.talent-rank{position:absolute;bottom:-1px;right:-1px;background:rgba(0,0,0,0.85);color:var(--green);font-family:'Share Tech Mono',monospace;font-size:0.7rem;padding:1px 4px;border-radius:3px 0 4px 0;pointer-events:none;}
+.talent.maxed .talent-rank{color:var(--gold);}
+.coming-soon{text-align:center;padding:40px 10px;color:var(--text-dim);font-style:italic;}
+
+/* Tooltip */
+.talent-tooltip{position:fixed;background:#1a1a2e;border:1px solid var(--gold-dim);border-radius:8px;padding:12px;max-width:280px;pointer-events:none;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.6);}
+.talent-tooltip .tt-name{font-family:'Cinzel',serif;font-size:1rem;color:var(--gold);margin-bottom:4px;}
+.talent-tooltip .tt-rank{font-family:'Share Tech Mono',monospace;font-size:0.8rem;color:var(--text-dim);margin-bottom:6px;}
+.talent-tooltip .tt-desc{font-size:0.9rem;color:var(--text);line-height:1.4;}
+.talent-tooltip .tt-next{font-size:0.85rem;color:var(--green);margin-top:6px;border-top:1px solid var(--border);padding-top:6px;}
+.talent-tooltip .tt-req{font-size:0.8rem;color:var(--red);margin-top:4px;}
+.talent-tooltip .tt-hint{font-size:0.78rem;color:var(--text-dim);margin-top:6px;font-style:italic;}
+
+/* Share Modal */
+.share-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;display:none;align-items:center;justify-content:center;}
+.share-overlay.open{display:flex;}
+.share-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:90%;max-width:500px;text-align:center;}
+.share-box h3{font-family:'Cinzel',serif;color:var(--gold);margin-bottom:12px;}
+.share-box input{width:100%;padding:10px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;font-family:'Share Tech Mono',monospace;font-size:0.85rem;margin-bottom:12px;}
+.share-box .btn-row{display:flex;gap:8px;justify-content:center;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="logo" href="/">EpochDB<small>Talent Calculator</small></a>
+  <a class="tnav-btn" href="/">Database</a>
+  <a class="tnav-btn" href="/talents.html">Talents</a>
+</div>
+
+<div id="classBar" class="class-bar"></div>
+
+<div id="controls" class="controls"></div>
+
+<div id="treesWrap" class="trees-wrap"></div>
+
+<div id="tooltip" class="talent-tooltip"></div>
+
+<div id="shareOverlay" class="share-overlay" onclick="if(event.target===this)closeShare()">
+  <div class="share-box">
+    <h3>Share Build</h3>
+    <input id="shareUrl" readonly onclick="this.select()">
+    <div class="btn-row">
+      <button class="btn" onclick="copyShareUrl()">Copy URL</button>
+      <button class="btn" onclick="closeShare()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ICON_CDN='https://wow.zamimg.com/images/wow/icons/medium/';
+const MAX_POINTS=51;
+const POINTS_PER_TIER=5;
+
+const CLASS_DATA={
+warrior:{name:'Warrior',color:'#C69B3A',icon:'classicon_warrior',trees:[
+{name:'Arms',icon:'ability_rogue_eviscerate',talents:[
+{row:0,col:0,name:'Improved Heroic Strike',icon:'ability_rogue_ambush',maxRank:3,desc:['Reduces the cost of your Heroic Strike ability by 1 rage point.','Reduces the cost of your Heroic Strike ability by 2 rage points.','Reduces the cost of your Heroic Strike ability by 3 rage points.'],requires:null},
+{row:0,col:1,name:'Deflection',icon:'ability_parry',maxRank:5,desc:['Increases your Parry chance by 1%.','Increases your Parry chance by 2%.','Increases your Parry chance by 3%.','Increases your Parry chance by 4%.','Increases your Parry chance by 5%.'],requires:null},
+{row:0,col:2,name:'Improved Rend',icon:'ability_gouge',maxRank:3,desc:['Increases the bleed damage done by your Rend ability by 25%.','Increases the bleed damage done by your Rend ability by 50%.','Increases the bleed damage done by your Rend ability by 75%.'],requires:null},
+{row:1,col:0,name:'Improved Charge',icon:'ability_warrior_charge',maxRank:2,desc:['Increases the amount of rage generated by your Charge ability by 3.','Increases the amount of rage generated by your Charge ability by 6.'],requires:null},
+{row:1,col:1,name:'Tactical Mastery',icon:'spell_nature_enchantarmor',maxRank:5,desc:['You retain up to 5 of your rage points when you change stances.','You retain up to 10 of your rage points when you change stances.','You retain up to 15 of your rage points when you change stances.','You retain up to 20 of your rage points when you change stances.','You retain up to 25 of your rage points when you change stances.'],requires:null},
+{row:1,col:3,name:'Improved Thunder Clap',icon:'ability_thunderclap',maxRank:3,desc:['Reduces the cost of your Thunder Clap ability by 1 rage point.','Reduces the cost of your Thunder Clap ability by 2 rage points.','Reduces the cost of your Thunder Clap ability by 4 rage points.'],requires:null},
+{row:2,col:0,name:'Improved Overpower',icon:'inv_sword_05',maxRank:2,desc:['Increases the critical strike chance of your Overpower ability by 25%.','Increases the critical strike chance of your Overpower ability by 50%.'],requires:null},
+{row:2,col:1,name:'Anger Management',icon:'spell_holy_blessingofstamina',maxRank:1,desc:['Generates 1 rage per 3 seconds while in combat.'],requires:null},
+{row:2,col:2,name:'Deep Wounds',icon:'ability_backstab',maxRank:3,desc:['Your critical strikes cause the opponent to bleed for 20% of your melee weapon damage over 12 sec.','Your critical strikes cause the opponent to bleed for 40% of your melee weapon damage over 12 sec.','Your critical strikes cause the opponent to bleed for 60% of your melee weapon damage over 12 sec.'],requires:null},
+{row:3,col:0,name:'Two-Handed Weapon Specialization',icon:'inv_axe_09',maxRank:5,desc:['Increases the damage you deal with two-handed melee weapons by 1%.','Increases the damage you deal with two-handed melee weapons by 2%.','Increases the damage you deal with two-handed melee weapons by 3%.','Increases the damage you deal with two-handed melee weapons by 4%.','Increases the damage you deal with two-handed melee weapons by 5%.'],requires:null},
+{row:3,col:1,name:'Impale',icon:'ability_searingarrow',maxRank:2,desc:['Increases the critical strike damage bonus of your abilities by 10%.','Increases the critical strike damage bonus of your abilities by 20%.'],requires:8},
+{row:4,col:0,name:'Axe Specialization',icon:'inv_axe_06',maxRank:5,desc:['Increases your chance to get a critical strike with Axes by 1%.','Increases your chance to get a critical strike with Axes by 2%.','Increases your chance to get a critical strike with Axes by 3%.','Increases your chance to get a critical strike with Axes by 4%.','Increases your chance to get a critical strike with Axes by 5%.'],requires:null},
+{row:4,col:1,name:'Sweeping Strikes',icon:'ability_rogue_slicedice',maxRank:1,desc:['Your next 5 melee attacks strike an additional nearby opponent.'],requires:null},
+{row:4,col:2,name:'Mace Specialization',icon:'inv_mace_01',maxRank:5,desc:['Gives your melee attacks a 1% chance to stun your target for 3 sec.','Gives your melee attacks a 2% chance to stun your target for 3 sec.','Gives your melee attacks a 3% chance to stun your target for 3 sec.','Gives your melee attacks a 4% chance to stun your target for 3 sec.','Gives your melee attacks a 5% chance to stun your target for 3 sec.'],requires:null},
+{row:4,col:3,name:'Sword Specialization',icon:'inv_sword_27',maxRank:5,desc:['Gives you a 1% chance to get an extra attack on the same target after dealing damage with your Sword.','Gives you a 2% chance to get an extra attack on the same target after dealing damage with your Sword.','Gives you a 3% chance to get an extra attack on the same target after dealing damage with your Sword.','Gives you a 4% chance to get an extra attack on the same target after dealing damage with your Sword.','Gives you a 5% chance to get an extra attack on the same target after dealing damage with your Sword.'],requires:null},
+{row:5,col:0,name:'Polearm Specialization',icon:'inv_weapon_halberd_01',maxRank:5,desc:['Increases your chance to get a critical strike with Polearms by 1%.','Increases your chance to get a critical strike with Polearms by 2%.','Increases your chance to get a critical strike with Polearms by 3%.','Increases your chance to get a critical strike with Polearms by 4%.','Increases your chance to get a critical strike with Polearms by 5%.'],requires:null},
+{row:5,col:1,name:'Improved Hamstring',icon:'ability_shockwave',maxRank:3,desc:['Gives your Hamstring ability a 5% chance to immobilize the target for 5 sec.','Gives your Hamstring ability a 10% chance to immobilize the target for 5 sec.','Gives your Hamstring ability a 15% chance to immobilize the target for 5 sec.'],requires:null},
+{row:6,col:1,name:'Mortal Strike',icon:'ability_warrior_savageblow',maxRank:1,desc:['A vicious strike that deals weapon damage plus 160 and wounds the target, reducing the effectiveness of any healing by 50% for 10 sec.'],requires:12}
+]},
+{name:'Fury',icon:'ability_warrior_innerrage',talents:[
+{row:0,col:0,name:'Booming Voice',icon:'spell_nature_purge',maxRank:5,desc:['Increases the area of effect and duration of your Battle Shout and Demoralizing Shout by 10%.','Increases the area of effect and duration of your Battle Shout and Demoralizing Shout by 20%.','Increases the area of effect and duration of your Battle Shout and Demoralizing Shout by 30%.','Increases the area of effect and duration of your Battle Shout and Demoralizing Shout by 40%.','Increases the area of effect and duration of your Battle Shout and Demoralizing Shout by 50%.'],requires:null},
+{row:0,col:1,name:'Cruelty',icon:'ability_rogue_eviscerate',maxRank:5,desc:['Increases your chance to get a critical strike with melee weapons by 1%.','Increases your chance to get a critical strike with melee weapons by 2%.','Increases your chance to get a critical strike with melee weapons by 3%.','Increases your chance to get a critical strike with melee weapons by 4%.','Increases your chance to get a critical strike with melee weapons by 5%.'],requires:null},
+{row:1,col:0,name:'Improved Demoralizing Shout',icon:'ability_warrior_warcry',maxRank:5,desc:['Increases the melee attack power reduction of your Demoralizing Shout by 8%.','Increases the melee attack power reduction of your Demoralizing Shout by 16%.','Increases the melee attack power reduction of your Demoralizing Shout by 24%.','Increases the melee attack power reduction of your Demoralizing Shout by 32%.','Increases the melee attack power reduction of your Demoralizing Shout by 40%.'],requires:null},
+{row:1,col:1,name:'Unbridled Wrath',icon:'spell_nature_stoneclawtotem',maxRank:5,desc:['Gives you a 8% chance to generate an additional rage point when you deal melee damage with a weapon.','Gives you a 16% chance to generate an additional rage point when you deal melee damage with a weapon.','Gives you a 24% chance to generate an additional rage point when you deal melee damage with a weapon.','Gives you a 32% chance to generate an additional rage point when you deal melee damage with a weapon.','Gives you a 40% chance to generate an additional rage point when you deal melee damage with a weapon.'],requires:null},
+{row:2,col:0,name:'Improved Cleave',icon:'ability_warrior_cleave',maxRank:3,desc:['Increases the bonus damage done by your Cleave ability by 40%.','Increases the bonus damage done by your Cleave ability by 80%.','Increases the bonus damage done by your Cleave ability by 120%.'],requires:null},
+{row:2,col:1,name:'Piercing Howl',icon:'spell_shadow_deathscream',maxRank:1,desc:['Causes all enemies near the warrior to be dazed, reducing movement speed by 50% for 6 sec.'],requires:null},
+{row:2,col:2,name:'Blood Craze',icon:'spell_shadow_summonimp',maxRank:3,desc:['Regenerates 1% of your total Health over 6 sec after being the victim of a critical strike.','Regenerates 2% of your total Health over 6 sec after being the victim of a critical strike.','Regenerates 3% of your total Health over 6 sec after being the victim of a critical strike.'],requires:null},
+{row:2,col:3,name:'Improved Battle Shout',icon:'ability_warrior_battleshout',maxRank:5,desc:['Increases the melee attack power bonus of your Battle Shout by 5%.','Increases the melee attack power bonus of your Battle Shout by 10%.','Increases the melee attack power bonus of your Battle Shout by 15%.','Increases the melee attack power bonus of your Battle Shout by 20%.','Increases the melee attack power bonus of your Battle Shout by 25%.'],requires:null},
+{row:3,col:0,name:'Dual Wield Specialization',icon:'ability_dualwield',maxRank:5,desc:['Increases the damage done by your offhand weapon by 5%.','Increases the damage done by your offhand weapon by 10%.','Increases the damage done by your offhand weapon by 15%.','Increases the damage done by your offhand weapon by 20%.','Increases the damage done by your offhand weapon by 25%.'],requires:null},
+{row:3,col:1,name:'Improved Execute',icon:'inv_sword_48',maxRank:2,desc:['Reduces the rage cost of your Execute ability by 2.','Reduces the rage cost of your Execute ability by 5.'],requires:null},
+{row:3,col:2,name:'Enrage',icon:'spell_shadow_unholyfrenzy',maxRank:5,desc:['Gives you a 5% melee damage bonus for 12 sec (up to a maximum of 12 swings) after being the victim of a critical strike.','Gives you a 10% melee damage bonus for 12 sec (up to a maximum of 12 swings) after being the victim of a critical strike.','Gives you a 15% melee damage bonus for 12 sec (up to a maximum of 12 swings) after being the victim of a critical strike.','Gives you a 20% melee damage bonus for 12 sec (up to a maximum of 12 swings) after being the victim of a critical strike.','Gives you a 25% melee damage bonus for 12 sec (up to a maximum of 12 swings) after being the victim of a critical strike.'],requires:null},
+{row:4,col:0,name:'Improved Slam',icon:'ability_warrior_decisivestrike',maxRank:5,desc:['Decreases the casting time of your Slam ability by 0.1 sec.','Decreases the casting time of your Slam ability by 0.2 sec.','Decreases the casting time of your Slam ability by 0.3 sec.','Decreases the casting time of your Slam ability by 0.4 sec.','Decreases the casting time of your Slam ability by 0.5 sec.'],requires:null},
+{row:4,col:1,name:'Death Wish',icon:'spell_shadow_deathpact',maxRank:1,desc:['When activated, increases your physical damage by 20% and makes you immune to Fear effects, but increases all damage taken by 5%. Lasts 30 sec.'],requires:null},
+{row:4,col:3,name:'Improved Intercept',icon:'ability_warrior_charge',maxRank:2,desc:['Reduces the cooldown of your Intercept ability by 5 sec.','Reduces the cooldown of your Intercept ability by 10 sec.'],requires:null},
+{row:5,col:0,name:'Improved Berserker Rage',icon:'spell_nature_ancestralguardian',maxRank:2,desc:['The Berserker Rage ability will generate 5 rage when used.','The Berserker Rage ability will generate 10 rage when used.'],requires:null},
+{row:5,col:2,name:'Flurry',icon:'ability_ghoulfrenzy',maxRank:5,desc:['Increases your attack speed by 10% for your next 3 swings after dealing a melee critical strike.','Increases your attack speed by 15% for your next 3 swings after dealing a melee critical strike.','Increases your attack speed by 20% for your next 3 swings after dealing a melee critical strike.','Increases your attack speed by 25% for your next 3 swings after dealing a melee critical strike.','Increases your attack speed by 30% for your next 3 swings after dealing a melee critical strike.'],requires:10},
+{row:6,col:1,name:'Bloodthirst',icon:'spell_nature_bloodlust',maxRank:1,desc:['Instantly attack the target causing damage equal to 45% of your attack power. In addition, the next 5 successful melee attacks will restore 10 health.'],requires:12}
+]},
+{name:'Protection',icon:'ability_warrior_defensivestance',talents:[
+{row:0,col:0,name:'Shield Specialization',icon:'inv_shield_06',maxRank:5,desc:['Increases your chance to block attacks with a shield by 1% and has a 20% chance to generate 1 rage when a block occurs.','Increases your chance to block attacks with a shield by 2% and has a 40% chance to generate 1 rage when a block occurs.','Increases your chance to block attacks with a shield by 3% and has a 60% chance to generate 1 rage when a block occurs.','Increases your chance to block attacks with a shield by 4% and has a 80% chance to generate 1 rage when a block occurs.','Increases your chance to block attacks with a shield by 5% and has a 100% chance to generate 1 rage when a block occurs.'],requires:null},
+{row:0,col:1,name:'Anticipation',icon:'spell_nature_mirrorimage',maxRank:5,desc:['Increases your Defense skill by 2.','Increases your Defense skill by 4.','Increases your Defense skill by 6.','Increases your Defense skill by 8.','Increases your Defense skill by 10.'],requires:null},
+{row:1,col:0,name:'Improved Bloodrage',icon:'ability_racial_bloodrage',maxRank:2,desc:['Increases the instant rage generated by your Bloodrage ability by 2.','Increases the instant rage generated by your Bloodrage ability by 5.'],requires:null},
+{row:1,col:2,name:'Toughness',icon:'spell_holy_devotion',maxRank:5,desc:['Increases your armor value from items by 2%.','Increases your armor value from items by 4%.','Increases your armor value from items by 6%.','Increases your armor value from items by 8%.','Increases your armor value from items by 10%.'],requires:null},
+{row:1,col:3,name:'Iron Will',icon:'spell_magic_magearmor',maxRank:5,desc:['Increases your chance to resist Stun and Charm effects by 3%.','Increases your chance to resist Stun and Charm effects by 6%.','Increases your chance to resist Stun and Charm effects by 9%.','Increases your chance to resist Stun and Charm effects by 12%.','Increases your chance to resist Stun and Charm effects by 15%.'],requires:null},
+{row:2,col:0,name:'Last Stand',icon:'spell_holy_ashestoashes',maxRank:1,desc:['When activated, this ability temporarily grants you 30% of your maximum health for 20 sec. After the effect expires, the hit points are lost.'],requires:null},
+{row:2,col:1,name:'Improved Shield Block',icon:'ability_defend',maxRank:3,desc:['Allows your Shield Block ability to block an additional attack and increases the duration by 0.5 sec.','Allows your Shield Block ability to block an additional attack and increases the duration by 1 sec.','Allows your Shield Block ability to block an additional attack and increases the duration by 1.5 sec.'],requires:null},
+{row:2,col:2,name:'Improved Revenge',icon:'ability_warrior_revenge',maxRank:3,desc:['Gives your Revenge ability a 15% chance to stun the target for 3 sec.','Gives your Revenge ability a 30% chance to stun the target for 3 sec.','Gives your Revenge ability a 45% chance to stun the target for 3 sec.'],requires:null},
+{row:2,col:3,name:'Defiance',icon:'ability_warrior_innerrage',maxRank:5,desc:['Increases the threat generated by your attacks by 3% while in Defensive Stance.','Increases the threat generated by your attacks by 6% while in Defensive Stance.','Increases the threat generated by your attacks by 9% while in Defensive Stance.','Increases the threat generated by your attacks by 12% while in Defensive Stance.','Increases the threat generated by your attacks by 15% while in Defensive Stance.'],requires:null},
+{row:3,col:0,name:'Improved Sunder Armor',icon:'ability_warrior_sunder',maxRank:3,desc:['Reduces the cost of your Sunder Armor ability by 1 rage point.','Reduces the cost of your Sunder Armor ability by 2 rage points.','Reduces the cost of your Sunder Armor ability by 3 rage points.'],requires:null},
+{row:3,col:1,name:'Improved Disarm',icon:'ability_warrior_disarm',maxRank:3,desc:['Increases the duration of your Disarm ability by 1 sec.','Increases the duration of your Disarm ability by 2 sec.','Increases the duration of your Disarm ability by 3 sec.'],requires:null},
+{row:3,col:2,name:'Improved Taunt',icon:'spell_nature_reincarnation',maxRank:2,desc:['Reduces the cooldown of your Taunt ability by 1 sec.','Reduces the cooldown of your Taunt ability by 2 sec.'],requires:null},
+{row:4,col:0,name:'Improved Shield Wall',icon:'ability_warrior_shieldwall',maxRank:2,desc:['Increases the effect duration of your Shield Wall ability by 3 sec.','Increases the effect duration of your Shield Wall ability by 5 sec.'],requires:null},
+{row:4,col:1,name:'Concussion Blow',icon:'ability_thunderbolt',maxRank:1,desc:['Stuns the opponent for 5 sec.'],requires:null},
+{row:4,col:2,name:'Improved Shield Bash',icon:'ability_warrior_shieldbash',maxRank:2,desc:['Gives your Shield Bash ability a 50% chance to silence the target for 3 sec.','Gives your Shield Bash ability a 100% chance to silence the target for 3 sec.'],requires:null},
+{row:5,col:0,name:'One-Handed Weapon Specialization',icon:'inv_sword_20',maxRank:5,desc:['Increases the damage you deal with One-Handed Melee weapons by 2%.','Increases the damage you deal with One-Handed Melee weapons by 4%.','Increases the damage you deal with One-Handed Melee weapons by 6%.','Increases the damage you deal with One-Handed Melee weapons by 8%.','Increases the damage you deal with One-Handed Melee weapons by 10%.'],requires:null},
+{row:5,col:2,name:'Shield Slam',icon:'inv_shield_05',maxRank:1,desc:['Slam the target with your shield, causing 225 to 236 damage and has a 50% chance of dispelling 1 magic effect on the target. Also causes a high amount of threat.'],requires:14},
+{row:6,col:1,name:'Shield Mastery',icon:'inv_shield_05',maxRank:1,desc:['Increases the damage blocked by your shield by 30% and your overall chance to block by 3%.'],requires:null}
+]}
+]},
+paladin:{name:'Paladin',color:'#F48CBA',icon:'classicon_paladin',trees:[
+{name:'Holy',icon:'spell_holy_holybolt',talents:[]},
+{name:'Protection',icon:'spell_holy_devotionaura',talents:[]},
+{name:'Retribution',icon:'spell_holy_auraoflight',talents:[]}
+]},
+hunter:{name:'Hunter',color:'#AAD372',icon:'classicon_hunter',trees:[
+{name:'Beast Mastery',icon:'ability_hunter_beasttaming',talents:[]},
+{name:'Marksmanship',icon:'ability_marksmanship',talents:[]},
+{name:'Survival',icon:'ability_hunter_swiftstrike',talents:[]}
+]},
+rogue:{name:'Rogue',color:'#FFF468',icon:'classicon_rogue',trees:[
+{name:'Assassination',icon:'ability_rogue_eviscerate',talents:[]},
+{name:'Combat',icon:'ability_backstab',talents:[]},
+{name:'Subtlety',icon:'ability_stealth',talents:[]}
+]},
+priest:{name:'Priest',color:'#FFFFFF',icon:'classicon_priest',trees:[
+{name:'Discipline',icon:'spell_holy_wordfortitude',talents:[]},
+{name:'Holy',icon:'spell_holy_holybolt',talents:[]},
+{name:'Shadow',icon:'spell_shadow_shadowwordpain',talents:[]}
+]},
+deathknight:{name:'Death Knight',color:'#C41E3A',icon:'spell_deathknight_classicon',trees:[
+{name:'Blood',icon:'spell_deathknight_bloodpresence',talents:[]},
+{name:'Frost',icon:'spell_deathknight_frostpresence',talents:[]},
+{name:'Unholy',icon:'spell_deathknight_unholypresence',talents:[]}
+]},
+shaman:{name:'Shaman',color:'#0070DD',icon:'classicon_shaman',trees:[
+{name:'Elemental',icon:'spell_nature_lightning',talents:[]},
+{name:'Enhancement',icon:'spell_nature_lightningshield',talents:[]},
+{name:'Restoration',icon:'spell_nature_magicimmunity',talents:[]}
+]},
+mage:{name:'Mage',color:'#3FC7EB',icon:'classicon_mage',trees:[
+{name:'Arcane',icon:'spell_holy_magicalsentry',talents:[]},
+{name:'Fire',icon:'spell_fire_firebolt02',talents:[]},
+{name:'Frost',icon:'spell_frost_frostbolt02',talents:[]}
+]},
+warlock:{name:'Warlock',color:'#8788EE',icon:'classicon_warlock',trees:[
+{name:'Affliction',icon:'spell_shadow_deathcoil',talents:[]},
+{name:'Demonology',icon:'spell_shadow_metamorphosis',talents:[]},
+{name:'Destruction',icon:'spell_shadow_rainoffire',talents:[]}
+]},
+druid:{name:'Druid',color:'#FF7C0A',icon:'classicon_druid',trees:[
+{name:'Balance',icon:'spell_nature_starfall',talents:[]},
+{name:'Feral Combat',icon:'ability_racial_bearform',talents:[]},
+{name:'Restoration',icon:'spell_nature_healingtouch',talents:[]}
+]}
+};
+
+let currentClass='warrior';
+let pointsSpent=[];
+
+function init(){
+  const hash=location.hash.slice(1);
+  if(hash){
+    const parts=hash.split('-');
+    if(CLASS_DATA[parts[0]]){currentClass=parts[0];}
+  }
+  renderClassBar();
+  loadClass(currentClass);
+  window.addEventListener('hashchange',()=>{
+    const h=location.hash.slice(1);
+    if(h){const p=h.split('-');if(CLASS_DATA[p[0]]&&p[0]!==currentClass){currentClass=p[0];loadClass(currentClass);}}
+  });
+}
+
+function renderClassBar(){
+  const bar=document.getElementById('classBar');
+  bar.innerHTML='';
+  for(const[key,cls]of Object.entries(CLASS_DATA)){
+    const btn=document.createElement('div');
+    btn.className='class-btn'+(key===currentClass?' active':'');
+    btn.title=cls.name;
+    btn.innerHTML=`<img src="${ICON_CDN}${cls.icon}.jpg" alt="${cls.name}">`;
+    btn.onclick=()=>{currentClass=key;loadClass(key);};
+    bar.appendChild(btn);
+  }
+}
+
+function loadClass(key){
+  const cls=CLASS_DATA[key];
+  pointsSpent=cls.trees.map(t=>t.talents.map(()=>0));
+  document.querySelectorAll('.class-btn').forEach((b,i)=>{
+    b.classList.toggle('active',Object.keys(CLASS_DATA)[i]===key);
+  });
+  decodeBuild();
+  renderControls();
+  renderTrees();
+}
+
+function totalPoints(){return pointsSpent.reduce((s,t)=>s+t.reduce((a,b)=>a+b,0),0);}
+function treePoints(ti){return pointsSpent[ti].reduce((a,b)=>a+b,0);}
+
+function renderControls(){
+  const cls=CLASS_DATA[currentClass];
+  const tp=totalPoints();
+  const ct=document.getElementById('controls');
+  ct.innerHTML=`
+    <div class="class-name" style="color:${cls.color}">${cls.name}</div>
+    <div class="points-display">Points: <span>${tp}</span> / ${MAX_POINTS}
+      &nbsp;(${cls.trees.map((t,i)=>`${t.name}: ${treePoints(i)}`).join(' / ')})</div>
+    <button class="btn" onclick="resetAll()">Reset All</button>
+    <button class="btn share-btn" onclick="openShare()">Share Build</button>`;
+}
+
+function renderTrees(){
+  const cls=CLASS_DATA[currentClass];
+  const wrap=document.getElementById('treesWrap');
+  wrap.innerHTML='';
+  cls.trees.forEach((tree,ti)=>{
+    const panel=document.createElement('div');
+    panel.className='tree-panel';
+    let header=`<div class="tree-header"><div class="tree-name">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div>`;
+    if(tree.talents.length===0){
+      panel.innerHTML=header+`<div class="coming-soon">Coming Soon</div>`;
+      wrap.appendChild(panel);return;
+    }
+    const maxRow=Math.max(...tree.talents.map(t=>t.row));
+    const gridH=(maxRow+1)*56;
+    let gridHTML=`<div class="tree-grid" style="grid-template-rows:repeat(${maxRow+1},48px);" data-tree="${ti}">`;
+    gridHTML+=`<svg class="tree-arrows" viewBox="0 0 ${4*56} ${gridH}" preserveAspectRatio="xMidYMid meet" style="width:${4*56}px;height:${gridH}px;"></svg>`;
+    tree.talents.forEach((tal,idx)=>{
+      const st=getTalentState(ti,idx);
+      const rk=pointsSpent[ti][idx];
+      const gs=`grid-row:${tal.row+1};grid-column:${tal.col+1};`;
+      gridHTML+=`<div class="talent-cell" style="${gs}">`;
+      gridHTML+=`<div class="talent ${st}" data-ti="${ti}" data-idx="${idx}"
+        oncontextmenu="event.preventDefault();onTalentClick(event,${ti},${idx})"
+        onclick="onTalentClick(event,${ti},${idx})"
+        onmouseenter="showTooltip(event,${ti},${idx})"
+        onmouseleave="hideTooltip()"
+        onmousemove="moveTooltip(event)">`;
+      gridHTML+=`<img src="${ICON_CDN}${tal.icon}.jpg" alt="${tal.name}">`;
+      if(rk>0)gridHTML+=`<div class="talent-rank">${rk}/${tal.maxRank}</div>`;
+      gridHTML+=`</div></div>`;
+    });
+    gridHTML+=`</div>`;
+    panel.innerHTML=header+gridHTML;
+    wrap.appendChild(panel);
+  });
+  requestAnimationFrame(drawAllArrows);
+}
+
+function getTalentState(ti,idx){
+  const cls=CLASS_DATA[currentClass];
+  const tal=cls.trees[ti].talents[idx];
+  const rk=pointsSpent[ti][idx];
+  const tp=treePoints(ti);
+  const tierReq=tal.row*POINTS_PER_TIER;
+  if(tal.requires!==null){
+    const req=cls.trees[ti].talents[tal.requires];
+    if(pointsSpent[ti][tal.requires]<req.maxRank){
+      return rk>0?'has-points':'locked';
+    }
+  }
+  if(tp<tierReq)return rk>0?'has-points':'locked';
+  if(rk>=tal.maxRank)return'maxed';
+  if(rk>0)return'has-points';
+  if(totalPoints()>=MAX_POINTS)return'locked';
+  return'available';
+}
+
+function canRemovePoint(ti,idx){
+  const cls=CLASS_DATA[currentClass];
+  const tree=cls.trees[ti];
+  const tal=tree.talents[idx];
+  if(pointsSpent[ti][idx]<=0)return false;
+  const simSpent=[...pointsSpent[ti]];
+  simSpent[idx]--;
+  for(let i=0;i<tree.talents.length;i++){
+    if(simSpent[i]<=0)continue;
+    const t=tree.talents[i];
+    const tierReq=t.row*POINTS_PER_TIER;
+    let below=0;for(let j=0;j<tree.talents.length;j++){if(tree.talents[j].row<t.row)below+=simSpent[j];}
+    if(below<tierReq)return false;
+    if(t.requires!==null&&simSpent[t.requires]<tree.talents[t.requires].maxRank)return false;
+  }
+  return true;
+}
+
+function onTalentClick(e,ti,idx){
+  const st=getTalentState(ti,idx);
+  if(e.type==='click'){
+    if(st==='available'||st==='has-points'){
+      if(totalPoints()<MAX_POINTS&&pointsSpent[ti][idx]<CLASS_DATA[currentClass].trees[ti].talents[idx].maxRank){
+        pointsSpent[ti][idx]++;
+      }
+    }
+  }else{
+    if(canRemovePoint(ti,idx)){pointsSpent[ti][idx]--;}
+  }
+  renderControls();
+  renderTrees();
+  updateUrl();
+}
+
+function drawAllArrows(){
+  document.querySelectorAll('.tree-grid').forEach(grid=>{
+    const ti=parseInt(grid.dataset.tree);
+    const svg=grid.querySelector('svg');
+    if(!svg)return;
+    svg.innerHTML='';
+    const cls=CLASS_DATA[currentClass];
+    const tree=cls.trees[ti];
+    tree.talents.forEach((tal,idx)=>{
+      if(tal.requires===null)return;
+      const from=tree.talents[tal.requires];
+      const fx=from.col*56+24,fy=from.row*56+48;
+      const tx=tal.col*56+24,ty=tal.row*56;
+      if(from.col===tal.col){
+        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',fx);line.setAttribute('y1',fy);
+        line.setAttribute('x2',tx);line.setAttribute('y2',ty);
+        svg.appendChild(line);
+      }else{
+        const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+        const my=fy+(ty-fy)/2;
+        poly.setAttribute('points',`${fx},${fy} ${fx},${my} ${tx},${my} ${tx},${ty}`);
+        svg.appendChild(poly);
+      }
+    });
+  });
+}
+
+function showTooltip(e,ti,idx){
+  const cls=CLASS_DATA[currentClass];
+  const tal=cls.trees[ti].talents[idx];
+  const rk=pointsSpent[ti][idx];
+  const st=getTalentState(ti,idx);
+  const tt=document.getElementById('tooltip');
+  let html=`<div class="tt-name">${tal.name}</div>`;
+  html+=`<div class="tt-rank">Rank ${rk}/${tal.maxRank}</div>`;
+  if(rk>0){
+    html+=`<div class="tt-desc">${tal.desc[rk-1]}</div>`;
+    if(rk<tal.maxRank){html+=`<div class="tt-next">Next rank: ${tal.desc[rk]}</div>`;}
+  }else{
+    html+=`<div class="tt-desc">${tal.desc[0]}</div>`;
+  }
+  if(tal.requires!==null){
+    const req=cls.trees[ti].talents[tal.requires];
+    if(pointsSpent[ti][tal.requires]<req.maxRank){
+      html+=`<div class="tt-req">Requires ${req.maxRank} points in ${req.name}</div>`;
+    }
+  }
+  if(st==='locked'){
+    const tierReq=tal.row*POINTS_PER_TIER;
+    const tp=treePoints(ti);
+    if(tp<tierReq)html+=`<div class="tt-req">Requires ${tierReq} points in ${cls.trees[ti].name}</div>`;
+  }
+  html+=`<div class="tt-hint">Left-click to learn, Right-click to unlearn</div>`;
+  tt.innerHTML=html;
+  tt.style.display='block';
+  moveTooltip(e);
+}
+
+function moveTooltip(e){
+  const tt=document.getElementById('tooltip');
+  let x=e.clientX+15,y=e.clientY+15;
+  const r=tt.getBoundingClientRect();
+  if(x+r.width>window.innerWidth)x=e.clientX-r.width-10;
+  if(y+r.height>window.innerHeight)y=e.clientY-r.height-10;
+  tt.style.left=x+'px';tt.style.top=y+'px';
+}
+
+function hideTooltip(){document.getElementById('tooltip').style.display='none';}
+
+function encodeBuild(){
+  const cls=CLASS_DATA[currentClass];
+  let parts=[currentClass];
+  cls.trees.forEach((tree,ti)=>{
+    let s=pointsSpent[ti].map(v=>v.toString()).join('');
+    s=s.replace(/0+$/,'');
+    parts.push(s||'0');
+  });
+  return parts.join('-');
+}
+
+function decodeBuild(){
+  const hash=location.hash.slice(1);
+  if(!hash)return;
+  const parts=hash.split('-');
+  if(parts[0]!==currentClass)return;
+  const cls=CLASS_DATA[currentClass];
+  cls.trees.forEach((tree,ti)=>{
+    const str=parts[ti+1]||'';
+    tree.talents.forEach((tal,idx)=>{
+      const v=parseInt(str[idx]||'0');
+      pointsSpent[ti][idx]=Math.min(v,tal.maxRank);
+    });
+  });
+}
+
+function updateUrl(){location.hash=encodeBuild();}
+
+function resetAll(){
+  const cls=CLASS_DATA[currentClass];
+  pointsSpent=cls.trees.map(t=>t.talents.map(()=>0));
+  renderControls();renderTrees();updateUrl();
+}
+
+function openShare(){
+  updateUrl();
+  document.getElementById('shareUrl').value=location.href;
+  document.getElementById('shareOverlay').classList.add('open');
+}
+function closeShare(){document.getElementById('shareOverlay').classList.remove('open');}
+function copyShareUrl(){
+  const inp=document.getElementById('shareUrl');
+  inp.select();navigator.clipboard.writeText(inp.value).then(()=>{
+    const btn=document.querySelector('.share-box .btn');
+    btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy URL',1500);
+  });
+}
+
+init();
+</script>
+</body>
+</html>
