@@ -303,7 +303,7 @@ function parseSubTables(tableContent) {
     return results;
 }
 
-function parseKVNums(tableName, block) {
+function parseKVNums(tableName, block) { 
     const inner = extractTable(tableName, block);
     if (!inner) return null;
     const result = {};
