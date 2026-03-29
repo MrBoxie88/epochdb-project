@@ -79,8 +79,8 @@ button { cursor:pointer; font-family:inherit }
 .tree-header .tree-name { font-family:'Cinzel',serif; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:var(--text-bright) }
 .tree-header .tree-icon { width:20px; height:20px; vertical-align:middle; margin-right:6px; border-radius:2px; border:1px solid rgba(255,255,255,.1) }
 .tree-header .tree-points { font-family:'Share Tech Mono',monospace; font-size:.7rem; color:var(--text-dim); margin-top:2px }
-.tree-body { padding:14px; position:relative }
-.tree-body::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 0%,var(--tree-accent,transparent) 0%,transparent 60%),linear-gradient(180deg,rgba(10,10,12,0.45) 0%,rgba(15,15,20,0.85) 100%); z-index:1; pointer-events:none }
+.tree-body { padding:14px; position:relative; background-size:cover; background-position:center top; background-repeat:no-repeat }
+.tree-body::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(10,10,12,0.3) 0%,rgba(15,15,20,0.75) 100%); z-index:1; pointer-events:none }
 .tree-grid { display:grid; grid-template-columns:repeat(4,48px); grid-auto-rows:48px; gap:8px; justify-content:center; position:relative; z-index:2 }
 .tree-arrows { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none }
 .talent-cell { position:relative }
@@ -193,16 +193,16 @@ button { cursor:pointer; font-family:inherit }
 <script>
 const ICON_CDN='https://wow.zamimg.com/images/wow/icons/medium/';
 const MAX_POINTS=61;
-const TREE_BG={
-warrior:['180,60,30','200,40,20','60,80,140'],
-paladin:['220,190,80','60,100,160','200,80,40'],
-hunter:['100,80,30','50,90,50','90,90,30'],
-rogue:['60,40,70','120,100,40','30,30,70'],
-priest:['160,160,140','200,180,80','70,30,110'],
-shaman:['40,60,160','120,70,30','30,100,100'],
-mage:['100,60,160','180,60,20','40,100,180'],
-warlock:['70,30,90','90,30,50','160,50,20'],
-druid:['50,50,110','140,90,30','30,120,50']
+const TREE_IMAGES={
+warrior:['warrior_arms.jpg','warrior_fury.jpg','warrior_protection.jpg'],
+paladin:['paladin_holy.jpg','paladin_protection.jpg','paladin_retribution.jpg'],
+hunter:['hunter_beastmastery.jpg','hunter_marksmanship.jpg','hunter_survival.jpg'],
+rogue:['rogue_assassination.jpg','rogue_combat.jpg','rogue_subtlety.jpg'],
+priest:['priest_discipline.jpg','priest_holy.jpg','priest_shadow.jpg'],
+shaman:['shaman_elemental.jpg','shaman_enchanement.jpg','shaman_restoration.jpg'],
+mage:['mage_arcane.jpg','mage_fire.jpg','mage_frost.jpg'],
+warlock:['warlock_afflction.jpg','warlock_demonology.jpg','warlock_destruction.jpg'],
+druid:['druid_balance.jpg','druid_feral.jpg','druid_restoration.jpg']
 };
 const POINTS_PER_TIER=5;
 
@@ -377,14 +377,15 @@ function renderTrees(){
     const panel=document.createElement('div');
     panel.className='tree-panel';
     let header=`<div class="tree-header"><div class="tree-name"><img class="tree-icon" src="${ICON_CDN}${tree.icon}.jpg" alt="">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div>`;
-    const treeBg=TREE_BG[currentClass]?.[ti]||'100,100,100';
+    const treeBgImg=TREE_IMAGES[currentClass]?.[ti];
+    const bgStyle=treeBgImg?`background-image:url('/images/talents/${treeBgImg}')`:''; 
     if(tree.talents.length===0){
-      panel.innerHTML=header+`<div class="tree-body" style="--tree-accent:rgba(${treeBg},0.3)"><div class="coming-soon">Coming Soon</div></div>`;
+      panel.innerHTML=header+`<div class="tree-body" style="${bgStyle}"><div class="coming-soon">Coming Soon</div></div>`;
       wrap.appendChild(panel);return;
     }
     const maxRow=Math.max(...tree.talents.map(t=>t.row));
     const gridH=(maxRow+1)*56;
-    let gridHTML=`<div class="tree-body" style="--tree-accent:rgba(${treeBg},0.3)"><div class="tree-grid" style="grid-template-rows:repeat(${maxRow+1},48px);" data-tree="${ti}">`;
+    let gridHTML=`<div class="tree-body" style="${bgStyle}"><div class="tree-grid" style="grid-template-rows:repeat(${maxRow+1},48px);" data-tree="${ti}">`;
     gridHTML+=`<svg class="tree-arrows" viewBox="0 0 ${4*56} ${gridH}" preserveAspectRatio="xMidYMid meet" style="width:${4*56}px;height:${gridH}px;"></svg>`;
     tree.talents.forEach((tal,idx)=>{
       const st=getTalentState(ti,idx);
