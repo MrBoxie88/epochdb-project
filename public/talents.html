@@ -79,11 +79,10 @@ button { cursor:pointer; font-family:inherit }
 .tree-header .tree-name { font-family:'Cinzel',serif; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:var(--text-bright) }
 .tree-header .tree-icon { width:20px; height:20px; vertical-align:middle; margin-right:6px; border-radius:2px; border:1px solid rgba(255,255,255,.1) }
 .tree-header .tree-points { font-family:'Share Tech Mono',monospace; font-size:.7rem; color:var(--text-dim); margin-top:2px }
-.tree-body { padding:14px; position:relative; background-size:cover; background-position:center top; background-repeat:no-repeat }
-.tree-body::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(10,10,12,0.6) 0%,rgba(15,15,20,0.8) 100%); z-index:1; pointer-events:none }
+.tree-body { padding:14px; position:relative }
+.tree-body::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 0%,var(--tree-accent,transparent) 0%,transparent 60%),linear-gradient(180deg,rgba(10,10,12,0.45) 0%,rgba(15,15,20,0.85) 100%); z-index:1; pointer-events:none }
 .tree-grid { display:grid; grid-template-columns:repeat(4,48px); grid-auto-rows:48px; gap:8px; justify-content:center; position:relative; z-index:2 }
 .tree-arrows { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none }
-.tree-arrows line, .tree-arrows polyline { stroke:var(--gold-dark); stroke-width:2; fill:none }
 .talent-cell { position:relative }
 .talent { width:48px; height:48px; border:2px solid var(--border); cursor:pointer; overflow:hidden; position:relative; transition:border-color .2s,filter .2s; background:var(--bg-deep) }
 .talent img { width:100%; height:100%; display:block }
@@ -193,8 +192,18 @@ button { cursor:pointer; font-family:inherit }
 
 <script>
 const ICON_CDN='https://wow.zamimg.com/images/wow/icons/medium/';
-const BG_CDN='https://wow.zamimg.com/images/wow/talents/backgrounds/wrath/';
 const MAX_POINTS=61;
+const TREE_BG={
+warrior:['180,60,30','200,40,20','60,80,140'],
+paladin:['220,190,80','60,100,160','200,80,40'],
+hunter:['100,80,30','50,90,50','90,90,30'],
+rogue:['60,40,70','120,100,40','30,30,70'],
+priest:['160,160,140','200,180,80','70,30,110'],
+shaman:['40,60,160','120,70,30','30,100,100'],
+mage:['100,60,160','180,60,20','40,100,180'],
+warlock:['70,30,90','90,30,50','160,50,20'],
+druid:['50,50,110','140,90,30','30,120,50']
+};
 const POINTS_PER_TIER=5;
 
 const CLASS_DATA={
@@ -368,14 +377,14 @@ function renderTrees(){
     const panel=document.createElement('div');
     panel.className='tree-panel';
     let header=`<div class="tree-header"><div class="tree-name"><img class="tree-icon" src="${ICON_CDN}${tree.icon}.jpg" alt="">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div>`;
-    let bgUrl=`${BG_CDN}${cls.classId}_${ti}.jpg`;
+    const treeBg=TREE_BG[currentClass]?.[ti]||'100,100,100';
     if(tree.talents.length===0){
-      panel.innerHTML=header+`<div class="tree-body" style="background-image:url('${bgUrl}')"><div class="coming-soon">Coming Soon</div></div>`;
+      panel.innerHTML=header+`<div class="tree-body" style="--tree-accent:rgba(${treeBg},0.3)"><div class="coming-soon">Coming Soon</div></div>`;
       wrap.appendChild(panel);return;
     }
     const maxRow=Math.max(...tree.talents.map(t=>t.row));
     const gridH=(maxRow+1)*56;
-    let gridHTML=`<div class="tree-body" style="background-image:url('${bgUrl}')"><div class="tree-grid" style="grid-template-rows:repeat(${maxRow+1},48px);" data-tree="${ti}">`;
+    let gridHTML=`<div class="tree-body" style="--tree-accent:rgba(${treeBg},0.3)"><div class="tree-grid" style="grid-template-rows:repeat(${maxRow+1},48px);" data-tree="${ti}">`;
     gridHTML+=`<svg class="tree-arrows" viewBox="0 0 ${4*56} ${gridH}" preserveAspectRatio="xMidYMid meet" style="width:${4*56}px;height:${gridH}px;"></svg>`;
     tree.talents.forEach((tal,idx)=>{
       const st=getTalentState(ti,idx);
@@ -463,19 +472,30 @@ function drawAllArrows(){
     tree.talents.forEach((tal,idx)=>{
       if(tal.requires===null)return;
       const from=tree.talents[tal.requires];
+      const met=pointsSpent[ti][tal.requires]>=from.maxRank;
+      const color=met?'#1eff00':'#555';
       const fx=from.col*56+24,fy=from.row*56+48;
       const tx=tal.col*56+24,ty=tal.row*56;
+      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
       if(from.col===tal.col){
         const line=document.createElementNS('http://www.w3.org/2000/svg','line');
         line.setAttribute('x1',fx);line.setAttribute('y1',fy);
-        line.setAttribute('x2',tx);line.setAttribute('y2',ty);
-        svg.appendChild(line);
+        line.setAttribute('x2',tx);line.setAttribute('y2',ty-6);
+        line.setAttribute('stroke',color);line.setAttribute('stroke-width','3');
+        g.appendChild(line);
       }else{
-        const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
         const my=fy+(ty-fy)/2;
-        poly.setAttribute('points',`${fx},${fy} ${fx},${my} ${tx},${my} ${tx},${ty}`);
-        svg.appendChild(poly);
+        const poly=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+        poly.setAttribute('points',`${fx},${fy} ${fx},${my} ${tx},${my} ${tx},${ty-6}`);
+        poly.setAttribute('stroke',color);poly.setAttribute('stroke-width','3');
+        poly.setAttribute('fill','none');poly.setAttribute('stroke-linejoin','round');
+        g.appendChild(poly);
       }
+      const ah=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      ah.setAttribute('points',`${tx-5},${ty-7} ${tx+5},${ty-7} ${tx},${ty}`);
+      ah.setAttribute('fill',color);
+      g.appendChild(ah);
+      svg.appendChild(g);
     });
   });
 }
