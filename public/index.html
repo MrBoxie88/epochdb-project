@@ -3785,7 +3785,7 @@
             const resetMs = raid.resetMs;
             // Find the most recent reset anchor (next Wednesday 9am UTC rolling)
             // Use a fixed epoch: Wednesday 2025-07-30 09:00 UTC as anchor
-            const anchor = new Date('2026-03-28T09:00:00Z').getTime();
+            const anchor = new Date('2026-03-29T10:12:00Z').getTime();
             const elapsed = Date.now() - anchor;
             const cyclesPassed = Math.floor(elapsed / resetMs);
             const lastReset = anchor + cyclesPassed * resetMs;
