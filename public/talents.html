@@ -84,15 +84,19 @@ button { cursor:pointer; font-family:inherit }
 .tree-grid { display:grid; grid-template-columns:repeat(4,48px); grid-auto-rows:48px; gap:8px; justify-content:center; position:relative; z-index:2 }
 .tree-arrows { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none }
 .talent-cell { position:relative }
-.talent { width:48px; height:48px; border:2px solid var(--border); cursor:pointer; overflow:hidden; position:relative; transition:border-color .2s,filter .2s; background:var(--bg-deep) }
-.talent img { width:100%; height:100%; display:block }
-.talent.locked { filter:grayscale(1) brightness(0.4); border-color:#1a1a1a; cursor:not-allowed }
-.talent.available { border-color:#3a3a3a; filter:brightness(0.85) }
-.talent.available:hover { border-color:var(--gold-dark); filter:brightness(1) }
-.talent.has-points { border-color:var(--green-soft); filter:none; box-shadow:0 0 6px rgba(106,191,106,.2) }
-.talent.has-points:hover { border-color:var(--green); box-shadow:0 0 10px rgba(30,255,0,.2) }
-.talent.maxed { border-color:var(--gold); filter:none; box-shadow:0 0 10px rgba(200,168,75,.3) }
-.talent-rank { position:absolute; bottom:-1px; right:-1px; background:rgba(0,0,0,.9); color:var(--green-soft); font-family:'Share Tech Mono',monospace; font-size:.65rem; padding:1px 4px; pointer-events:none }
+.talent { width:48px; height:48px; border:none; cursor:pointer; overflow:visible; position:relative; transition:filter .2s; background:var(--bg-deep) }
+.talent img { width:100%; height:100%; display:block; position:relative; z-index:1 }
+.talent::after { content:''; position:absolute; inset:-3px; background-image:url('/images/talents/buttonboarder.webp'); background-size:100% 100%; background-repeat:no-repeat; pointer-events:none; z-index:2 }
+.talent.locked { filter:grayscale(1) brightness(0.4); cursor:not-allowed }
+.talent.available { filter:brightness(0.85) }
+.talent.available::after { background-image:url('/images/talents/coloredbuttonboarder.webp') }
+.talent.available:hover { filter:brightness(1) }
+.talent.has-points { filter:none; box-shadow:0 0 6px rgba(106,191,106,.2) }
+.talent.has-points::after { background-image:url('/images/talents/coloredbuttonboarder.webp') }
+.talent.has-points:hover { box-shadow:0 0 10px rgba(30,255,0,.2) }
+.talent.maxed { filter:none; box-shadow:0 0 10px rgba(200,168,75,.3) }
+.talent.maxed::after { background-image:url('/images/talents/coloredbuttonboarder.webp') }
+.talent-rank { position:absolute; bottom:-1px; right:-1px; background:rgba(0,0,0,.9); color:var(--green-soft); font-family:'Share Tech Mono',monospace; font-size:.65rem; padding:1px 4px; pointer-events:none; z-index:3 }
 .talent.maxed .talent-rank { color:var(--gold) }
 .coming-soon { text-align:center; padding:40px 10px; color:var(--text-dim); font-style:italic; font-size:.88rem; position:relative; z-index:2 }
 
@@ -192,6 +196,10 @@ button { cursor:pointer; font-family:inherit }
 
 <script>
 const ICON_CDN='https://wow.zamimg.com/images/wow/icons/medium/';
+const ICON_BASE='/images/WoW%20Vanilla_Classic%20Icon%20Pack/';
+const _IF={shield:'Armor',boots:'Armor',gauntlets:'Armor',belt:'Armor',helmet:'Armor',shoulder:'Armor',chest:'Armor',pants:'Armor',sword:'Weapons',axe:'Weapons',mace:'Weapons',weapon:'Weapons',hammer:'Weapons',spear:'Weapons',wand:'Weapons',ammo:'Weapons',staff:'Weapons',stone:'Trade'};
+function _ip(n){return n.split('_').map(s=>s.charAt(0).toUpperCase()+s.slice(1)).join('_')}
+function getIconUrl(n){let f;if(n.startsWith('ability_'))f='Abilities';else if(n.startsWith('spell_')||n.startsWith('racial_'))f='Spells';else if(n.startsWith('inv_')){const p=n.split('_');f=_IF[p[1]]||(p[1]==='misc'?(p[2]==='pelt'?'Trade':p[2]==='cape'?'Armor':'Items'):'Items');}if(!f)return ICON_CDN+n+'.jpg';return ICON_BASE+f+'/'+_ip(n)+'.png';}
 const MAX_POINTS=61;
 const TREE_IMAGES={
 warrior:['warrior_arms.jpg','warrior_fury.jpg','warrior_protection.jpg'],
@@ -882,7 +890,7 @@ function renderClassBar(){
     const btn=document.createElement('div');
     btn.className='class-btn'+(key===currentClass?' active':'');
     btn.title=cls.name;
-    btn.innerHTML=`<img src="${ICON_CDN}${cls.icon}.jpg" alt="${cls.name}">`;
+    btn.innerHTML=`<img src="${getIconUrl(cls.icon)}" onerror="this.onerror=null;this.src='${ICON_CDN}${cls.icon}.jpg'" alt="${cls.name}">`;
     btn.onclick=()=>{currentClass=key;loadClass(key);};
     bar.appendChild(btn);
   }
@@ -921,7 +929,7 @@ function renderTrees(){
   cls.trees.forEach((tree,ti)=>{
     const panel=document.createElement('div');
     panel.className='tree-panel';
-    let header=`<div class="tree-header"><div class="tree-name"><img class="tree-icon" src="${ICON_CDN}${tree.icon}.jpg" alt="">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div>`;
+    let header=`<div class="tree-header"><div class="tree-name"><img class="tree-icon" src="${getIconUrl(tree.icon)}" onerror="this.onerror=null;this.src='${ICON_CDN}${tree.icon}.jpg'" alt="">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div>`;
     const treeBgImg=TREE_IMAGES[currentClass]?.[ti];
     const bgStyle=treeBgImg?`background-image:url('/images/talents/${treeBgImg}')`:''; 
     if(tree.talents.length===0){
@@ -943,7 +951,7 @@ function renderTrees(){
         onmouseenter="showTooltip(event,${ti},${idx})"
         onmouseleave="hideTooltip()"
         onmousemove="moveTooltip(event)">`;
-      gridHTML+=`<img src="${ICON_CDN}${tal.icon}.jpg" alt="${tal.name}">`;
+      gridHTML+=`<img src="${getIconUrl(tal.icon)}" onerror="this.onerror=null;this.src='${ICON_CDN}${tal.icon}.jpg'" alt="${tal.name}">`;
       if(rk>0)gridHTML+=`<div class="talent-rank">${rk}/${tal.maxRank}</div>`;
       gridHTML+=`</div></div>`;
     });
