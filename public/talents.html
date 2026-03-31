@@ -81,8 +81,9 @@ button { cursor:pointer; font-family:inherit }
 .tree-header .tree-points { font-family:'Share Tech Mono',monospace; font-size:.7rem; color:var(--text-dim); margin-top:2px }
 .tree-body { padding:14px; position:relative; background-size:cover; background-position:center top; background-repeat:no-repeat }
 .tree-body::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(10,10,12,0.3) 0%,rgba(15,15,20,0.75) 100%); z-index:1; pointer-events:none }
-.tree-grid { display:grid; grid-template-columns:repeat(4,48px); grid-auto-rows:48px; gap:8px; width:216px; margin:0 auto; position:relative; z-index:2 }
-.tree-arrows { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none }
+.tree-grid-wrap { position:relative; width:216px; margin:0 auto; z-index:2 }
+.tree-grid { display:grid; grid-template-columns:repeat(4,48px); grid-auto-rows:48px; gap:8px; width:216px; position:relative; }
+.tree-arrows { position:absolute; top:0; left:0; pointer-events:none; z-index:3; overflow:visible }
 .talent-cell { position:relative }
 .talent { width:48px; height:48px; border:none; cursor:pointer; overflow:visible; position:relative; transition:filter .2s; background:var(--bg-deep) }
 .talent img { width:100%; height:100%; display:block; position:relative; z-index:1 }
@@ -939,8 +940,9 @@ function renderTrees(){
     }
     const maxRow=Math.max(...tree.talents.map(t=>t.row));
     const gridH=(maxRow+1)*56;
-    let gridHTML=`<div class="tree-body" style="${bgStyle}"><div class="tree-grid" style="grid-template-rows:repeat(${maxRow+1},48px);" data-tree="${ti}">`;
-    gridHTML+=`<svg class="tree-arrows" viewBox="0 0 216 ${gridH}" preserveAspectRatio="xMidYMid meet" style="width:216px;height:${gridH}px;"></svg>`;
+    let gridHTML=`<div class="tree-body" style="${bgStyle}"><div class="tree-grid-wrap">`;
+    gridHTML+=`<svg class="tree-arrows" viewBox="0 0 216 ${gridH}" style="width:216px;height:${gridH}px;"></svg>`;
+    gridHTML+=`<div class="tree-grid" style="grid-template-rows:repeat(${maxRow+1},48px);" data-tree="${ti}">`;
     tree.talents.forEach((tal,idx)=>{
       const st=getTalentState(ti,idx);
       const rk=pointsSpent[ti][idx];
@@ -953,10 +955,10 @@ function renderTrees(){
         onmouseleave="hideTooltip()"
         onmousemove="moveTooltip(event)">`;
       gridHTML+=`<img src="${getIconUrl(tal.icon)}" onerror="this.onerror=null;this.src='${ICON_CDN}${tal.icon}.jpg'" alt="${tal.name}">`;
-      if(rk>0)gridHTML+=`<div class="talent-rank">${rk}/${tal.maxRank}</div>`;
+      gridHTML+=`<div class="talent-rank">${rk}/${tal.maxRank}</div>`;
       gridHTML+=`</div></div>`;
     });
-    gridHTML+=`</div></div>`;
+    gridHTML+=`</div></div></div>`;
     panel.innerHTML=header+gridHTML;
     wrap.appendChild(panel);
   });
@@ -978,16 +980,14 @@ function updateTrees(){
       const rk=pointsSpent[ti][idx];
       el.className='talent '+st;
       let rankEl=el.querySelector('.talent-rank');
-      if(rk>0){
-        if(!rankEl){rankEl=document.createElement('div');rankEl.className='talent-rank';el.appendChild(rankEl);}
-        rankEl.textContent=rk+'/'+tal.maxRank;
-      }else if(rankEl){rankEl.remove();}
+      if(!rankEl){rankEl=document.createElement('div');rankEl.className='talent-rank';el.appendChild(rankEl);}
+      rankEl.textContent=rk+'/'+tal.maxRank;
     });
   });
   drawAllArrows();
 }
 
-function getTalentState
+function getTalentState(ti,idx){
   const cls=CLASS_DATA[currentClass];
   const tal=cls.trees[ti].talents[idx];
   const rk=pointsSpent[ti][idx];
@@ -1059,7 +1059,7 @@ function _svgImg(src,x,y,w,h,met){
 function drawAllArrows(){
   document.querySelectorAll('.tree-grid').forEach(grid=>{
     const ti=parseInt(grid.dataset.tree);
-    const svg=grid.querySelector('svg');
+    const svg=grid.parentElement.querySelector('svg.tree-arrows');
     if(!svg)return;
     svg.innerHTML='';
     const cls=CLASS_DATA[currentClass];
