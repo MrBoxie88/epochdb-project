@@ -1039,30 +1039,26 @@ function drawAllArrows(){
     svg.innerHTML='';
     const cls=CLASS_DATA[currentClass];
     const tree=cls.trees[ti];
+    const cols={};
     tree.talents.forEach((tal,idx)=>{
-      if(tal.requires===null)return;
-      const from=tree.talents[tal.requires];
-      const met=pointsSpent[ti][tal.requires]>=from.maxRank;
-      const fx=from.col*56+24,fy=from.row*56+48;
-      const tx=tal.col*56+24,ty=tal.row*56;
-      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-      if(from.col===tal.col){
-        const segH=ty-fy-ARROW_HEAD_H;
-        if(segH>0)g.appendChild(_svgImg(ARROW_BODY_SRC,fx-ARROW_W/2,fy,ARROW_W,segH,met));
-      }else{
-        const my=fy+(ty-fy)/2;
-        const seg1H=my-fy;
-        if(seg1H>0)g.appendChild(_svgImg(ARROW_BODY_SRC,fx-ARROW_W/2,fy,ARROW_W,seg1H,met));
-        const lx=Math.min(fx,tx)-ARROW_W/2;
-        const rx=Math.max(fx,tx)+ARROW_W/2;
-        const hImg=_svgImg(ARROW_BODY_SRC,lx,my-ARROW_W/2,rx-lx,ARROW_W,met);
-        g.appendChild(hImg);
-        const seg2H=ty-my-ARROW_HEAD_H;
-        if(seg2H>0)g.appendChild(_svgImg(ARROW_BODY_SRC,tx-ARROW_W/2,my,ARROW_W,seg2H,met));
-      }
-      g.appendChild(_svgImg(ARROW_HEAD_SRC,tx-ARROW_HEAD_W/2,ty-ARROW_HEAD_H,ARROW_HEAD_W,ARROW_HEAD_H,met));
-      svg.appendChild(g);
+      if(!cols[tal.col])cols[tal.col]=[];
+      cols[tal.col].push({tal,idx});
     });
+    for(const c in cols){
+      const sorted=cols[c].sort((a,b)=>a.tal.row-b.tal.row);
+      for(let i=0;i<sorted.length-1;i++){
+        const from=sorted[i],to=sorted[i+1];
+        const met=pointsSpent[ti][from.idx]>=from.tal.maxRank;
+        const x=from.tal.col*56+24;
+        const fy=from.tal.row*56+48;
+        const ty=to.tal.row*56;
+        const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+        const segH=ty-fy-ARROW_HEAD_H;
+        if(segH>0)g.appendChild(_svgImg(ARROW_BODY_SRC,x-ARROW_W/2,fy,ARROW_W,segH,met));
+        g.appendChild(_svgImg(ARROW_HEAD_SRC,x-ARROW_HEAD_W/2,ty-ARROW_HEAD_H,ARROW_HEAD_W,ARROW_HEAD_H,met));
+        svg.appendChild(g);
+      }
+    }
   });
 }
 
