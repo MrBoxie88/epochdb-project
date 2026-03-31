@@ -1039,26 +1039,20 @@ function drawAllArrows(){
     svg.innerHTML='';
     const cls=CLASS_DATA[currentClass];
     const tree=cls.trees[ti];
-    const cols={};
     tree.talents.forEach((tal,idx)=>{
-      if(!cols[tal.col])cols[tal.col]=[];
-      cols[tal.col].push({tal,idx});
+      if(tal.requires===null)return;
+      const from=tree.talents[tal.requires];
+      if(from.col!==tal.col)return;
+      const met=pointsSpent[ti][tal.requires]>=from.maxRank;
+      const x=tal.col*56+24;
+      const fy=from.row*56+48;
+      const ty=tal.row*56;
+      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+      const segH=ty-fy-ARROW_HEAD_H;
+      if(segH>0)g.appendChild(_svgImg(ARROW_BODY_SRC,x-ARROW_W/2,fy,ARROW_W,segH,met));
+      g.appendChild(_svgImg(ARROW_HEAD_SRC,x-ARROW_HEAD_W/2,ty-ARROW_HEAD_H,ARROW_HEAD_W,ARROW_HEAD_H,met));
+      svg.appendChild(g);
     });
-    for(const c in cols){
-      const sorted=cols[c].sort((a,b)=>a.tal.row-b.tal.row);
-      for(let i=0;i<sorted.length-1;i++){
-        const from=sorted[i],to=sorted[i+1];
-        const met=pointsSpent[ti][from.idx]>=from.tal.maxRank;
-        const x=from.tal.col*56+24;
-        const fy=from.tal.row*56+48;
-        const ty=to.tal.row*56;
-        const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-        const segH=ty-fy-ARROW_HEAD_H;
-        if(segH>0)g.appendChild(_svgImg(ARROW_BODY_SRC,x-ARROW_W/2,fy,ARROW_W,segH,met));
-        g.appendChild(_svgImg(ARROW_HEAD_SRC,x-ARROW_HEAD_W/2,ty-ARROW_HEAD_H,ARROW_HEAD_W,ARROW_HEAD_H,met));
-        svg.appendChild(g);
-      }
-    }
   });
 }
 
