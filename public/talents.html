@@ -1067,6 +1067,10 @@ function _svgImg(src,x,y,w,h,met){
 }
 
 function drawAllArrows(){
+  const COL_STRIDE=64; // 48px cell + 16px gap
+  const ROW_STRIDE=80; // 48px cell + 32px gap
+  const CELL=48;
+
   document.querySelectorAll('.tree-grid').forEach(grid=>{
     const ti=parseInt(grid.dataset.tree);
     const svg=grid.parentElement.querySelector('svg.tree-arrows');
@@ -1079,19 +1083,105 @@ function drawAllArrows(){
       const fromIdx=getReqIdx(ti,tal.requires);
       if(fromIdx===-1)return;
       const from=tree.talents[fromIdx];
-      if(from.col!==tal.col)return;
       const met=pointsSpent[ti][fromIdx]>=from.maxRank;
-      const x=tal.col*64+24;
-      const fy=from.row*80+48;
-      const ty=tal.row*80;
-      if(ty<=fy)return;
       const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-      const segH=ty-fy-ARROW_HEAD_H;
-      if(segH>0)g.appendChild(_svgImg(ARROW_BODY_SRC,x-ARROW_W/2,fy,ARROW_W,segH,met));
-      g.appendChild(_svgImg(ARROW_HEAD_SRC,x-ARROW_HEAD_W/2,ty-ARROW_HEAD_H,ARROW_HEAD_W,ARROW_HEAD_H,met));
+
+      // Center coordinates of from-cell bottom and to-cell top/center
+      const fx=from.col*COL_STRIDE+CELL/2;
+      const tx=tal.col*COL_STRIDE+CELL/2;
+      const fy_bottom=from.row*ROW_STRIDE+CELL; // bottom edge of source cell
+      const ty_top=tal.row*ROW_STRIDE;           // top edge of target cell
+      const ty_mid=tal.row*ROW_STRIDE+CELL/2;    // vertical center of target cell
+
+      const sameCol=from.col===tal.col;
+      const sameRow=from.row===tal.row;
+      const goRight=tx>fx;
+
+      if(sameCol){
+        // ── Straight vertical arrow ──
+        if(ty_top<=fy_bottom)return;
+        const segH=ty_top-fy_bottom-ARROW_HEAD_H;
+        if(segH>0) g.appendChild(_svgImg(ARROW_BODY_SRC,fx-ARROW_W/2,fy_bottom,ARROW_W,segH,met));
+        g.appendChild(_svgImg(ARROW_HEAD_SRC,fx-ARROW_HEAD_W/2,ty_top-ARROW_HEAD_H,ARROW_HEAD_W,ARROW_HEAD_H,met));
+
+      }else if(sameRow){
+        // ── Straight horizontal arrow ──
+        const fx_right=from.col*COL_STRIDE+CELL; // right edge of source cell
+        const tx_left=tal.col*COL_STRIDE;         // left edge of target cell
+        const cx=from.col*COL_STRIDE+CELL/2;
+        const cy=from.row*ROW_STRIDE+CELL/2;
+        if(goRight){
+          const segW=tx_left-fx_right-ARROW_HEAD_H;
+          if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,fx_right,cy-ARROW_W/2,segW,ARROW_W,met));
+          g.appendChild(_svgHArrowHead(ARROW_HEAD_SRC,tx_left-ARROW_HEAD_H,cy-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
+        }else{
+          const tx_right=tal.col*COL_STRIDE+CELL;
+          const segW=fx_right-(tx_right+ARROW_HEAD_H);
+          if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,tx_right+ARROW_HEAD_H,cy-ARROW_W/2,segW,ARROW_W,met));
+          // flipped head pointing left
+          g.appendChild(_svgHArrowHeadFlip(ARROW_HEAD_SRC,tx_right,cy-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
+        }
+
+      }else{
+        // ── L-shaped arrow: vertical down from source, then horizontal to target ──
+        // Elbow sits at (fx, ty_mid) — same x as source, same y as target center
+        const elbowY=ty_mid;
+        // Vertical segment: from bottom of source cell down to elbow row
+        const vertH=elbowY-fy_bottom;
+        if(vertH>0) g.appendChild(_svgImg(ARROW_BODY_SRC,fx-ARROW_W/2,fy_bottom,ARROW_W,vertH,met));
+        // Horizontal segment: from elbow to target, ending with arrowhead
+        if(goRight){
+          const hx_start=fx+ARROW_W/2;
+          const hx_end=tx-CELL/2-ARROW_HEAD_H; // left edge of target cell minus head
+          const tx_left=tal.col*COL_STRIDE;
+          const segW=tx_left-ARROW_HEAD_H-hx_start;
+          if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,hx_start,elbowY-ARROW_W/2,segW,ARROW_W,met));
+          g.appendChild(_svgHArrowHead(ARROW_HEAD_SRC,tx_left-ARROW_HEAD_H,elbowY-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
+        }else{
+          const tx_right=tal.col*COL_STRIDE+CELL;
+          const hx_start=tx_right+ARROW_HEAD_H;
+          const segW=fx-ARROW_W/2-hx_start;
+          if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,hx_start,elbowY-ARROW_W/2,segW,ARROW_W,met));
+          g.appendChild(_svgHArrowHeadFlip(ARROW_HEAD_SRC,tx_right,elbowY-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
+        }
+      }
+
       svg.appendChild(g);
     });
   });
+}
+
+// Horizontal bar segment (body rotated 90°) using a thin rect filled via image
+function _svgHBar(src,x,y,w,h,met){
+  // We reuse _svgImg — the body image is tiled/stretched horizontally
+  return _svgImg(src,x,y,w,h,met);
+}
+
+// Arrowhead pointing RIGHT (image is vertical, so we rotate -90° about its center)
+function _svgHArrowHead(src,x,y,w,h,met){
+  const img=document.createElementNS('http://www.w3.org/2000/svg','image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink','href',src);
+  // w = ARROW_HEAD_H (horizontal extent), h = ARROW_HEAD_W (vertical extent)
+  img.setAttribute('x',x); img.setAttribute('y',y);
+  img.setAttribute('width',w); img.setAttribute('height',h);
+  img.setAttribute('preserveAspectRatio','none');
+  if(!met)img.setAttribute('opacity','0.35');
+  const cx=x+w/2, cy=y+h/2;
+  img.setAttribute('transform',`rotate(-90,${cx},${cy})`);
+  return img;
+}
+
+// Arrowhead pointing LEFT
+function _svgHArrowHeadFlip(src,x,y,w,h,met){
+  const img=document.createElementNS('http://www.w3.org/2000/svg','image');
+  img.setAttributeNS('http://www.w3.org/1999/xlink','href',src);
+  img.setAttribute('x',x); img.setAttribute('y',y);
+  img.setAttribute('width',w); img.setAttribute('height',h);
+  img.setAttribute('preserveAspectRatio','none');
+  if(!met)img.setAttribute('opacity','0.35');
+  const cx=x+w/2, cy=y+h/2;
+  img.setAttribute('transform',`rotate(90,${cx},${cy})`);
+  return img;
 }
 
 function showTooltip(e,ti,idx){
