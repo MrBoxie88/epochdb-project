@@ -81,8 +81,8 @@ button { cursor:pointer; font-family:inherit }
 .tree-header .tree-points { font-family:'Share Tech Mono',monospace; font-size:.7rem; color:var(--text-dim); margin-top:2px }
 .tree-body { padding:14px; position:relative; background-size:cover; background-position:center top; background-repeat:no-repeat }
 .tree-body::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(10,10,12,0.3) 0%,rgba(15,15,20,0.75) 100%); z-index:1; pointer-events:none }
-.tree-grid-wrap { position:relative; width:216px; margin:0 auto; z-index:2 }
-.tree-grid { display:grid; grid-template-columns:repeat(4,48px); grid-auto-rows:48px; column-gap:8px; row-gap:20px; width:216px; position:relative; }
+.tree-grid-wrap { position:relative; width:240px; margin:0 auto; z-index:2 }
+.tree-grid { display:grid; grid-template-columns:repeat(4,48px); grid-auto-rows:48px; column-gap:16px; row-gap:32px; width:240px; position:relative; }
 .tree-arrows { position:absolute; top:0; left:0; pointer-events:none; z-index:3; overflow:visible }
 .talent-cell { position:relative }
 .talent { width:48px; height:48px; border:none; cursor:pointer; overflow:visible; position:relative; transition:filter .2s; background:var(--bg-deep) }
@@ -1081,9 +1081,9 @@ function drawAllArrows(){
       const from=tree.talents[fromIdx];
       if(from.col!==tal.col)return;
       const met=pointsSpent[ti][fromIdx]>=from.maxRank;
-      const x=tal.col*56+24;
-      const fy=from.row*68+48;
-      const ty=tal.row*68;
+      const x=tal.col*64+24;
+      const fy=from.row*80+48;
+      const ty=tal.row*80;
       if(ty<=fy)return;
       const g=document.createElementNS('http://www.w3.org/2000/svg','g');
       const segH=ty-fy-ARROW_HEAD_H;
