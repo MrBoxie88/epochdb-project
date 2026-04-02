@@ -82,8 +82,8 @@ button { cursor:pointer; font-family:inherit }
 .tree-body { padding:14px; position:relative; background-size:cover; background-position:center top; background-repeat:no-repeat }
 .tree-body::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(10,10,12,0.3) 0%,rgba(15,15,20,0.75) 100%); z-index:1; pointer-events:none }
 .tree-grid-wrap { position:relative; width:276px; margin:0 auto; z-index:2 }
-.tree-grid { display:grid; grid-template-columns:repeat(4,48px); grid-auto-rows:48px; column-gap:28px; row-gap:32px; width:276px; position:relative; }
-.tree-arrows { position:absolute; top:0; left:0; pointer-events:none; z-index:3; overflow:visible }
+.tree-grid { display:grid; grid-template-columns:repeat(4,48px); grid-auto-rows:48px; column-gap:28px; row-gap:32px; width:276px; position:relative; z-index:2; }
+.tree-arrows { position:absolute; top:0; left:0; pointer-events:none; z-index:1; overflow:visible }
 .talent-cell { position:relative }
 .talent { width:48px; height:48px; border:none; cursor:pointer; overflow:visible; position:relative; transition:filter .2s; background:var(--bg-deep) }
 .talent img { width:100%; height:100%; display:block; position:relative; z-index:1 }
@@ -950,9 +950,9 @@ function renderTrees(){
       wrap.appendChild(panel);return;
     }
     const maxRow=Math.max(...tree.talents.map(t=>t.row));
-    const gridH=(maxRow+1)*68;
+    const gridH=maxRow*80+48;
     let gridHTML=`<div class="tree-body" style="${bgStyle}"><div class="tree-grid-wrap">`;
-    gridHTML+=`<svg class="tree-arrows" viewBox="0 0 216 ${gridH}" style="width:216px;height:${gridH}px;"></svg>`;
+    gridHTML+=`<svg class="tree-arrows" viewBox="0 0 276 ${gridH}" style="width:276px;height:${gridH}px;"></svg>`;
     gridHTML+=`<div class="tree-grid" style="grid-template-rows:repeat(${maxRow+1},48px);" data-tree="${ti}">`;
     tree.talents.forEach((tal,idx)=>{
       const st=getTalentState(ti,idx);
@@ -1058,26 +1058,12 @@ function onTalentClick(e,ti,idx){
   updateUrl();
 }
 
-const ARROW_BODY_SRC='/images/talents/arrowbody.webp';
-const ARROW_HEAD_SRC='/images/talents/arrowhead.webp';
-const ARROW_W=14;
-const ARROW_HEAD_W=21;
-const ARROW_HEAD_H=13;
-
-function _svgImg(src,x,y,w,h,met){
-  const img=document.createElementNS('http://www.w3.org/2000/svg','image');
-  img.setAttributeNS('http://www.w3.org/1999/xlink','href',src);
-  img.setAttribute('x',x);img.setAttribute('y',y);
-  img.setAttribute('width',w);img.setAttribute('height',h);
-  img.setAttribute('preserveAspectRatio','none');
-  if(!met)img.setAttribute('opacity','0.35');
-  return img;
-}
-
 function drawAllArrows(){
-  const COL_STRIDE=76; // 48px cell + 28px gap
-  const ROW_STRIDE=80; // 48px cell + 32px gap
+  const COL_STRIDE=76;
+  const ROW_STRIDE=80;
   const CELL=48;
+  const PAD=6;
+  const HEAD=7;
 
   document.querySelectorAll('.tree-grid').forEach(grid=>{
     const ti=parseInt(grid.dataset.tree);
@@ -1092,106 +1078,84 @@ function drawAllArrows(){
       if(fromIdx===-1)return;
       const from=tree.talents[fromIdx];
       const met=pointsSpent[ti][fromIdx]>=from.maxRank;
-      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+      const col=met?'#c8a84b':'#5a5040';
+      const op=met?'0.9':'0.45';
 
-      // Center coordinates of from-cell bottom and to-cell top/center
       const fx=from.col*COL_STRIDE+CELL/2;
-      const tx=tal.col*COL_STRIDE+CELL/2;
-      const fy_bottom=from.row*ROW_STRIDE+CELL; // bottom edge of source cell
-      const ty_top=tal.row*ROW_STRIDE;           // top edge of target cell
-      const ty_mid=tal.row*ROW_STRIDE+CELL/2;    // vertical center of target cell
-
+      const fy=from.row*ROW_STRIDE+CELL+PAD;
+      const ty=tal.row*ROW_STRIDE-PAD;
+      const tmid=tal.row*ROW_STRIDE+CELL/2;
       const sameCol=from.col===tal.col;
       const sameRow=from.row===tal.row;
-      const goRight=tx>fx;
+      const goRight=tal.col>from.col;
 
-      const OVERLAP=4;  // body overlaps into arrowhead base to eliminate gaps
-      const PAD=4;      // gap between arrow and cell edges so it doesn't overlap icons
+      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.setAttribute('stroke',col);
+      g.setAttribute('fill',col);
+      g.setAttribute('opacity',op);
+
+      const mkLine=(x1,y1,x2,y2)=>{
+        const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+        l.setAttribute('x1',x1);l.setAttribute('y1',y1);
+        l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+        l.setAttribute('stroke-width','2');
+        l.setAttribute('stroke-linecap','round');
+        l.setAttribute('fill','none');
+        return l;
+      };
+      const mkArrowDown=(ax,ay)=>{
+        const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+        p.setAttribute('points',`${ax-HEAD/2},${ay-HEAD} ${ax+HEAD/2},${ay-HEAD} ${ax},${ay}`);
+        p.setAttribute('stroke','none');
+        return p;
+      };
+      const mkArrowRight=(ax,ay)=>{
+        const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+        p.setAttribute('points',`${ax-HEAD},${ay-HEAD/2} ${ax-HEAD},${ay+HEAD/2} ${ax},${ay}`);
+        p.setAttribute('stroke','none');
+        return p;
+      };
+      const mkArrowLeft=(ax,ay)=>{
+        const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+        p.setAttribute('points',`${ax+HEAD},${ay-HEAD/2} ${ax+HEAD},${ay+HEAD/2} ${ax},${ay}`);
+        p.setAttribute('stroke','none');
+        return p;
+      };
 
       if(sameCol){
-        // ── Straight vertical arrow ──
-        if(ty_top<=fy_bottom)return;
-        const bodyY=fy_bottom+PAD;
-        const headY=ty_top-ARROW_HEAD_H;
-        const segH=headY-bodyY+OVERLAP;
-        if(segH>0) g.appendChild(_svgImg(ARROW_BODY_SRC,fx-ARROW_W/2,bodyY,ARROW_W,segH,met));
-        g.appendChild(_svgImg(ARROW_HEAD_SRC,fx-ARROW_HEAD_W/2,headY,ARROW_HEAD_W,ARROW_HEAD_H,met));
-
+        if(ty<=fy)return;
+        g.appendChild(mkLine(fx,fy,fx,ty-HEAD));
+        g.appendChild(mkArrowDown(fx,ty));
       }else if(sameRow){
-        // ── Straight horizontal arrow ──
-        const fx_right=from.col*COL_STRIDE+CELL+PAD;
-        const tx_left=tal.col*COL_STRIDE;
         const cy=from.row*ROW_STRIDE+CELL/2;
         if(goRight){
-          const segW=tx_left-ARROW_HEAD_H-fx_right+OVERLAP;
-          if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,fx_right,cy-ARROW_W/2,segW,ARROW_W,met));
-          g.appendChild(_svgHArrowHead(ARROW_HEAD_SRC,tx_left-ARROW_HEAD_H,cy-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
+          const x1=from.col*COL_STRIDE+CELL+PAD;
+          const x2=tal.col*COL_STRIDE-PAD;
+          g.appendChild(mkLine(x1,cy,x2-HEAD,cy));
+          g.appendChild(mkArrowRight(x2,cy));
         }else{
-          const tx_right=tal.col*COL_STRIDE+CELL;
-          const segW=from.col*COL_STRIDE-PAD-(tx_right+ARROW_HEAD_H)+OVERLAP;
-          if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,tx_right+ARROW_HEAD_H-OVERLAP,cy-ARROW_W/2,segW,ARROW_W,met));
-          g.appendChild(_svgHArrowHeadFlip(ARROW_HEAD_SRC,tx_right,cy-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
+          const x1=from.col*COL_STRIDE-PAD;
+          const x2=tal.col*COL_STRIDE+CELL+PAD;
+          g.appendChild(mkLine(x1,cy,x2+HEAD,cy));
+          g.appendChild(mkArrowLeft(x2,cy));
         }
-
       }else{
-        // ── L-shaped arrow: vertical down from source, then horizontal to target ──
-        const elbowY=ty_mid;
-        // Vertical segment: starts PAD below source cell, runs all the way to elbowY
-        const bodyY=fy_bottom+PAD;
-        const vertH=elbowY-bodyY;
-        if(vertH>0) g.appendChild(_svgImg(ARROW_BODY_SRC,fx-ARROW_W/2,bodyY,ARROW_W,vertH,met));
-        // Horizontal segment: starts right at elbow x (fx), ends at arrowhead on target
         if(goRight){
-          const hx_start=fx; // start exactly at elbow corner — no gap
-          const tx_left=tal.col*COL_STRIDE;
-          const segW=tx_left-ARROW_HEAD_H-hx_start+OVERLAP;
-          if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,hx_start,elbowY-ARROW_W/2,segW,ARROW_W,met));
-          g.appendChild(_svgHArrowHead(ARROW_HEAD_SRC,tx_left-ARROW_HEAD_H,elbowY-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
+          const hx=tal.col*COL_STRIDE-PAD;
+          g.appendChild(mkLine(fx,fy,fx,tmid));
+          g.appendChild(mkLine(fx,tmid,hx-HEAD,tmid));
+          g.appendChild(mkArrowRight(hx,tmid));
         }else{
-          const tx_right=tal.col*COL_STRIDE+CELL;
-          const hx_end=fx; // end at elbow corner
-          const segW=hx_end-(tx_right+ARROW_HEAD_H)+OVERLAP;
-          if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,tx_right+ARROW_HEAD_H-OVERLAP,elbowY-ARROW_W/2,segW,ARROW_W,met));
-          g.appendChild(_svgHArrowHeadFlip(ARROW_HEAD_SRC,tx_right,elbowY-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
+          const hx=tal.col*COL_STRIDE+CELL+PAD;
+          g.appendChild(mkLine(fx,fy,fx,tmid));
+          g.appendChild(mkLine(fx,tmid,hx+HEAD,tmid));
+          g.appendChild(mkArrowLeft(hx,tmid));
         }
       }
 
       svg.appendChild(g);
     });
   });
-}
-
-// Horizontal bar segment (body rotated 90°) using a thin rect filled via image
-function _svgHBar(src,x,y,w,h,met){
-  // We reuse _svgImg — the body image is tiled/stretched horizontally
-  return _svgImg(src,x,y,w,h,met);
-}
-
-// Arrowhead pointing RIGHT (image is vertical, so we rotate -90° about its center)
-function _svgHArrowHead(src,x,y,w,h,met){
-  const img=document.createElementNS('http://www.w3.org/2000/svg','image');
-  img.setAttributeNS('http://www.w3.org/1999/xlink','href',src);
-  // w = ARROW_HEAD_H (horizontal extent), h = ARROW_HEAD_W (vertical extent)
-  img.setAttribute('x',x); img.setAttribute('y',y);
-  img.setAttribute('width',w); img.setAttribute('height',h);
-  img.setAttribute('preserveAspectRatio','none');
-  if(!met)img.setAttribute('opacity','0.35');
-  const cx=x+w/2, cy=y+h/2;
-  img.setAttribute('transform',`rotate(-90,${cx},${cy})`);
-  return img;
-}
-
-// Arrowhead pointing LEFT
-function _svgHArrowHeadFlip(src,x,y,w,h,met){
-  const img=document.createElementNS('http://www.w3.org/2000/svg','image');
-  img.setAttributeNS('http://www.w3.org/1999/xlink','href',src);
-  img.setAttribute('x',x); img.setAttribute('y',y);
-  img.setAttribute('width',w); img.setAttribute('height',h);
-  img.setAttribute('preserveAspectRatio','none');
-  if(!met)img.setAttribute('opacity','0.35');
-  const cx=x+w/2, cy=y+h/2;
-  img.setAttribute('transform',`rotate(90,${cx},${cy})`);
-  return img;
 }
 
 function showTooltip(e,ti,idx){
