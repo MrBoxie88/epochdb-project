@@ -1062,8 +1062,54 @@ function drawAllArrows(){
   const COL_STRIDE=76;
   const ROW_STRIDE=80;
   const CELL=48;
-  const PAD=6;
-  const HEAD=7;
+  const PAD=4;
+  const OVERLAP=4;
+  const AW=14;   // body width
+  const AHW=21;  // arrowhead base (wide side)
+  const AHH=13;  // arrowhead depth (tip to base)
+  const BODY='/images/talents/arrowbody.webp';
+  const HEAD='/images/talents/arrowhead.webp';
+
+  function mkImg(src,x,y,w,h,met){
+    const el=document.createElementNS('http://www.w3.org/2000/svg','image');
+    el.setAttributeNS('http://www.w3.org/1999/xlink','href',src);
+    el.setAttribute('x',x);el.setAttribute('y',y);
+    el.setAttribute('width',w);el.setAttribute('height',h);
+    el.setAttribute('preserveAspectRatio','none');
+    if(!met)el.setAttribute('opacity','0.35');
+    return el;
+  }
+
+  // Horizontal body from x1 to x2 (x1 < x2) centered at cy
+  function hBody(x1,cy,x2,met){
+    const segW=x2-x1; if(segW<=0)return null;
+    const cx=x1+segW/2;
+    const el=mkImg(BODY,cx-AW/2,cy-segW/2,AW,segW,met);
+    el.setAttribute('transform',`rotate(-90,${cx},${cy})`);
+    return el;
+  }
+
+  // Arrowhead pointing DOWN — tip at (ax, ay)
+  function headDown(ax,ay,met){
+    return mkImg(HEAD,ax-AHW/2,ay-AHH,AHW,AHH,met);
+  }
+
+  // Arrowhead pointing RIGHT — tip at (ax, ay)
+  // Achieved by rotating the down-pointing image -90° around (ax-AHW/2, ay)
+  function headRight(ax,ay,met){
+    const cx=ax-AHW/2, cy=ay;
+    const el=mkImg(HEAD,cx-AHH/2,cy-AHW/2,AHH,AHW,met);
+    el.setAttribute('transform',`rotate(-90,${cx},${cy})`);
+    return el;
+  }
+
+  // Arrowhead pointing LEFT — tip at (ax, ay)
+  function headLeft(ax,ay,met){
+    const cx=ax+AHW/2, cy=ay;
+    const el=mkImg(HEAD,cx-AHH/2,cy-AHW/2,AHH,AHW,met);
+    el.setAttribute('transform',`rotate(90,${cx},${cy})`);
+    return el;
+  }
 
   document.querySelectorAll('.tree-grid').forEach(grid=>{
     const ti=parseInt(grid.dataset.tree);
@@ -1078,79 +1124,56 @@ function drawAllArrows(){
       if(fromIdx===-1)return;
       const from=tree.talents[fromIdx];
       const met=pointsSpent[ti][fromIdx]>=from.maxRank;
-      const col=met?'#c8a84b':'#5a5040';
-      const op=met?'0.9':'0.45';
+      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
 
       const fx=from.col*COL_STRIDE+CELL/2;
-      const fy=from.row*ROW_STRIDE+CELL+PAD;
-      const ty=tal.row*ROW_STRIDE-PAD;
-      const tmid=tal.row*ROW_STRIDE+CELL/2;
+      const fy_bot=from.row*ROW_STRIDE+CELL;
+      const ty_top=tal.row*ROW_STRIDE;
+      const fy_mid=from.row*ROW_STRIDE+CELL/2;
       const sameCol=from.col===tal.col;
       const sameRow=from.row===tal.row;
       const goRight=tal.col>from.col;
 
-      const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-      g.setAttribute('stroke',col);
-      g.setAttribute('fill',col);
-      g.setAttribute('opacity',op);
-
-      const mkLine=(x1,y1,x2,y2)=>{
-        const l=document.createElementNS('http://www.w3.org/2000/svg','line');
-        l.setAttribute('x1',x1);l.setAttribute('y1',y1);
-        l.setAttribute('x2',x2);l.setAttribute('y2',y2);
-        l.setAttribute('stroke-width','2');
-        l.setAttribute('stroke-linecap','round');
-        l.setAttribute('fill','none');
-        return l;
-      };
-      const mkArrowDown=(ax,ay)=>{
-        const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-        p.setAttribute('points',`${ax-HEAD/2},${ay-HEAD} ${ax+HEAD/2},${ay-HEAD} ${ax},${ay}`);
-        p.setAttribute('stroke','none');
-        return p;
-      };
-      const mkArrowRight=(ax,ay)=>{
-        const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-        p.setAttribute('points',`${ax-HEAD},${ay-HEAD/2} ${ax-HEAD},${ay+HEAD/2} ${ax},${ay}`);
-        p.setAttribute('stroke','none');
-        return p;
-      };
-      const mkArrowLeft=(ax,ay)=>{
-        const p=document.createElementNS('http://www.w3.org/2000/svg','polygon');
-        p.setAttribute('points',`${ax+HEAD},${ay-HEAD/2} ${ax+HEAD},${ay+HEAD/2} ${ax},${ay}`);
-        p.setAttribute('stroke','none');
-        return p;
-      };
-
       if(sameCol){
-        if(ty<=fy)return;
-        g.appendChild(mkLine(fx,fy,fx,ty-HEAD));
-        g.appendChild(mkArrowDown(fx,ty));
+        // ── Straight vertical arrow ──
+        if(ty_top<=fy_bot)return;
+        const bodyY=fy_bot+PAD;
+        const segH=(ty_top-AHH)-bodyY+OVERLAP;
+        if(segH>0)g.appendChild(mkImg(BODY,fx-AW/2,bodyY,AW,segH,met));
+        g.appendChild(headDown(fx,ty_top,met));
+
       }else if(sameRow){
-        const cy=from.row*ROW_STRIDE+CELL/2;
+        // ── Straight horizontal arrow ──
+        const cy=fy_mid;
         if(goRight){
           const x1=from.col*COL_STRIDE+CELL+PAD;
-          const x2=tal.col*COL_STRIDE-PAD;
-          g.appendChild(mkLine(x1,cy,x2-HEAD,cy));
-          g.appendChild(mkArrowRight(x2,cy));
+          const x2=tal.col*COL_STRIDE;
+          const hb=hBody(x1,cy,x2-AHW+OVERLAP,met);
+          if(hb)g.appendChild(hb);
+          g.appendChild(headRight(x2,cy,met));
         }else{
           const x1=from.col*COL_STRIDE-PAD;
-          const x2=tal.col*COL_STRIDE+CELL+PAD;
-          g.appendChild(mkLine(x1,cy,x2+HEAD,cy));
-          g.appendChild(mkArrowLeft(x2,cy));
+          const x2=tal.col*COL_STRIDE+CELL;
+          const hb=hBody(x2+AHW-OVERLAP,cy,x1,met);
+          if(hb)g.appendChild(hb);
+          g.appendChild(headLeft(x2,cy,met));
         }
+
       }else{
+        // ── L-shaped: exit SIDE of source → horizontal → vertical down to target ──
+        const cy=fy_mid;
+        const ex=tal.col*COL_STRIDE+CELL/2; // elbow at target column center
         if(goRight){
-          const hx=tal.col*COL_STRIDE-PAD;
-          g.appendChild(mkLine(fx,fy,fx,tmid));
-          g.appendChild(mkLine(fx,tmid,hx-HEAD,tmid));
-          g.appendChild(mkArrowRight(hx,tmid));
+          const hb=hBody(from.col*COL_STRIDE+CELL+PAD,cy,ex,met);
+          if(hb)g.appendChild(hb);
         }else{
-          const hx=tal.col*COL_STRIDE+CELL+PAD;
-          g.appendChild(mkLine(fx,fy,fx,tmid));
-          g.appendChild(mkLine(fx,tmid,hx+HEAD,tmid));
-          g.appendChild(mkArrowLeft(hx,tmid));
+          const hb=hBody(ex,cy,from.col*COL_STRIDE-PAD,met);
+          if(hb)g.appendChild(hb);
         }
+        // vertical segment: elbow y down to target top
+        const segH=(ty_top-AHH)-cy+OVERLAP;
+        if(segH>0)g.appendChild(mkImg(BODY,ex-AW/2,cy,AW,segH,met));
+        g.appendChild(headDown(ex,ty_top,met));
       }
 
       svg.appendChild(g);
