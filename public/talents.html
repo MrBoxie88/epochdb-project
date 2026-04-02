@@ -1105,28 +1105,30 @@ function drawAllArrows(){
       const sameRow=from.row===tal.row;
       const goRight=tx>fx;
 
-      const OVERLAP=4; // body overlaps into arrowhead base to eliminate gaps
+      const OVERLAP=4;  // body overlaps into arrowhead base to eliminate gaps
+      const PAD=4;      // gap between arrow and cell edges so it doesn't overlap icons
 
       if(sameCol){
         // ── Straight vertical arrow ──
         if(ty_top<=fy_bottom)return;
-        const segH=ty_top-fy_bottom-ARROW_HEAD_H+OVERLAP;
-        if(segH>0) g.appendChild(_svgImg(ARROW_BODY_SRC,fx-ARROW_W/2,fy_bottom,ARROW_W,segH,met));
-        g.appendChild(_svgImg(ARROW_HEAD_SRC,fx-ARROW_HEAD_W/2,ty_top-ARROW_HEAD_H,ARROW_HEAD_W,ARROW_HEAD_H,met));
+        const bodyY=fy_bottom+PAD;
+        const headY=ty_top-ARROW_HEAD_H;
+        const segH=headY-bodyY+OVERLAP;
+        if(segH>0) g.appendChild(_svgImg(ARROW_BODY_SRC,fx-ARROW_W/2,bodyY,ARROW_W,segH,met));
+        g.appendChild(_svgImg(ARROW_HEAD_SRC,fx-ARROW_HEAD_W/2,headY,ARROW_HEAD_W,ARROW_HEAD_H,met));
 
       }else if(sameRow){
         // ── Straight horizontal arrow ──
-        const fx_right=from.col*COL_STRIDE+CELL; // right edge of source cell
-        const tx_left=tal.col*COL_STRIDE;         // left edge of target cell
-        const cx=from.col*COL_STRIDE+CELL/2;
+        const fx_right=from.col*COL_STRIDE+CELL+PAD;
+        const tx_left=tal.col*COL_STRIDE;
         const cy=from.row*ROW_STRIDE+CELL/2;
         if(goRight){
-          const segW=tx_left-fx_right-ARROW_HEAD_H+OVERLAP;
+          const segW=tx_left-ARROW_HEAD_H-fx_right+OVERLAP;
           if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,fx_right,cy-ARROW_W/2,segW,ARROW_W,met));
           g.appendChild(_svgHArrowHead(ARROW_HEAD_SRC,tx_left-ARROW_HEAD_H,cy-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
         }else{
           const tx_right=tal.col*COL_STRIDE+CELL;
-          const segW=fx_right-(tx_right+ARROW_HEAD_H)+OVERLAP;
+          const segW=from.col*COL_STRIDE-PAD-(tx_right+ARROW_HEAD_H)+OVERLAP;
           if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,tx_right+ARROW_HEAD_H-OVERLAP,cy-ARROW_W/2,segW,ARROW_W,met));
           g.appendChild(_svgHArrowHeadFlip(ARROW_HEAD_SRC,tx_right,cy-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
         }
@@ -1134,21 +1136,22 @@ function drawAllArrows(){
       }else{
         // ── L-shaped arrow: vertical down from source, then horizontal to target ──
         const elbowY=ty_mid;
-        // Vertical segment: from bottom of source cell down to elbow row
-        const vertH=elbowY-fy_bottom;
-        if(vertH>0) g.appendChild(_svgImg(ARROW_BODY_SRC,fx-ARROW_W/2,fy_bottom,ARROW_W,vertH,met));
-        // Horizontal segment: from elbow to target, ending with arrowhead
+        // Vertical segment: starts PAD below source cell, runs all the way to elbowY
+        const bodyY=fy_bottom+PAD;
+        const vertH=elbowY-bodyY;
+        if(vertH>0) g.appendChild(_svgImg(ARROW_BODY_SRC,fx-ARROW_W/2,bodyY,ARROW_W,vertH,met));
+        // Horizontal segment: starts right at elbow x (fx), ends at arrowhead on target
         if(goRight){
-          const hx_start=fx+ARROW_W/2;
+          const hx_start=fx; // start exactly at elbow corner — no gap
           const tx_left=tal.col*COL_STRIDE;
           const segW=tx_left-ARROW_HEAD_H-hx_start+OVERLAP;
           if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,hx_start,elbowY-ARROW_W/2,segW,ARROW_W,met));
           g.appendChild(_svgHArrowHead(ARROW_HEAD_SRC,tx_left-ARROW_HEAD_H,elbowY-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
         }else{
           const tx_right=tal.col*COL_STRIDE+CELL;
-          const hx_start=tx_right+ARROW_HEAD_H-OVERLAP;
-          const segW=fx-ARROW_W/2-hx_start;
-          if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,hx_start,elbowY-ARROW_W/2,segW,ARROW_W,met));
+          const hx_end=fx; // end at elbow corner
+          const segW=hx_end-(tx_right+ARROW_HEAD_H)+OVERLAP;
+          if(segW>0) g.appendChild(_svgHBar(ARROW_BODY_SRC,tx_right+ARROW_HEAD_H-OVERLAP,elbowY-ARROW_W/2,segW,ARROW_W,met));
           g.appendChild(_svgHArrowHeadFlip(ARROW_HEAD_SRC,tx_right,elbowY-ARROW_HEAD_W/2,ARROW_HEAD_H,ARROW_HEAD_W,met));
         }
       }
