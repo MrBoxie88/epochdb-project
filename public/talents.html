@@ -902,6 +902,7 @@ druid:{name:'Druid',color:'#FF7C0A',icon:'classicon_druid',classId:11,trees:[
 let currentClass='warrior';
 let pointsSpent=[];
 let orderLog=[];
+const orderLogs={};
 
 function init(){
   const hash=location.hash.slice(1);
@@ -933,7 +934,8 @@ function renderClassBar(){
 function loadClass(key){
   const cls=CLASS_DATA[key];
   pointsSpent=cls.trees.map(t=>t.talents.map(()=>0));
-  orderLog=[];
+  if(!orderLogs[key])orderLogs[key]=[];
+  orderLog=orderLogs[key];
   document.querySelectorAll('.class-btn').forEach((b,i)=>{
     b.classList.toggle('active',Object.keys(CLASS_DATA)[i]===key);
   });
@@ -1303,7 +1305,7 @@ function updateUrl(){location.hash=encodeBuild();}
 function resetAll(){
   const cls=CLASS_DATA[currentClass];
   pointsSpent=cls.trees.map(t=>t.talents.map(()=>0));
-  orderLog=[];
+  orderLogs[currentClass]=[];orderLog=orderLogs[currentClass];
   renderControls();updateTrees();updateUrl();renderOrder();
 }
 
