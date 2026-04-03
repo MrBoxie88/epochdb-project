@@ -130,6 +130,19 @@ button { cursor:pointer; font-family:inherit }
 .toast { position:fixed; bottom:1.5rem; right:1.5rem; background:var(--bg-panel); border:1px solid var(--border-gold); border-left:3px solid var(--gold); padding:.7rem 1.1rem; font-size:.88rem; color:var(--text-bright); z-index:600; box-shadow:0 4px 20px rgba(0,0,0,.5); animation:slideIn .25s ease }
 @keyframes slideIn { from{transform:translateX(110%);opacity:0} to{transform:none;opacity:1} }
 
+/* ── ORDER PANEL ── */
+#order-panel { display:none; background:var(--bg-panel); border:1px solid var(--border); border-top:none; margin-bottom:2rem; padding:.9rem 1.5rem }
+#order-panel.open { display:block }
+.order-panel-hdr { font-family:'Cinzel',serif; font-size:.68rem; letter-spacing:.14em; color:var(--gold); text-transform:uppercase; margin-bottom:.7rem }
+.order-list { list-style:none; display:flex; flex-direction:column; gap:.2rem; max-height:260px; overflow-y:auto; padding-right:2px }
+.order-item { display:flex; align-items:center; gap:.5rem; font-size:.82rem; padding:.22rem .4rem }
+.order-item:hover { background:var(--bg-hover) }
+.order-num { font-family:'Share Tech Mono',monospace; color:var(--gold-dark); min-width:28px; text-align:right; font-size:.72rem; flex-shrink:0 }
+.order-tree-label { color:var(--text-dim); font-size:.75rem; flex-shrink:0; min-width:84px }
+.order-talent-name { color:var(--text-bright); flex:1 }
+.order-rank-badge { font-family:'Share Tech Mono',monospace; color:var(--green-soft); font-size:.72rem; flex-shrink:0 }
+.order-empty { color:var(--text-dim); font-style:italic; font-size:.85rem; text-align:center; padding:.8rem 0 }
+
 @media(max-width:768px) {
   .trees-wrap { gap:8px }
   .tree-panel { min-width:260px }
@@ -178,6 +191,10 @@ button { cursor:pointer; font-family:inherit }
   <div id="classBar" class="class-bar"></div>
   <div id="controls" class="controls"></div>
   <div id="treesWrap" class="trees-wrap"></div>
+  <div id="order-panel">
+    <div class="order-panel-hdr">📋 Talent Order</div>
+    <div id="order-list-wrap"><div class="order-empty">No talents allocated yet. Click a talent icon to begin.</div></div>
+  </div>
 </div>
 
 <div id="tooltip" class="talent-tooltip"><div class="tt-inner"></div></div>
@@ -884,6 +901,7 @@ druid:{name:'Druid',color:'#FF7C0A',icon:'classicon_druid',classId:11,trees:[
 
 let currentClass='warrior';
 let pointsSpent=[];
+let orderLog=[];
 
 function init(){
   const hash=location.hash.slice(1);
@@ -915,6 +933,7 @@ function renderClassBar(){
 function loadClass(key){
   const cls=CLASS_DATA[key];
   pointsSpent=cls.trees.map(t=>t.talents.map(()=>0));
+  orderLog=[];
   document.querySelectorAll('.class-btn').forEach((b,i)=>{
     b.classList.toggle('active',Object.keys(CLASS_DATA)[i]===key);
   });
@@ -935,8 +954,23 @@ function renderControls(){
     <div class="points-display">Points: <span>${tp}</span> / ${MAX_POINTS}
       &nbsp;(${cls.trees.map((t,i)=>`${t.name}: ${treePoints(i)}`).join(' / ')})</div>
     <button class="btn" onclick="resetAll()">✕ Reset All</button>
+    <button class="btn" onclick="toggleOrder()">📋 Order</button>
     <button class="btn share-btn" onclick="openShare()">⚔ Share Build</button>`;
 }
+
+function renderOrder(){
+  const wrap=document.getElementById('order-list-wrap');
+  const cls=CLASS_DATA[currentClass];
+  if(orderLog.length===0){wrap.innerHTML='<div class="order-empty">No talents allocated yet. Click a talent icon to begin.</div>';return;}
+  let html='<ol class="order-list">';
+  orderLog.forEach((entry,i)=>{
+    const tree=cls.trees[entry.ti];const tal=tree.talents[entry.idx];
+    let rank=0;for(let j=0;j<=i;j++){if(orderLog[j].ti===entry.ti&&orderLog[j].idx===entry.idx)rank++;}
+    html+=`<li class="order-item"><span class="order-num">${i+1}.</span><span class="order-tree-label">[${tree.name}]</span><span class="order-talent-name">${tal.name}</span><span class="order-rank-badge">${rank}/${tal.maxRank}</span></li>`;
+  });
+  html+='</ol>';wrap.innerHTML=html;
+}
+function toggleOrder(){document.getElementById('order-panel').classList.toggle('open');renderOrder();}
 
 function renderTrees(){
   const cls=CLASS_DATA[currentClass];
@@ -1051,14 +1085,19 @@ function onTalentClick(e,ti,idx){
     if(st==='available'||st==='has-points'){
       if(totalPoints()<MAX_POINTS&&pointsSpent[ti][idx]<CLASS_DATA[currentClass].trees[ti].talents[idx].maxRank){
         pointsSpent[ti][idx]++;
+        orderLog.push({ti,idx});
       }
     }
   }else{
-    if(canRemovePoint(ti,idx)){pointsSpent[ti][idx]--;}
+    if(canRemovePoint(ti,idx)){
+      pointsSpent[ti][idx]--;
+      for(let i=orderLog.length-1;i>=0;i--){if(orderLog[i].ti===ti&&orderLog[i].idx===idx){orderLog.splice(i,1);break;}}
+    }
   }
   renderControls();
   updateTrees();
   updateUrl();
+  if(document.getElementById('order-panel').classList.contains('open'))renderOrder();
 }
 
 function drawAllArrows(){
@@ -1263,7 +1302,8 @@ function updateUrl(){location.hash=encodeBuild();}
 function resetAll(){
   const cls=CLASS_DATA[currentClass];
   pointsSpent=cls.trees.map(t=>t.talents.map(()=>0));
-  renderControls();updateTrees();updateUrl();
+  orderLog=[];
+  renderControls();updateTrees();updateUrl();renderOrder();
 }
 
 function openShare(){
