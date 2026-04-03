@@ -4084,7 +4084,8 @@
         }
 
         initIdentity();
-        showHome();
+        const _tabParam = new URLSearchParams(location.search).get('tab');
+        if (_tabParam && ['npcs','items','quests','loot'].includes(_tabParam)) { showList(_tabParam); } else { showHome(); }
         loadStats();
     </script>
 </body>

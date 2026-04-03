@@ -1,0 +1,47 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8">
+<script>location.replace("/?tab=npcs");</script>
+<title>NPCs &amp; Mobs — EpochDB</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#c8a84b;--gold-light:#e8cc7a;--gold-dark:#8a6f2e;--bg-deep:#0a0a0c;--bg-panel:#0f0f14;--bg-card:#131318;--border:#252530;--border-gold:#3a2e10;--text:#c8c0a8;--text-dim:#6a6458;--text-bright:#e8dfc8}
+html{font-size:13px}
+body{background:var(--bg-deep);color:var(--text);font-family:'Crimson Text',Georgia,serif;min-height:100vh}
+a{color:var(--gold);text-decoration:none}a:hover{color:var(--gold-light)}
+#topbar{background:linear-gradient(180deg,#0d0d10 0%,rgba(10,10,12,.95) 100%);border-bottom:1px solid var(--border-gold);padding:0 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:200;height:52px}
+.logo{display:flex;align-items:center;gap:.7rem;cursor:pointer}.logo-text{font-family:'Cinzel',serif;font-weight:900;font-size:1.15rem;letter-spacing:.15em;color:var(--gold)}.logo-sub{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.3em;color:var(--text-dim);margin-top:2px}
+#topnav{display:flex;gap:.1rem;margin-left:auto;align-items:center}
+.tnav-btn{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.12em;color:var(--text-dim);background:none;border:none;padding:.4rem .75rem;text-transform:uppercase;text-decoration:none}.tnav-btn:hover,.tnav-btn.active{color:var(--gold)}
+#mainnav{background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;padding:0 1.5rem;gap:0;overflow-x:auto}
+.mnav-tab{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.14em;color:var(--text-dim);background:none;border:none;border-bottom:2px solid transparent;padding:.65rem 1rem;text-transform:uppercase;white-space:nowrap;margin-bottom:-1px;text-decoration:none;display:inline-block}.mnav-tab:hover{color:var(--text)}.mnav-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+#page{max-width:1200px;margin:0 auto;padding:2rem 1.5rem;text-align:center}
+.hero-title{font-family:'Cinzel',serif;font-size:2rem;font-weight:900;color:var(--gold);letter-spacing:.08em;margin-bottom:1rem}
+.coming-soon-box{background:var(--bg-panel);border:1px solid var(--border-gold);padding:3rem 2rem;margin:2rem auto;max-width:480px}
+.coming-soon-box p{color:var(--text-dim);font-style:italic;font-size:1.05rem}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <a class="logo" href="/"><div><div class="logo-text">EPOCHDB</div><div class="logo-sub">Project Epoch Database</div></div></a>
+  <div id="topnav">
+    <a class="tnav-btn active" href="/npcs.html">NPCs</a>
+    <a class="tnav-btn" href="/items.html">Items</a>
+    <a class="tnav-btn" href="/quests.html">Quests</a>
+    <a class="tnav-btn" href="/loot.html">Loot</a>
+    <a class="tnav-btn" href="/talents.html">Talents</a>
+  </div>
+</div>
+<div id="mainnav">
+  <a class="mnav-tab" href="/">Home</a>
+  <a class="mnav-tab active" href="/npcs.html">NPCs &amp; Mobs</a>
+  <a class="mnav-tab" href="/items.html">Items</a>
+  <a class="mnav-tab" href="/quests.html">Quests</a>
+  <a class="mnav-tab" href="/loot.html">Loot Tables</a>
+  <a class="mnav-tab" href="/talents.html">Talent Calculator</a>
+</div>
+<div id="page">
+  <h1 class="hero-title">⚔ NPCs &amp; MOBS</h1>
+  <div class="coming-soon-box"><p>Coming Soon</p></div>
+</div>
+</body>
+</html>
