@@ -940,6 +940,7 @@ function loadClass(key){
   decodeBuild();
   renderControls();
   renderTrees();
+  renderOrder();
 }
 
 function totalPoints(){return pointsSpent.reduce((s,t)=>s+t.reduce((a,b)=>a+b,0),0);}
