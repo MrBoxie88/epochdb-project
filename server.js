@@ -1030,11 +1030,6 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
             const mSpdF = Number.isFinite(mSpd) ? mSpd : 0;
             const oSpdF = Number.isFinite(oSpd) ? oSpd : 0;
 
-            const awd = ap14 * mSpdF + mhMid;
-            const nwd = ap14 * normMH + mhMid;
-            const ohawd = ap14 * oSpdF + ohMid;
-            const ohnwd = ap14 * normOH + ohMid;
-
             const t = body.talents || {};
             const rank = (name) => Math.max(0, Number(t[name]) || 0);
 
@@ -1047,6 +1042,12 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
             const serrated = rank('Serrated Blades');
             const lethality = rank('Lethality');
             const vile = rank('Vile Poisons');
+
+            const awd = ap14 * mSpdF + mhMid;
+            const nwd = ap14 * normMH + mhMid;
+            const ohRawWeapon = ap14 * oSpdF + ohMid;
+            const ohawd = ohRawWeapon * 0.5 * (1 + 0.1 * dws);
+            const ohnwd = ap14 * normOH + ohMid;
 
             const surpriseMul = 1 + 0.1 * surprise;
             const lethCritMult = 2 + 0.06 * lethality;
@@ -1078,7 +1079,7 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
             const muti = mutInner * (1 + 0.04 * opportunity) * 1.5;
             addAbi('Mutilate', muti, lethCritMult, true);
 
-            const shiv = ohawd * (1 + 0.1 * dws) * surpriseMul;
+            const shiv = ohawd * surpriseMul;
             addAbi('Shiv', shiv, lethCritMult, true);
 
             addAbi('Ghostly Strike', awd * 1.25, lethCritMult, true);
@@ -1101,9 +1102,9 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
 
             const vpMul = 1 + 0.04 * vile;
             const poisons = [
-                { name: 'Instant Poison VI', avg: Math.round((112 + 0.1 * ap) * vpMul), critMult: stdCritMult },
-                { name: 'Deadly Poison IV', avg: Math.round((108 + 0.12 * ap) * vpMul), critMult: stdCritMult },
-                { name: 'Wound Poison IV', avg: 53 * vpMul, critMult: stdCritMult },
+                { name: 'Instant Poison VI', avg: Math.round((112 + 0.1 * ap) * vpMul), canCrit: false },
+                { name: 'Deadly Poison IV', avg: Math.round((108 + 0.12 * ap) * vpMul), canCrit: false },
+                { name: 'Wound Poison IV', avg: 53 * vpMul, canCrit: false },
             ];
 
             return {

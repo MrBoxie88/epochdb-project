@@ -1570,8 +1570,15 @@ async function fetchRogueDamage(){
     const map={};
     (data.abilities||[]).forEach(a=>{map[a.name]=a;});
     (data.poisons||[]).forEach(p=>{
+      const canCrit=p.canCrit!==false;
       const critMult=p.critMult||2;
-      map[p.name]={name:p.name,avg:p.avg,crit:p.avg*critMult,canCrit:true,critMult};
+      map[p.name]={
+        name:p.name,
+        avg:p.avg,
+        crit:canCrit?p.avg*critMult:null,
+        canCrit,
+        critMult:canCrit?critMult:null,
+      };
     });
     const tbody=g('sp-ability-rows');
     if(tbody)tbody.innerHTML=CLASS_ABILITIES.rogue.map(name=>{
