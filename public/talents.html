@@ -159,6 +159,20 @@ button { cursor:pointer; font-family:inherit }
 .sp-tbl .sn{color:var(--gold-light);text-align:left;padding-left:6px}
 .sp-tbl tr:hover td{background:var(--bg-hover)}
 .sp-empty{color:var(--text-dim);font-style:italic;font-size:.7rem;text-align:center;padding:.6rem;font-family:'Crimson Text',serif}
+.sp-inp{max-width:4.2rem;padding:2px 4px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-bright);font-family:'Share Tech Mono',monospace;font-size:.7rem;text-align:center}
+.sp-inp:focus{outline:none;border-color:var(--gold-dark)}
+.sp-inp-wide{max-width:5rem}
+#stat-panel .sp-tbl .sp-inp{max-width:3rem;margin:0 auto;display:block}
+#stat-panel .row-rogue{display:none;align-items:center;gap:6px;flex-wrap:wrap}
+#stat-panel .row-nonrogue{display:flex}
+#stat-panel.rogue-panel .row-rogue{display:flex}
+#stat-panel.rogue-panel .row-nonrogue{display:none}
+#stat-panel:not(.rogue-panel) .th-dag,#stat-panel:not(.rogue-panel) .td-dag{display:none}
+#stat-panel:not(.rogue-panel) .rogue-only-inp{display:none!important}
+#stat-panel:not(.rogue-panel) .rogue-derv{display:none!important}
+#stat-panel.rogue-panel .gear-mdash{display:none!important}
+#stat-panel.rogue-panel .rogue-only-inp{display:block!important}
+.sp-chk{width:14px;height:14px;margin:0;accent-color:var(--gold-dark);cursor:pointer}
 
 @media(max-width:768px) {
   .trees-wrap { gap:8px }
@@ -214,16 +228,39 @@ button { cursor:pointer; font-family:inherit }
     <div id="stat-panel">
       <div class="sp-hdr">&#x1F4CA; Build Stats</div>
       <div class="sp-kv-box">
-        <div class="sp-kv"><span class="k">AP</span><span class="v" id="sp-ap">&mdash;</span></div>
-        <div class="sp-kv"><span class="k">Crit</span><span class="v" id="sp-crit">&mdash;</span></div>
-        <div class="sp-kv"><span class="k">Hit</span><span class="v" id="sp-hit">&mdash;</span></div>
+        <div class="sp-kv row-rogue"><span class="k">AP</span><input type="number" class="sp-inp sp-inp-wide" id="inp-ap" min="0" step="1" value="900" title="Attack power before Deadliness; effective AP = this value × (1 + Deadliness ranks × 2%) for all formulas"></div>
+        <div class="sp-kv row-rogue"><span class="k">Crit</span><input type="number" class="sp-inp" id="inp-crit" min="0" step="0.01" value="5" title="Your crit % before talent bonuses; see hint for Malice etc."><span style="color:var(--text-dim);font-size:.68rem">%</span><span id="sp-crit-from-talents" style="font-size:.62rem;color:var(--text-dim);max-width:72px;line-height:1.2"></span></div>
+        <div class="sp-kv row-rogue"><span class="k">Hit</span><span class="v" id="sp-hit">&mdash;</span></div>
+        <div class="sp-kv row-nonrogue"><span class="k">AP</span><span class="v" id="sp-ap">&mdash;</span></div>
+        <div class="sp-kv row-nonrogue"><span class="k">Crit</span><span class="v" id="sp-crit">&mdash;</span></div>
+        <div class="sp-kv row-nonrogue"><span class="k">Hit</span><span class="v" id="sp-hit-nr">&mdash;</span></div>
       </div>
       <div class="sp-sect-hdr">Weapon</div>
-      <table class="sp-tbl">
-        <thead><tr><th>Weapon</th><th>Spd</th><th>Low</th><th>High</th></tr></thead>
+      <table class="sp-tbl" id="sp-weapon-tbl">
+        <thead><tr><th>Wpn</th><th>Spd</th><th>Low</th><th>High</th><th class="th-dag">Dag</th></tr></thead>
         <tbody>
-          <tr><td>MH</td><td id="sp-mh-spd">&mdash;</td><td id="sp-mh-lo">&mdash;</td><td id="sp-mh-hi">&mdash;</td></tr>
-          <tr><td>OH</td><td id="sp-oh-spd">&mdash;</td><td id="sp-oh-lo">&mdash;</td><td id="sp-oh-hi">&mdash;</td></tr>
+          <tr>
+            <td>MH</td>
+            <td><input type="number" class="sp-inp rogue-only-inp" id="inp-mh-spd" min="0.1" step="0.1" value="1.8"><span class="gear-mdash" id="sp-mh-spd-disp">&mdash;</span></td>
+            <td><input type="number" class="sp-inp rogue-only-inp" id="inp-mh-lo" min="0" step="1" value="74"><span class="gear-mdash" id="sp-mh-lo-disp">&mdash;</span></td>
+            <td><input type="number" class="sp-inp rogue-only-inp" id="inp-mh-hi" min="0" step="1" value="140"><span class="gear-mdash" id="sp-mh-hi-disp">&mdash;</span></td>
+            <td class="td-dag" style="text-align:center"><input type="checkbox" class="sp-chk" id="chk-mh-dagger" title="Main hand uses dagger normalized speed (1.7)"></td>
+          </tr>
+          <tr>
+            <td>OH</td>
+            <td><input type="number" class="sp-inp rogue-only-inp" id="inp-oh-spd" min="0.1" step="0.1" value="1.8"><span class="gear-mdash" id="sp-oh-spd-disp">&mdash;</span></td>
+            <td><input type="number" class="sp-inp rogue-only-inp" id="inp-oh-lo" min="0" step="1" value="49"><span class="gear-mdash" id="sp-oh-lo-disp">&mdash;</span></td>
+            <td><input type="number" class="sp-inp rogue-only-inp" id="inp-oh-hi" min="0" step="1" value="92"><span class="gear-mdash" id="sp-oh-hi-disp">&mdash;</span></td>
+            <td class="td-dag" style="text-align:center"><input type="checkbox" class="sp-chk" id="chk-oh-dagger" title="Off hand uses dagger normalized speed (1.7)"></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="sp-sect-hdr rogue-derv">Weapon damage</div>
+      <table class="sp-tbl rogue-derv">
+        <thead><tr><th></th><th>AWD</th><th>NWD</th></tr></thead>
+        <tbody>
+          <tr><td class="sn">MH</td><td id="sp-val-mh-awd">&mdash;</td><td id="sp-val-mh-nwd">&mdash;</td></tr>
+          <tr><td class="sn">OH</td><td id="sp-val-oh-awd">&mdash;</td><td id="sp-val-oh-nwd">&mdash;</td></tr>
         </tbody>
       </table>
       <div class="sp-sect-hdr">Ability Values</div>
@@ -1373,7 +1410,7 @@ const CLASS_ABILITIES={
   warrior:['Heroic Strike','Rend','Overpower','Thunder Clap','Slam','Mortal Strike','Whirlwind','Execute','Berserker Strike','Shield Slam','Devastate'],
   paladin:['Crusader Strike','Judgement','Holy Shock','Flash of Light','Holy Light','Consecration','Hammer of Wrath','Exorcism'],
   hunter: ['Auto Shot','Aimed Shot','Arcane Shot','Serpent Sting','Multi-Shot','Steady Shot','Volley'],
-  rogue:  ['Sinister Strike','Hemorrhage','Backstab','Mutilate','Shiv','Ghostly Strike','Riposte','Garrote','Ambush','Eviscerate','Rupture','Envenom'],
+  rogue:  ['Sinister Strike','Hemorrhage','Backstab','Mutilate','Shiv','Ghostly Strike','Riposte','Garrote','Ambush','Eviscerate','Rupture','Envenom','Instant Poison VI','Deadly Poison IV','Wound Poison IV'],
   priest: ['Smite','Holy Fire','Mind Blast','Mind Flay','Shadow Word: Pain','Holy Nova','Penance'],
   shaman: ['Lightning Bolt','Chain Lightning','Flame Shock','Earth Shock','Frost Shock','Lava Burst','Chain Heal','Healing Wave'],
   mage:   ['Fireball','Frostbolt','Arcane Missiles','Fire Blast','Pyroblast','Blizzard','Arcane Blast','Ice Lance'],
@@ -1382,9 +1419,11 @@ const CLASS_ABILITIES={
 };
 
 function renderStatPanel(){
+  const panel=document.getElementById('stat-panel');
+  if(panel)panel.classList.toggle('rogue-panel',currentClass==='rogue');
   if(currentClass==='rogue'){calcRogueStats();return;}
   const col=document.getElementById('sp-dmg-col');if(col)col.textContent='Damage';
-  ['sp-ap','sp-crit','sp-hit','sp-mh-spd','sp-mh-lo','sp-mh-hi','sp-oh-spd','sp-oh-lo','sp-oh-hi']
+  ['sp-ap','sp-crit','sp-hit-nr','sp-mh-spd-disp','sp-mh-lo-disp','sp-mh-hi-disp','sp-oh-spd-disp','sp-oh-lo-disp','sp-oh-hi-disp']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='\u2014';});
   const abilities=CLASS_ABILITIES[currentClass]||[];
   const tbody=document.getElementById('sp-ability-rows');
@@ -1392,88 +1431,154 @@ function renderStatPanel(){
   tbody.innerHTML=abilities.map(n=>`<tr><td class="sn">${n}</td><td>&mdash;</td></tr>`).join('');
 }
 
-// ── ROGUE STAT LOGIC ──
-const R={baseAP:900,baseCrit:5.0,baseHit:0.0,mh:{spd:1.8,lo:74,hi:140},oh:{spd:1.8,lo:49,hi:92}};
+// ── ROGUE STAT LOGIC (weapon inputs + POST /api/rogue-damage) ──
+const ROGUE_GEAR_LS='epochdb-rogue-gear-v1';
 const R_TALENT={
-  // Assassination
   'Malice':                    r=>({crit:r}),
-  'Improved Eviscerate':       r=>({am:{'Eviscerate':r*5}}),
-  'Vile Poisons':              r=>({am:{'Envenom':r*4}}),
-  'Lethality':                 r=>({am:{'Sinister Strike':r*6,'Backstab':r*6,'Mutilate':r*6,'Shiv':r*6,'Hemorrhage':r*6}}),
-  'Cold Blood':                r=>({am:{'Eviscerate':r>0?100:0}}),
-  'Find Weakness':             r=>({am:{'Sinister Strike':r*2,'Backstab':r*2,'Hemorrhage':r*2,'Ambush':r*2,'Eviscerate':r*2}}),
-  // Combat
   'Cruelty':                   r=>({crit:r}),
   'Precision':                 r=>({hit:r}),
   'Dagger Specialization':     r=>({crit:r}),
   'Sword Specialization':      r=>({crit:r*0.5}),
   'Fist Weapon Specialization':r=>({crit:r}),
-  'Dual Wield Specialization': r=>({ohDmg:r*10,am:{'Shiv':r*10}}),
-  'Aggression':                r=>({am:{'Sinister Strike':r*2,'Backstab':r*2,'Eviscerate':r*2}}),
-  'Blade Flurry':              r=>({am:{}}),
-  'Surprise Attacks':          r=>({am:{'Sinister Strike':10,'Backstab':10,'Shiv':10,'Hemorrhage':10,'Gouge':10}}),
-  // Subtlety
   'Deadliness':                r=>({apPct:r*2}),
-  'Opportunity':               r=>({am:{'Backstab':r*4,'Mutilate':r*4,'Shiv':r*4,'Gouge':r*4}}),
-  'Serrated Blades':           r=>({am:{'Rupture':r*10}}),
-  'Sinister Calling':          r=>({am:{'Backstab':r*2,'Hemorrhage':r*2}}),
-  'Master of Subtlety':        r=>({am:{'Ambush':r===1?4:r===2?7:10}}),
 };
-function rogueAbilityBase(name,mh,oh,ap){
-  const mhA=(mh.lo+mh.hi)/2,ohA=(oh.lo+oh.hi)/2;
-  const mhSw=ap/14*mh.spd,ohSw=ap/14*oh.spd,norm=ap/14*1.7;
-  switch(name){
-    case 'Sinister Strike': return mhA+mhSw+68;
-    case 'Hemorrhage':      return 1.10*(mhA+mhSw);
-    case 'Backstab':        return 2.50*mhA+norm+240;
-    case 'Mutilate':        return 2*(2.25*mhA+norm+44);
-    case 'Shiv':            return ohA+ohSw;
-    case 'Ghostly Strike':  return 1.25*(mhA+mhSw);
-    case 'Riposte':         return 1.50*(mhA+mhSw);
-    case 'Garrote':         return ap*0.07+630;
-    case 'Ambush':          return 2.50*mhA+norm+210;
-    case 'Eviscerate':      return 5*(ap*0.03+120.8);
-    case 'Rupture':         return ap*0.17+275;
-    case 'Envenom':         return ap*0.09+400;
-    default: return 0;
+function collectRoguePassiveBonuses(){
+  const bon={crit:0,hit:0,apPct:0};
+  CLASS_DATA.rogue.trees.forEach((tree,ti)=>{
+    tree.talents.forEach((tal,idx)=>{
+      const r=pointsSpent[ti]?.[idx]||0;if(!r)return;
+      const fn=R_TALENT[tal.name];if(!fn)return;
+      const b=fn(r);
+      if(b.crit)bon.crit+=b.crit;
+      if(b.hit)bon.hit+=b.hit;
+      if(b.apPct)bon.apPct+=b.apPct;
+    });
+  });
+  return bon;
+}
+function getRogueDeadlinessPct(){
+  let r=0;
+  CLASS_DATA.rogue.trees.forEach((tree,ti)=>{
+    tree.talents.forEach((tal,idx)=>{
+      if(tal.name==='Deadliness')r=pointsSpent[ti][idx]||0;
+    });
+  });
+  return r*2;
+}
+function collectRogueTalentsForApi(){
+  const out={};
+  CLASS_DATA.rogue.trees.forEach((tree,ti)=>{
+    tree.talents.forEach((tal,idx)=>{
+      const r=pointsSpent[ti][idx]||0;
+      if(r>0)out[tal.name]=r;
+    });
+  });
+  return out;
+}
+function readRogueGearPayload(){
+  const g=id=>document.getElementById(id);
+  const num=(id,def)=>{const v=parseFloat(g(id)?.value);return Number.isFinite(v)?v:def;};
+  const apIn=num('inp-ap',900);
+  const deadPct=getRogueDeadlinessPct();
+  const ap=Math.round(apIn*(1+deadPct/100));
+  return{
+    ap,
+    mh:{low:num('inp-mh-lo',74),high:num('inp-mh-hi',140),speed:num('inp-mh-spd',1.8),dagger:!!g('chk-mh-dagger')?.checked},
+    oh:{low:num('inp-oh-lo',49),high:num('inp-oh-hi',92),speed:num('inp-oh-spd',1.8),dagger:!!g('chk-oh-dagger')?.checked},
+    talents:collectRogueTalentsForApi(),
+  };
+}
+function saveRogueGearLocal(){
+  try{
+    const p=readRogueGearPayload();
+    localStorage.setItem(ROGUE_GEAR_LS,JSON.stringify({
+      ap:document.getElementById('inp-ap')?.value,
+      crit:document.getElementById('inp-crit')?.value,
+      mh:p.mh,oh:p.oh,
+    }));
+  }catch(e){/* ignore */}
+}
+function loadRogueGearLocal(){
+  try{
+    const raw=localStorage.getItem(ROGUE_GEAR_LS);
+    if(!raw)return;
+    const o=JSON.parse(raw);
+    const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!==undefined&&v!==null)el.value=v;};
+    if(o.ap!=null)set('inp-ap',o.ap);
+    if(o.crit!=null)set('inp-crit',o.crit);
+    if(o.mh){set('inp-mh-lo',o.mh.low);set('inp-mh-hi',o.mh.high);set('inp-mh-spd',o.mh.speed);
+      const c=document.getElementById('chk-mh-dagger');if(c&&o.mh.dagger!=null)c.checked=!!o.mh.dagger;}
+    if(o.oh){set('inp-oh-lo',o.oh.low);set('inp-oh-hi',o.oh.high);set('inp-oh-spd',o.oh.speed);
+      const c=document.getElementById('chk-oh-dagger');if(c&&o.oh.dagger!=null)c.checked=!!o.oh.dagger;}
+  }catch(e){/* ignore */}
+}
+let rogueFetchTimer=null;
+let rogueGearListenersBound=false;
+let rogueLocalHydrated=false;
+function bindRogueGearListeners(){
+  if(rogueGearListenersBound)return;
+  rogueGearListenersBound=true;
+  const on=()=>{saveRogueGearLocal();scheduleRogueDamageFetch();};
+  ['inp-ap','inp-crit','inp-mh-spd','inp-mh-lo','inp-mh-hi','inp-oh-spd','inp-oh-lo','inp-oh-hi','chk-mh-dagger','chk-oh-dagger']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',on);if(el)el.addEventListener('change',on);});
+}
+function scheduleRogueDamageFetch(){
+  if(currentClass!=='rogue')return;
+  clearTimeout(rogueFetchTimer);
+  rogueFetchTimer=setTimeout(()=>fetchRogueDamage(),200);
+}
+function formatAvgCrit(row){
+  if(!row)return'&mdash;';
+  if(row.canCrit&&row.crit!=null)return`${row.avg.toFixed(1)} / ${row.crit.toFixed(1)}`;
+  return row.avg.toFixed(1);
+}
+async function fetchRogueDamage(){
+  const g=id=>document.getElementById(id);
+  const bon=collectRoguePassiveBonuses();
+  if(g('sp-hit'))g('sp-hit').textContent=(bon.hit).toFixed(0)+'%';
+  const ct=g('sp-crit-from-talents');
+  if(ct)ct.textContent=bon.crit>0?`+${bon.crit}% tal`:'';
+  bindRogueGearListeners();
+  const payload=readRogueGearPayload();
+  const col=g('sp-dmg-col');if(col)col.textContent='Avg / Crit';
+  try{
+    const res=await fetch('/api/rogue-damage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok)throw new Error(String(res.status));
+    const data=await res.json();
+    if(g('sp-val-mh-awd'))g('sp-val-mh-awd').textContent=data.awd.toFixed(1);
+    if(g('sp-val-mh-nwd'))g('sp-val-mh-nwd').textContent=data.nwd.toFixed(1);
+    if(g('sp-val-oh-awd'))g('sp-val-oh-awd').textContent=data.ohawd.toFixed(1);
+    if(g('sp-val-oh-nwd'))g('sp-val-oh-nwd').textContent=data.ohnwd.toFixed(1);
+    const map={};
+    (data.abilities||[]).forEach(a=>{map[a.name]=a;});
+    (data.poisons||[]).forEach(p=>{
+      const critMult=p.critMult||2;
+      map[p.name]={name:p.name,avg:p.avg,crit:p.avg*critMult,canCrit:true,critMult};
+    });
+    const tbody=g('sp-ability-rows');
+    if(tbody)tbody.innerHTML=CLASS_ABILITIES.rogue.map(name=>{
+      const row=map[name];
+      return`<tr><td class="sn">${name}</td><td>${formatAvgCrit(row)}</td></tr>`;
+    }).join('');
+  }catch(err){
+    console.error('rogue-damage',err);
+    if(g('sp-val-mh-awd'))g('sp-val-mh-awd').textContent='\u2014';
+    if(g('sp-val-mh-nwd'))g('sp-val-mh-nwd').textContent='\u2014';
+    if(g('sp-val-oh-awd'))g('sp-val-oh-awd').textContent='\u2014';
+    if(g('sp-val-oh-nwd'))g('sp-val-oh-nwd').textContent='\u2014';
+    const tbody=g('sp-ability-rows');
+    if(tbody)tbody.innerHTML='<tr><td colspan="2" class="sp-empty">Could not reach damage API</td></tr>';
   }
 }
 function calcRogueStats(){
-  const cls=CLASS_DATA.rogue;
-  const bon={crit:0,hit:0,apPct:0,ohDmg:0,am:{}};
-  cls.trees.forEach((tree,ti)=>{
-    tree.talents.forEach((tal,idx)=>{
-      const r=pointsSpent[ti]?.[idx]||0; if(!r)return;
-      const fn=R_TALENT[tal.name]; if(!fn)return;
-      const b=fn(r);
-      if(b.crit)  bon.crit  +=b.crit;
-      if(b.hit)   bon.hit   +=b.hit;
-      if(b.apPct) bon.apPct +=b.apPct;
-      if(b.ohDmg) bon.ohDmg +=b.ohDmg;
-      if(b.am)for(const[k,v]of Object.entries(b.am))bon.am[k]=(bon.am[k]||0)+v;
-    });
-  });
-  const ap=Math.round(R.baseAP*(1+bon.apPct/100));
-  const ohLo=Math.round(R.oh.lo*(1+bon.ohDmg/100));
-  const ohHi=Math.round(R.oh.hi*(1+bon.ohDmg/100));
+  bindRogueGearListeners();
+  if(!rogueLocalHydrated){loadRogueGearLocal();rogueLocalHydrated=true;}
+  const bon=collectRoguePassiveBonuses();
   const g=id=>document.getElementById(id);
-  if(g('sp-ap'))g('sp-ap').textContent=ap;
-  if(g('sp-crit'))g('sp-crit').textContent=(R.baseCrit+bon.crit).toFixed(2)+'%';
-  if(g('sp-hit'))g('sp-hit').textContent=(R.baseHit+bon.hit).toFixed(0)+'%';
-  if(g('sp-mh-spd'))g('sp-mh-spd').textContent=R.mh.spd.toFixed(1);
-  if(g('sp-mh-lo'))g('sp-mh-lo').textContent=R.mh.lo;
-  if(g('sp-mh-hi'))g('sp-mh-hi').textContent=R.mh.hi;
-  if(g('sp-oh-spd'))g('sp-oh-spd').textContent=R.oh.spd.toFixed(1);
-  if(g('sp-oh-lo'))g('sp-oh-lo').textContent=ohLo;
-  if(g('sp-oh-hi'))g('sp-oh-hi').textContent=ohHi;
-  const col=g('sp-dmg-col');if(col)col.textContent='Final Dmg';
-  const tbody=g('sp-ability-rows');
-  if(tbody)tbody.innerHTML=CLASS_ABILITIES.rogue.map(name=>{
-    const base=rogueAbilityBase(name,R.mh,R.oh,ap);
-    const mod=bon.am[name]||0;
-    const val=base*(1+mod/100);
-    return`<tr><td class="sn">${name}</td><td>${val>0?val.toFixed(1):'&mdash;'}</td></tr>`;
-  }).join('');
+  if(g('sp-hit'))g('sp-hit').textContent=(bon.hit).toFixed(0)+'%';
+  const ct=g('sp-crit-from-talents');
+  if(ct)ct.textContent=bon.crit>0?`+${bon.crit}% tal`:'';
+  scheduleRogueDamageFetch();
 }
 
 init();

@@ -1006,9 +1006,126 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
     }
 });
 
-// ═══════════════════════════════════════════════════════════════
-// 8. SPA FALLBACK — serve index.html for all non-API routes
-// ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════
+        // 7b. ROGUE DAMAGE CALCULATOR (normalized weapon damage + ability formulas)
+        // ═══════════════════════════════════════════════════════════════
+        function computeRogueDamage(body) {
+            const ap = Math.max(0, Number(body.ap) || 0);
+            const mh = body.mh || {};
+            const oh = body.oh || {};
+            const mLow = Number(mh.low);
+            const mHigh = Number(mh.high);
+            const mSpd = Number(mh.speed);
+            const oLow = Number(oh.low);
+            const oHigh = Number(oh.high);
+            const oSpd = Number(oh.speed);
+            const mhDagger = !!mh.dagger;
+            const ohDagger = !!oh.dagger;
+            const normMH = mhDagger ? 1.7 : 2.4;
+            const normOH = ohDagger ? 1.7 : 2.4;
+
+            const mhMid = (Number.isFinite(mLow) && Number.isFinite(mHigh)) ? (mLow + mHigh) / 2 : 0;
+            const ohMid = (Number.isFinite(oLow) && Number.isFinite(oHigh)) ? (oLow + oHigh) / 2 : 0;
+            const ap14 = ap / 14;
+            const mSpdF = Number.isFinite(mSpd) ? mSpd : 0;
+            const oSpdF = Number.isFinite(oSpd) ? oSpd : 0;
+
+            const awd = ap14 * mSpdF + mhMid;
+            const nwd = ap14 * normMH + mhMid;
+            const ohawd = ap14 * oSpdF + ohMid;
+            const ohnwd = ap14 * normOH + ohMid;
+
+            const t = body.talents || {};
+            const rank = (name) => Math.max(0, Number(t[name]) || 0);
+
+            const aggression = rank('Aggression');
+            const surprise = rank('Surprise Attacks');
+            const sinisterCalling = rank('Sinister Calling');
+            const opportunity = rank('Opportunity');
+            const dws = rank('Dual Wield Specialization');
+            const impEvis = rank('Improved Eviscerate');
+            const serrated = rank('Serrated Blades');
+            const lethality = rank('Lethality');
+            const vile = rank('Vile Poisons');
+
+            const surpriseMul = 1 + 0.1 * surprise;
+            const lethCritMult = 2 + 0.06 * lethality;
+            const stdCritMult = 2;
+
+            const abilities = [];
+
+            const addAbi = (name, avg, critMult, canCrit) => {
+                const c = canCrit ? avg * critMult : null;
+                abilities.push({
+                    name,
+                    avg,
+                    crit: c,
+                    canCrit,
+                    critMult: canCrit ? critMult : null,
+                });
+            };
+
+            const sinStrike = (nwd + 68) * (1 + 0.02 * aggression) * (1 + 0.1 * surprise);
+            addAbi('Sinister Strike', sinStrike, lethCritMult, true);
+
+            const hemo = awd * (1.1 + 0.01 * sinisterCalling);
+            addAbi('Hemorrhage', hemo, lethCritMult, true);
+
+            const bs = (nwd * (1.5 + 0.01 * sinisterCalling) + 210) * (1 + 0.02 * aggression) * (1 + 0.04 * opportunity) * surpriseMul;
+            addAbi('Backstab', bs, lethCritMult, true);
+
+            const mutInner = (nwd + 88) + (ohnwd + 88 * (1 + 0.1 * dws));
+            const muti = mutInner * (1 + 0.04 * opportunity) * 1.5;
+            addAbi('Mutilate', muti, lethCritMult, true);
+
+            const shiv = ohawd * (1 + 0.1 * dws) * surpriseMul;
+            addAbi('Shiv', shiv, lethCritMult, true);
+
+            addAbi('Ghostly Strike', awd * 1.25, lethCritMult, true);
+            addAbi('Riposte', awd * 1.5, stdCritMult, true);
+
+            const garrote = (92 + ap * 0.032) * 6 * (1 + 0.04 * opportunity);
+            addAbi('Garrote', garrote, null, false);
+
+            const ambush = (nwd * 2.75 + 290) * (1 + 0.04 * opportunity);
+            addAbi('Ambush', ambush, stdCritMult, true);
+
+            const evis = ((54 + 162) / 2 + 170 * 5 + ap * 0.03 * 5) * (1 + 0.05 * impEvis) * (1 + 0.02 * aggression);
+            addAbi('Eviscerate', evis, stdCritMult, true);
+
+            const rupt = ((60 + 8 * 5) * (3 + 5) + 0.064 * 5 * ap) * (1 + 0.1 * serrated);
+            addAbi('Rupture', rupt, null, false);
+
+            const envenom = 144 * 5 + 0.03 * 5 * ap;
+            addAbi('Envenom', envenom, stdCritMult, true);
+
+            const vpMul = 1 + 0.04 * vile;
+            const poisons = [
+                { name: 'Instant Poison VI', avg: Math.round((112 + 0.1 * ap) * vpMul), critMult: stdCritMult },
+                { name: 'Deadly Poison IV', avg: Math.round((108 + 0.12 * ap) * vpMul), critMult: stdCritMult },
+                { name: 'Wound Poison IV', avg: 53 * vpMul, critMult: stdCritMult },
+            ];
+
+            return {
+                awd, nwd, ohawd, ohnwd,
+                abilities,
+                poisons,
+            };
+        }
+
+        app.post('/api/rogue-damage', (req, res) => {
+            try {
+                const out = computeRogueDamage(req.body || {});
+                res.json(out);
+            } catch (err) {
+                console.error('[rogue-damage]', err);
+                res.status(500).json({ error: 'Rogue damage calculation failed' });
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // 8. SPA FALLBACK — serve index.html for all non-API routes
+        // ═══════════════════════════════════════════════════════════════
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
