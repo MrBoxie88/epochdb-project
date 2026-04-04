@@ -73,7 +73,7 @@ button { cursor:pointer; font-family:inherit }
 .btn.share-btn:hover { background:linear-gradient(135deg,var(--gold-dark),var(--gold)); color:var(--bg-deep); border-color:var(--gold) }
 
 /* ── TREES ── */
-.trees-wrap { display:flex; justify-content:center; gap:12px; padding:0 0 2rem; flex-wrap:wrap }
+.trees-wrap { display:flex; justify-content:center; gap:12px; padding:0; flex-wrap:wrap; flex:1; min-width:0 }
 .tree-panel { background:var(--bg-panel); border:1px solid var(--border); overflow:hidden; flex:1; min-width:280px; max-width:380px; position:relative }
 .tree-header { text-align:center; padding:.55rem .9rem; background:var(--bg-card); border-bottom:1px solid var(--border) }
 .tree-header .tree-name { font-family:'Cinzel',serif; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:var(--text-bright) }
@@ -143,9 +143,28 @@ button { cursor:pointer; font-family:inherit }
 .order-rank-badge { font-family:'Share Tech Mono',monospace; color:var(--green-soft); font-size:.72rem; flex-shrink:0 }
 .order-empty { color:var(--text-dim); font-style:italic; font-size:.85rem; text-align:center; padding:.8rem 0 }
 
+/* ── TALENT AREA WRAPPER ── */
+.talent-area{display:flex;gap:12px;align-items:flex-start;justify-content:center;padding:0 0 2rem;flex-wrap:nowrap}
+
+/* ── STAT PANEL ── */
+#stat-panel{width:212px;flex-shrink:0;background:var(--bg-panel);border:1px solid var(--border);align-self:flex-start}
+.sp-hdr{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;padding:.32rem .6rem;background:var(--bg-card);border-bottom:1px solid var(--border);text-align:center}
+.sp-kv-box{padding:.28rem .6rem;border-bottom:1px solid var(--border)}
+.sp-kv{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:.72rem;padding:.1rem 0}
+.sp-kv .k{color:var(--text-dim)}.sp-kv .v{color:var(--text-bright)}
+.sp-sect-hdr{font-family:'Cinzel',serif;font-size:.56rem;letter-spacing:.1em;color:var(--text-dim);text-transform:uppercase;padding:.22rem .5rem;background:var(--bg-card);border-bottom:1px solid var(--border)}
+.sp-tbl{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:.67rem}
+.sp-tbl th{background:var(--bg-card);color:var(--text-dim);padding:2px 5px;border:1px solid var(--border);font-weight:normal;text-align:center;white-space:nowrap}
+.sp-tbl td{padding:2px 5px;border:1px solid var(--border);color:var(--text);text-align:center}
+.sp-tbl .sn{color:var(--gold-light);text-align:left;padding-left:6px}
+.sp-tbl tr:hover td{background:var(--bg-hover)}
+.sp-empty{color:var(--text-dim);font-style:italic;font-size:.7rem;text-align:center;padding:.6rem;font-family:'Crimson Text',serif}
+
 @media(max-width:768px) {
   .trees-wrap { gap:8px }
   .tree-panel { min-width:260px }
+  .talent-area { flex-wrap:wrap }
+  #stat-panel { width:100%;max-width:none }
 }
 </style>
 </head>
@@ -190,7 +209,32 @@ button { cursor:pointer; font-family:inherit }
 
   <div id="classBar" class="class-bar"></div>
   <div id="controls" class="controls"></div>
-  <div id="treesWrap" class="trees-wrap"></div>
+  <div class="talent-area">
+    <div id="treesWrap" class="trees-wrap"></div>
+    <div id="stat-panel">
+      <div class="sp-hdr">&#x1F4CA; Build Stats</div>
+      <div class="sp-kv-box">
+        <div class="sp-kv"><span class="k">AP</span><span class="v" id="sp-ap">&mdash;</span></div>
+        <div class="sp-kv"><span class="k">Crit</span><span class="v" id="sp-crit">&mdash;</span></div>
+        <div class="sp-kv"><span class="k">Hit</span><span class="v" id="sp-hit">&mdash;</span></div>
+      </div>
+      <div class="sp-sect-hdr">Weapon</div>
+      <table class="sp-tbl">
+        <thead><tr><th>Weapon</th><th>Spd</th><th>Low</th><th>High</th></tr></thead>
+        <tbody>
+          <tr><td>MH</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+          <tr><td>OH</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+        </tbody>
+      </table>
+      <div class="sp-sect-hdr">Ability Values</div>
+      <table class="sp-tbl">
+        <thead><tr><th class="sn">Spell</th><th id="sp-dmg-col">Damage</th></tr></thead>
+        <tbody id="sp-ability-rows">
+          <tr><td colspan="2" class="sp-empty">Allocate talents to see bonuses</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
   <div id="order-panel">
     <div class="order-panel-hdr">📋 Talent Order</div>
     <div id="order-list-wrap"><div class="order-empty">No talents allocated yet. Click a talent icon to begin.</div></div>
@@ -943,6 +987,7 @@ function loadClass(key){
   renderControls();
   renderTrees();
   renderOrder();
+  renderStatPanel();
 }
 
 function totalPoints(){return pointsSpent.reduce((s,t)=>s+t.reduce((a,b)=>a+b,0),0);}
@@ -1306,7 +1351,7 @@ function resetAll(){
   const cls=CLASS_DATA[currentClass];
   pointsSpent=cls.trees.map(t=>t.talents.map(()=>0));
   orderLogs[currentClass]=[];orderLog=orderLogs[currentClass];
-  renderControls();updateTrees();updateUrl();renderOrder();
+  renderControls();updateTrees();updateUrl();renderOrder();renderStatPanel();
 }
 
 function openShare(){
@@ -1321,6 +1366,26 @@ function copyShareUrl(){
     const btn=document.querySelector('.share-box .share-btn');
     btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy URL',1500);
   });
+}
+
+const CLASS_ABILITIES={
+  warrior:['Heroic Strike','Rend','Overpower','Thunder Clap','Slam','Mortal Strike','Whirlwind','Execute','Berserker Strike','Shield Slam','Devastate'],
+  paladin:['Crusader Strike','Judgement','Holy Shock','Flash of Light','Holy Light','Consecration','Hammer of Wrath','Exorcism'],
+  hunter: ['Auto Shot','Aimed Shot','Arcane Shot','Serpent Sting','Multi-Shot','Steady Shot','Volley'],
+  rogue:  ['Sinister Strike','Hemorrhage','Backstab','Mutilate','Shiv','Ghostly Strike','Riposte','Garrote','Ambush','Eviscerate','Rupture','Envenom'],
+  priest: ['Smite','Holy Fire','Mind Blast','Mind Flay','Shadow Word: Pain','Holy Nova','Penance'],
+  shaman: ['Lightning Bolt','Chain Lightning','Flame Shock','Earth Shock','Frost Shock','Lava Burst','Chain Heal','Healing Wave'],
+  mage:   ['Fireball','Frostbolt','Arcane Missiles','Fire Blast','Pyroblast','Blizzard','Arcane Blast','Ice Lance'],
+  warlock:['Shadow Bolt','Corruption','Immolate','Drain Life','Searing Pain','Conflagrate','Unstable Affliction','Incinerate'],
+  druid:  ['Wrath','Starfire','Moonfire','Healing Touch','Regrowth','Rejuvenation','Mangle','Shred','Ferocious Bite'],
+};
+
+function renderStatPanel(){
+  ['sp-ap','sp-crit','sp-hit'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='\u2014';});
+  const abilities=CLASS_ABILITIES[currentClass]||[];
+  const tbody=document.getElementById('sp-ability-rows');
+  if(!abilities.length){tbody.innerHTML='<tr><td colspan="2" class="sp-empty">No ability data</td></tr>';return;}
+  tbody.innerHTML=abilities.map(n=>`<tr><td class="sn">${n}</td><td>&mdash;</td></tr>`).join('');
 }
 
 init();
