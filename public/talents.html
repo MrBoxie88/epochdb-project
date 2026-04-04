@@ -147,13 +147,14 @@ button { cursor:pointer; font-family:inherit }
 .talent-area{display:flex;gap:12px;align-items:flex-start;justify-content:center;padding:0 0 2rem;flex-wrap:nowrap}
 
 /* ── STAT PANEL ── */
-#stat-panel{width:212px;flex-shrink:0;background:var(--bg-panel);border:1px solid var(--border);align-self:flex-start}
+#stat-panel{width:min(100%,328px);min-width:280px;flex-shrink:0;background:var(--bg-panel);border:1px solid var(--border);align-self:flex-start;box-sizing:border-box}
 .sp-hdr{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;padding:.32rem .6rem;background:var(--bg-card);border-bottom:1px solid var(--border);text-align:center}
 .sp-kv-box{padding:.28rem .6rem;border-bottom:1px solid var(--border)}
 .sp-kv{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:.72rem;padding:.1rem 0}
 .sp-kv .k{color:var(--text-dim)}.sp-kv .v{color:var(--text-bright)}
 .sp-sect-hdr{font-family:'Cinzel',serif;font-size:.56rem;letter-spacing:.1em;color:var(--text-dim);text-transform:uppercase;padding:.22rem .5rem;background:var(--bg-card);border-bottom:1px solid var(--border)}
 .sp-tbl{width:100%;border-collapse:collapse;font-family:'Share Tech Mono',monospace;font-size:.67rem}
+#stat-panel .sp-tbl{table-layout:fixed}
 .sp-tbl th{background:var(--bg-card);color:var(--text-dim);padding:2px 5px;border:1px solid var(--border);font-weight:normal;text-align:center;white-space:nowrap}
 .sp-tbl td{padding:2px 5px;border:1px solid var(--border);color:var(--text);text-align:center}
 .sp-tbl .sn{color:var(--gold-light);text-align:left;padding-left:6px}
@@ -178,6 +179,8 @@ button { cursor:pointer; font-family:inherit }
 .sp-inp:focus{outline:none;border-color:var(--gold-dark)}
 .sp-inp-wide{min-width:3.5rem;max-width:6rem}
 #stat-panel .sp-tbl .sp-inp{min-width:3.1rem;max-width:4.25rem;margin:0 auto;display:block}
+#stat-panel #sp-weapon-tbl .sp-inp{min-width:0;width:100%;max-width:100%;padding-left:4px;padding-right:4px}
+#stat-panel #sp-weapon-tbl .td-dag{width:2rem;padding:2px}
 #stat-panel .row-rogue{display:none;align-items:center;gap:6px;flex-wrap:wrap}
 #stat-panel .row-nonrogue{display:flex}
 #stat-panel.rogue-panel .row-rogue{display:flex}
