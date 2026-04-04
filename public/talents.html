@@ -222,8 +222,8 @@ button { cursor:pointer; font-family:inherit }
       <table class="sp-tbl">
         <thead><tr><th>Weapon</th><th>Spd</th><th>Low</th><th>High</th></tr></thead>
         <tbody>
-          <tr><td>MH</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
-          <tr><td>OH</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+          <tr><td>MH</td><td id="sp-mh-spd">&mdash;</td><td id="sp-mh-lo">&mdash;</td><td id="sp-mh-hi">&mdash;</td></tr>
+          <tr><td>OH</td><td id="sp-oh-spd">&mdash;</td><td id="sp-oh-lo">&mdash;</td><td id="sp-oh-hi">&mdash;</td></tr>
         </tbody>
       </table>
       <div class="sp-sect-hdr">Ability Values</div>
@@ -1145,6 +1145,7 @@ function onTalentClick(e,ti,idx){
   renderControls();
   updateTrees();
   updateUrl();
+  renderStatPanel();
   if(document.getElementById('order-panel').classList.contains('open'))renderOrder();
 }
 
@@ -1381,11 +1382,98 @@ const CLASS_ABILITIES={
 };
 
 function renderStatPanel(){
-  ['sp-ap','sp-crit','sp-hit'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='\u2014';});
+  if(currentClass==='rogue'){calcRogueStats();return;}
+  const col=document.getElementById('sp-dmg-col');if(col)col.textContent='Damage';
+  ['sp-ap','sp-crit','sp-hit','sp-mh-spd','sp-mh-lo','sp-mh-hi','sp-oh-spd','sp-oh-lo','sp-oh-hi']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='\u2014';});
   const abilities=CLASS_ABILITIES[currentClass]||[];
   const tbody=document.getElementById('sp-ability-rows');
   if(!abilities.length){tbody.innerHTML='<tr><td colspan="2" class="sp-empty">No ability data</td></tr>';return;}
   tbody.innerHTML=abilities.map(n=>`<tr><td class="sn">${n}</td><td>&mdash;</td></tr>`).join('');
+}
+
+// ── ROGUE STAT LOGIC ──
+const R={baseAP:900,baseCrit:5.0,baseHit:0.0,mh:{spd:1.8,lo:74,hi:140},oh:{spd:1.8,lo:49,hi:92}};
+const R_TALENT={
+  // Assassination
+  'Malice':                    r=>({crit:r}),
+  'Improved Eviscerate':       r=>({am:{'Eviscerate':r*5}}),
+  'Vile Poisons':              r=>({am:{'Envenom':r*4}}),
+  'Lethality':                 r=>({am:{'Sinister Strike':r*6,'Backstab':r*6,'Mutilate':r*6,'Shiv':r*6,'Hemorrhage':r*6}}),
+  'Cold Blood':                r=>({am:{'Eviscerate':r>0?100:0}}),
+  'Find Weakness':             r=>({am:{'Sinister Strike':r*2,'Backstab':r*2,'Hemorrhage':r*2,'Ambush':r*2,'Eviscerate':r*2}}),
+  // Combat
+  'Cruelty':                   r=>({crit:r}),
+  'Precision':                 r=>({hit:r}),
+  'Dagger Specialization':     r=>({crit:r}),
+  'Sword Specialization':      r=>({crit:r*0.5}),
+  'Fist Weapon Specialization':r=>({crit:r}),
+  'Dual Wield Specialization': r=>({ohDmg:r*10,am:{'Shiv':r*10}}),
+  'Aggression':                r=>({am:{'Sinister Strike':r*2,'Backstab':r*2,'Eviscerate':r*2}}),
+  'Blade Flurry':              r=>({am:{}}),
+  'Surprise Attacks':          r=>({am:{'Sinister Strike':10,'Backstab':10,'Shiv':10,'Hemorrhage':10,'Gouge':10}}),
+  // Subtlety
+  'Deadliness':                r=>({apPct:r*2}),
+  'Opportunity':               r=>({am:{'Backstab':r*4,'Mutilate':r*4,'Shiv':r*4,'Gouge':r*4}}),
+  'Serrated Blades':           r=>({am:{'Rupture':r*10}}),
+  'Sinister Calling':          r=>({am:{'Backstab':r*2,'Hemorrhage':r*2}}),
+  'Master of Subtlety':        r=>({am:{'Ambush':r===1?4:r===2?7:10}}),
+};
+function rogueAbilityBase(name,mh,oh,ap){
+  const mhA=(mh.lo+mh.hi)/2,ohA=(oh.lo+oh.hi)/2;
+  const mhSw=ap/14*mh.spd,ohSw=ap/14*oh.spd,norm=ap/14*1.7;
+  switch(name){
+    case 'Sinister Strike': return mhA+mhSw+68;
+    case 'Hemorrhage':      return 1.10*(mhA+mhSw);
+    case 'Backstab':        return 2.50*mhA+norm+240;
+    case 'Mutilate':        return 2*(2.25*mhA+norm+44);
+    case 'Shiv':            return ohA+ohSw;
+    case 'Ghostly Strike':  return 1.25*(mhA+mhSw);
+    case 'Riposte':         return 1.50*(mhA+mhSw);
+    case 'Garrote':         return ap*0.07+630;
+    case 'Ambush':          return 2.50*mhA+norm+210;
+    case 'Eviscerate':      return 5*(ap*0.03+120.8);
+    case 'Rupture':         return ap*0.17+275;
+    case 'Envenom':         return ap*0.09+400;
+    default: return 0;
+  }
+}
+function calcRogueStats(){
+  const cls=CLASS_DATA.rogue;
+  const bon={crit:0,hit:0,apPct:0,ohDmg:0,am:{}};
+  cls.trees.forEach((tree,ti)=>{
+    tree.talents.forEach((tal,idx)=>{
+      const r=pointsSpent[ti]?.[idx]||0; if(!r)return;
+      const fn=R_TALENT[tal.name]; if(!fn)return;
+      const b=fn(r);
+      if(b.crit)  bon.crit  +=b.crit;
+      if(b.hit)   bon.hit   +=b.hit;
+      if(b.apPct) bon.apPct +=b.apPct;
+      if(b.ohDmg) bon.ohDmg +=b.ohDmg;
+      if(b.am)for(const[k,v]of Object.entries(b.am))bon.am[k]=(bon.am[k]||0)+v;
+    });
+  });
+  const ap=Math.round(R.baseAP*(1+bon.apPct/100));
+  const ohLo=Math.round(R.oh.lo*(1+bon.ohDmg/100));
+  const ohHi=Math.round(R.oh.hi*(1+bon.ohDmg/100));
+  const g=id=>document.getElementById(id);
+  if(g('sp-ap'))g('sp-ap').textContent=ap;
+  if(g('sp-crit'))g('sp-crit').textContent=(R.baseCrit+bon.crit).toFixed(2)+'%';
+  if(g('sp-hit'))g('sp-hit').textContent=(R.baseHit+bon.hit).toFixed(0)+'%';
+  if(g('sp-mh-spd'))g('sp-mh-spd').textContent=R.mh.spd.toFixed(1);
+  if(g('sp-mh-lo'))g('sp-mh-lo').textContent=R.mh.lo;
+  if(g('sp-mh-hi'))g('sp-mh-hi').textContent=R.mh.hi;
+  if(g('sp-oh-spd'))g('sp-oh-spd').textContent=R.oh.spd.toFixed(1);
+  if(g('sp-oh-lo'))g('sp-oh-lo').textContent=ohLo;
+  if(g('sp-oh-hi'))g('sp-oh-hi').textContent=ohHi;
+  const col=g('sp-dmg-col');if(col)col.textContent='Final Dmg';
+  const tbody=g('sp-ability-rows');
+  if(tbody)tbody.innerHTML=CLASS_ABILITIES.rogue.map(name=>{
+    const base=rogueAbilityBase(name,R.mh,R.oh,ap);
+    const mod=bon.am[name]||0;
+    const val=base*(1+mod/100);
+    return`<tr><td class="sn">${name}</td><td>${val>0?val.toFixed(1):'&mdash;'}</td></tr>`;
+  }).join('');
 }
 
 init();
