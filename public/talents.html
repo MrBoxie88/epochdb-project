@@ -45,7 +45,7 @@ button { cursor:pointer; font-family:inherit }
 .mnav-tab.active { color:var(--gold); border-bottom-color:var(--gold) }
 
 /* ── PAGE WRAP ── */
-#page { max-width:1200px; margin:0 auto; padding:0 1.5rem; position:relative; z-index:1 }
+#page { max-width:min(100%,1520px); margin:0 auto; padding:0 1.5rem; position:relative; z-index:1 }
 
 /* ── HERO ── */
 .hero { text-align:center; padding:1.8rem 0 1.2rem; position:relative }
@@ -73,8 +73,8 @@ button { cursor:pointer; font-family:inherit }
 .btn.share-btn:hover { background:linear-gradient(135deg,var(--gold-dark),var(--gold)); color:var(--bg-deep); border-color:var(--gold) }
 
 /* ── TREES ── */
-.trees-wrap { display:flex; justify-content:center; gap:12px; padding:0; flex-wrap:wrap; flex:1; min-width:0 }
-.tree-panel { background:var(--bg-panel); border:1px solid var(--border); overflow:hidden; flex:1; min-width:280px; max-width:380px; position:relative }
+.trees-wrap { display:flex; justify-content:center; align-items:flex-start; gap:12px; padding:0; flex-wrap:nowrap; flex:1; min-width:0 }
+.tree-panel { background:var(--bg-panel); border:1px solid var(--border); overflow:hidden; flex:1 1 276px; min-width:252px; max-width:380px; position:relative }
 .tree-header { text-align:center; padding:.55rem .9rem; background:var(--bg-card); border-bottom:1px solid var(--border) }
 .tree-header .tree-name { font-family:'Cinzel',serif; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:var(--text-bright) }
 .tree-header .tree-icon { width:20px; height:20px; vertical-align:middle; margin-right:6px; border-radius:2px; border:1px solid rgba(255,255,255,.1) }
@@ -144,10 +144,10 @@ button { cursor:pointer; font-family:inherit }
 .order-empty { color:var(--text-dim); font-style:italic; font-size:.85rem; text-align:center; padding:.8rem 0 }
 
 /* ── TALENT AREA WRAPPER ── */
-.talent-area{display:flex;gap:12px;align-items:flex-start;justify-content:center;padding:0 0 2rem;flex-wrap:nowrap}
+.talent-area{display:flex;gap:12px;align-items:flex-start;justify-content:center;padding:0 0 2rem;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable}
 
 /* ── STAT PANEL ── */
-#stat-panel{width:min(100%,328px);min-width:280px;flex-shrink:0;background:var(--bg-panel);border:1px solid var(--border);align-self:flex-start;box-sizing:border-box}
+#stat-panel{width:min(100%,328px);min-width:280px;flex:0 0 auto;flex-shrink:0;background:var(--bg-panel);border:1px solid var(--border);align-self:flex-start;box-sizing:border-box}
 .sp-hdr{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;padding:.32rem .6rem;background:var(--bg-card);border-bottom:1px solid var(--border);text-align:center}
 .sp-kv-box{padding:.28rem .6rem;border-bottom:1px solid var(--border)}
 .sp-kv{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:.72rem;padding:.1rem 0}
@@ -193,10 +193,10 @@ button { cursor:pointer; font-family:inherit }
 .sp-chk{width:14px;height:14px;margin:0;accent-color:var(--gold-dark);cursor:pointer}
 
 @media(max-width:768px) {
-  .trees-wrap { gap:8px }
-  .tree-panel { min-width:260px }
-  .talent-area { flex-wrap:wrap }
-  #stat-panel { width:100%;max-width:none }
+  .trees-wrap { gap:8px; flex-wrap:nowrap }
+  .tree-panel { min-width:280px; flex:0 0 auto }
+  .talent-area { flex-wrap:nowrap; justify-content:flex-start; padding-bottom:8px }
+  #stat-panel { width:min(328px,92vw); flex-shrink:0 }
 }
 </style>
 </head>
