@@ -1125,6 +1125,112 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
         });
 
         // ═══════════════════════════════════════════════════════════════
+        // 7c. MAGE SPELL DAMAGE (spell power + talent modifiers)
+        // ═══════════════════════════════════════════════════════════════
+        /** ~TBC: spell hit rating per 1% hit vs +3 level target */
+        const MAGE_SPELL_HIT_RATING_PER_PCT = 12.615;
+
+        function computeMageDamage(body) {
+            const spGear = Math.max(0, Number(body.spellPower) || 0);
+            const intBase = Math.max(0, Number(body.intellect) || 0);
+            const hitRating = Math.max(0, Number(body.hitRating) || 0);
+            const t = body.talents || {};
+            const rank = (name) => Math.max(0, Number(t[name]) || 0);
+
+            const arcaneMind = rank('Arcane Mind');
+            const mindMastery = rank('Mind Mastery');
+            const arcaneFocus = rank('Arcane Focus');
+            const elementalPrecision = rank('Elemental Precision');
+
+            const intEff = intBase * (1 + 0.03 * Math.min(arcaneMind, 5));
+            const mindMasteryBonus = intEff * 0.05 * Math.min(mindMastery, 5);
+            const sp = spGear + mindMasteryBonus;
+
+            const hitFromGearPct = hitRating / MAGE_SPELL_HIT_RATING_PER_PCT;
+            const arcaneSpellHitPct = hitFromGearPct + 2 * Math.min(arcaneFocus, 5);
+            const fireFrostSpellHitPct = hitFromGearPct + 2 * Math.min(elementalPrecision, 3);
+
+            const playingWithFire = rank('Playing with Fire');
+            const arcaneInstability = rank('Arcane Instability');
+            const firePower = rank('Fire Power');
+            const piercingIce = rank('Piercing Ice');
+            const arcticWinds = rank('Arctic Winds');
+            const empoweredFireball = rank('Empowered Fireball');
+            const empoweredFrostbolt = rank('Empowered Frostbolt');
+            const empoweredAM = rank('Empowered Arcane Missiles');
+            const spellPowerTalent = rank('Spell Power');
+            const iceShards = rank('Ice Shards');
+
+            const globalPct = playingWithFire + arcaneInstability;
+            const fireMod = 1 + (globalPct + firePower * 2) / 100;
+            const frostMod = 1 + (globalPct + piercingIce * 2 + arcticWinds) / 100;
+            const arcaneMod = 1 + globalPct / 100;
+
+            const fbCoef = 1.0 + 0.03 * empoweredFireball;
+            const fireball = (600 + fbCoef * sp) * fireMod;
+
+            const fsCoef = 0.814 + 0.02 * empoweredFrostbolt;
+            const frostbolt = (550 + fsCoef * sp) * frostMod;
+
+            const amCoef = 1.0 + 0.15 * empoweredAM;
+            const arcaneMissiles = (450 + amCoef * sp) * arcaneMod;
+
+            const fireBlast = (425 + 0.429 * sp) * fireMod;
+            const pyroblast = (228 + 1.35 * sp) * fireMod;
+            const blizzard = (960 + 0.952 * sp) * frostMod;
+            const arcaneBlast = (101.5 + 0.429 * sp) * arcaneMod;
+
+            const iceLanceNorm = (248 + 0.429 * sp) * frostMod;
+            const iceLanceFrozen = iceLanceNorm * 3;
+
+            const arcaneFireCritMult = 1.5 + 0.25 * Math.min(spellPowerTalent, 2);
+            const frostCritMult = arcaneFireCritMult * (1 + 0.2 * Math.min(iceShards, 5));
+
+            const abilities = [
+                { name: 'Fireball', avg: fireball, crit: fireball * arcaneFireCritMult },
+                { name: 'Frostbolt', avg: frostbolt, crit: frostbolt * frostCritMult },
+                { name: 'Arcane Missiles', avg: arcaneMissiles, crit: arcaneMissiles * arcaneFireCritMult },
+                { name: 'Fire Blast', avg: fireBlast, crit: fireBlast * arcaneFireCritMult },
+                { name: 'Pyroblast', avg: pyroblast, crit: pyroblast * arcaneFireCritMult },
+                { name: 'Blizzard', avg: blizzard, crit: blizzard * frostCritMult },
+                { name: 'Arcane Blast', avg: arcaneBlast, crit: arcaneBlast * arcaneFireCritMult },
+                {
+                    name: 'Ice Lance',
+                    avg: iceLanceNorm,
+                    crit: iceLanceNorm * frostCritMult,
+                    iceLanceFrozen: {
+                        avg: iceLanceFrozen,
+                        crit: iceLanceFrozen * frostCritMult,
+                    },
+                },
+            ];
+
+            const stats = {
+                intellectBase: intBase,
+                intellectEffective: intEff,
+                mindMasteryBonus,
+                spellPowerFromGear: spGear,
+                spellPowerTotal: sp,
+                hitRating,
+                hitFromGearPercent: hitFromGearPct,
+                arcaneSpellHitPercent: arcaneSpellHitPct,
+                fireFrostSpellHitPercent: fireFrostSpellHitPct,
+            };
+
+            return { abilities, stats };
+        }
+
+        app.post('/api/mage-damage', (req, res) => {
+            try {
+                const out = computeMageDamage(req.body || {});
+                res.json(out);
+            } catch (err) {
+                console.error('[mage-damage]', err);
+                res.status(500).json({ error: 'Mage damage calculation failed' });
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════
         // 8. SPA FALLBACK — serve index.html for all non-API routes
         // ═══════════════════════════════════════════════════════════════
 app.get('*', (req, res) => {

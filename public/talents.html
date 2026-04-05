@@ -190,6 +190,11 @@ button { cursor:pointer; font-family:inherit }
 #stat-panel:not(.rogue-panel) .rogue-derv{display:none!important}
 #stat-panel.rogue-panel .gear-mdash{display:none!important}
 #stat-panel.rogue-panel .rogue-only-inp{display:block!important}
+#stat-panel.mage-panel .hide-for-mage{display:none!important}
+#stat-panel .row-mage{display:none;align-items:center;gap:8px;flex-wrap:wrap}
+#stat-panel.mage-panel .row-mage{display:flex}
+#stat-panel.mage-panel .row-nonrogue,#stat-panel.mage-panel .row-rogue{display:none!important}
+.sp-inp-text{flex:1;min-width:0;max-width:100%;text-align:left;padding:5px 8px}
 .sp-chk{width:14px;height:14px;margin:0;accent-color:var(--gold-dark);cursor:pointer}
 
 @media(max-width:768px) {
@@ -252,9 +257,18 @@ button { cursor:pointer; font-family:inherit }
         <div class="sp-kv row-nonrogue"><span class="k">AP</span><span class="v" id="sp-ap">&mdash;</span></div>
         <div class="sp-kv row-nonrogue"><span class="k">Crit</span><span class="v" id="sp-crit">&mdash;</span></div>
         <div class="sp-kv row-nonrogue"><span class="k">Hit</span><span class="v" id="sp-hit-nr">&mdash;</span></div>
+        <div class="sp-kv row-mage"><span class="k">Spell Power</span><input type="text" class="sp-inp sp-inp-text" id="inp-sp" inputmode="numeric" autocomplete="off" value="1000" title="Bonus spell damage from gear (Mind Mastery adds more from Intellect)"></div>
+        <div class="sp-kv row-mage"><span class="k">Intellect</span><input type="text" class="sp-inp sp-inp-text" id="inp-int" inputmode="numeric" autocomplete="off" value="400" title="Total Intellect (Arcane Mind % applied before Mind Mastery)"></div>
+        <div class="sp-kv row-mage"><span class="k">Hit rating</span><input type="text" class="sp-inp sp-inp-text" id="inp-hit-rating" inputmode="numeric" autocomplete="off" value="0" title="Spell hit rating (~12.6 per 1% vs +3 levels; plus Arcane Focus / Elemental Precision)"></div>
+        <div class="sp-kv row-mage" style="flex-direction:column;align-items:stretch;gap:4px;padding-top:2px">
+          <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem"><span class="k" style="flex-shrink:0">Eff. Int</span><span class="v" id="sp-mage-effint">&mdash;</span></div>
+          <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem"><span class="k" style="flex-shrink:0">+SP (Mind Mast.)</span><span class="v" id="sp-mage-mm">&mdash;</span></div>
+          <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem"><span class="k" style="flex-shrink:0">Total SP</span><span class="v" id="sp-mage-sptot">&mdash;</span></div>
+          <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.62rem;line-height:1.35"><span class="k" style="flex-shrink:0;align-self:flex-start">Spell hit</span><span class="v" id="sp-mage-hit" style="text-align:right">&mdash;</span></div>
+        </div>
       </div>
-      <div class="sp-sect-hdr">Weapon</div>
-      <table class="sp-tbl" id="sp-weapon-tbl">
+      <div class="sp-sect-hdr hide-for-mage">Weapon</div>
+      <table class="sp-tbl hide-for-mage" id="sp-weapon-tbl">
         <thead><tr><th>Wpn</th><th>Spd</th><th>Low</th><th>High</th><th class="th-dag">Dag</th></tr></thead>
         <tbody>
           <tr>
@@ -273,8 +287,8 @@ button { cursor:pointer; font-family:inherit }
           </tr>
         </tbody>
       </table>
-      <div class="sp-sect-hdr rogue-derv">Weapon damage</div>
-      <table class="sp-tbl rogue-derv">
+      <div class="sp-sect-hdr rogue-derv hide-for-mage">Weapon damage</div>
+      <table class="sp-tbl rogue-derv hide-for-mage">
         <thead><tr><th></th><th>AWD</th><th>NWD</th></tr></thead>
         <tbody>
           <tr><td class="sn">MH</td><td id="sp-val-mh-awd">&mdash;</td><td id="sp-val-mh-nwd">&mdash;</td></tr>
@@ -1438,8 +1452,12 @@ const CLASS_ABILITIES={
 
 function renderStatPanel(){
   const panel=document.getElementById('stat-panel');
-  if(panel)panel.classList.toggle('rogue-panel',currentClass==='rogue');
+  if(panel){
+    panel.classList.toggle('rogue-panel',currentClass==='rogue');
+    panel.classList.toggle('mage-panel',currentClass==='mage');
+  }
   if(currentClass==='rogue'){calcRogueStats();return;}
+  if(currentClass==='mage'){calcMageStats();return;}
   const col=document.getElementById('sp-dmg-col');if(col)col.textContent='Damage';
   ['sp-ap','sp-crit','sp-hit-nr','sp-mh-spd-disp','sp-mh-lo-disp','sp-mh-hi-disp','sp-oh-spd-disp','sp-oh-lo-disp','sp-oh-hi-disp']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='\u2014';});
@@ -1604,6 +1622,123 @@ function calcRogueStats(){
   const ct=g('sp-crit-from-talents');
   if(ct)ct.textContent=bon.crit>0?`+${bon.crit}% tal`:'';
   scheduleRogueDamageFetch();
+}
+
+// ── MAGE SPELL DAMAGE (POST /api/mage-damage) ──
+const MAGE_INPUTS_LS='epochdb-mage-inputs-v2';
+const MAGE_SP_LEGACY='epochdb-mage-sp-v1';
+let mageFetchTimer=null;
+let mageGearListenersBound=false;
+let mageLocalHydrated=false;
+function parseMageStatInput(id){
+  const raw=document.getElementById(id)?.value??'';
+  const n=parseFloat(String(raw).replace(/[^0-9.-]/g,''));
+  return Number.isFinite(n)?Math.max(0,n):0;
+}
+function parseSpellPowerInput(){return parseMageStatInput('inp-sp');}
+function collectMageTalentsForApi(){
+  const out={};
+  CLASS_DATA.mage.trees.forEach((tree,ti)=>{
+    tree.talents.forEach((tal,idx)=>{
+      const r=pointsSpent[ti][idx]||0;
+      if(r>0)out[tal.name]=r;
+    });
+  });
+  return out;
+}
+function saveMageInputsLocal(){
+  try{
+    localStorage.setItem(MAGE_INPUTS_LS,JSON.stringify({
+      sp:document.getElementById('inp-sp')?.value??'',
+      int:document.getElementById('inp-int')?.value??'',
+      hit:document.getElementById('inp-hit-rating')?.value??'',
+    }));
+  }catch(e){/* ignore */}
+}
+function loadMageInputsLocal(){
+  try{
+    const raw=localStorage.getItem(MAGE_INPUTS_LS);
+    const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&v!=='')el.value=v;};
+    if(raw){
+      const o=JSON.parse(raw);
+      set('inp-sp',o.sp);
+      set('inp-int',o.int);
+      set('inp-hit-rating',o.hit);
+      return;
+    }
+    const leg=localStorage.getItem(MAGE_SP_LEGACY);
+    if(leg!=null&&leg!=='')set('inp-sp',leg);
+  }catch(e){/* ignore */}
+}
+function bindMageListeners(){
+  if(mageGearListenersBound)return;
+  mageGearListenersBound=true;
+  const on=()=>{saveMageInputsLocal();scheduleMageDamageFetch();};
+  ['inp-sp','inp-int','inp-hit-rating'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.addEventListener('input',on);el.addEventListener('change',on);}
+  });
+}
+function scheduleMageDamageFetch(){
+  if(currentClass!=='mage')return;
+  clearTimeout(mageFetchTimer);
+  mageFetchTimer=setTimeout(()=>fetchMageDamage(),200);
+}
+function formatMageDmg(row){
+  if(!row)return'\u2014';
+  const a=row.avg.toFixed(0);
+  const c=row.crit!=null?row.crit.toFixed(0):'\u2014';
+  if(row.iceLanceFrozen){
+    const f=row.iceLanceFrozen;
+    return`${a} / ${c} <span style="color:var(--text-dim);font-size:0.85em">(frz ${f.avg.toFixed(0)}/${f.crit.toFixed(0)})</span>`;
+  }
+  return`${a} / ${c}`;
+}
+async function fetchMageDamage(){
+  bindMageListeners();
+  const g=id=>document.getElementById(id);
+  const col=g('sp-dmg-col');if(col)col.textContent='Avg / Crit';
+  const payload={
+    spellPower:parseSpellPowerInput(),
+    intellect:parseMageStatInput('inp-int'),
+    hitRating:parseMageStatInput('inp-hit-rating'),
+    talents:collectMageTalentsForApi(),
+  };
+  try{
+    const res=await fetch('/api/mage-damage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok)throw new Error(String(res.status));
+    const data=await res.json();
+    const st=data.stats;
+    if(st){
+      if(g('sp-mage-effint'))g('sp-mage-effint').textContent=st.intellectEffective!=null?st.intellectEffective.toFixed(0):'\u2014';
+      if(g('sp-mage-mm'))g('sp-mage-mm').textContent=st.mindMasteryBonus!=null?st.mindMasteryBonus.toFixed(0):'\u2014';
+      if(g('sp-mage-sptot'))g('sp-mage-sptot').textContent=st.spellPowerTotal!=null?st.spellPowerTotal.toFixed(0):'\u2014';
+      if(g('sp-mage-hit')){
+        const hg=st.hitFromGearPercent!=null?st.hitFromGearPercent.toFixed(1):'0.0';
+        const ar=st.arcaneSpellHitPercent!=null?st.arcaneSpellHitPercent.toFixed(1):'0.0';
+        const ff=st.fireFrostSpellHitPercent!=null?st.fireFrostSpellHitPercent.toFixed(1):'0.0';
+        g('sp-mage-hit').innerHTML=`Gear ${hg}%<br>Arcane ${ar}%<br>Fire/Frost ${ff}%`;
+      }
+    }
+    const map={};
+    (data.abilities||[]).forEach(a=>{map[a.name]=a;});
+    const tbody=g('sp-ability-rows');
+    if(tbody)tbody.innerHTML=CLASS_ABILITIES.mage.map(name=>{
+      const row=map[name];
+      return`<tr><td class="sn">${name}</td><td>${formatMageDmg(row)}</td></tr>`;
+    }).join('');
+  }catch(err){
+    console.error('mage-damage',err);
+    ['sp-mage-effint','sp-mage-mm','sp-mage-sptot'].forEach(id=>{const el=g(id);if(el)el.textContent='\u2014';});
+    const mh=g('sp-mage-hit');if(mh){mh.innerHTML='';mh.textContent='\u2014';}
+    const tbody=g('sp-ability-rows');
+    if(tbody)tbody.innerHTML='<tr><td colspan="2" class="sp-empty">Could not reach damage API</td></tr>';
+  }
+}
+function calcMageStats(){
+  bindMageListeners();
+  if(!mageLocalHydrated){loadMageInputsLocal();mageLocalHydrated=true;}
+  scheduleMageDamageFetch();
 }
 
 init();
