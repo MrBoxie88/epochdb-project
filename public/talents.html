@@ -191,9 +191,14 @@ button { cursor:pointer; font-family:inherit }
 #stat-panel.rogue-panel .gear-mdash{display:none!important}
 #stat-panel.rogue-panel .rogue-only-inp{display:block!important}
 #stat-panel.mage-panel .hide-for-mage{display:none!important}
+#stat-panel.warrior-panel .hide-for-warrior{display:none!important}
 #stat-panel .row-mage{display:none;align-items:center;gap:8px;flex-wrap:wrap}
 #stat-panel.mage-panel .row-mage{display:flex}
 #stat-panel.mage-panel .row-nonrogue,#stat-panel.mage-panel .row-rogue{display:none!important}
+#stat-panel .row-warrior{display:none;align-items:center;gap:8px;flex-wrap:wrap}
+#stat-panel.warrior-panel .row-warrior{display:flex}
+#stat-panel.warrior-panel .row-nonrogue,#stat-panel.warrior-panel .row-rogue,#stat-panel.warrior-panel .row-mage{display:none!important}
+#stat-panel.mage-panel .row-warrior,#stat-panel.rogue-panel .row-warrior{display:none!important}
 .sp-inp-text{flex:1;min-width:0;max-width:100%;text-align:left;padding:5px 8px}
 .sp-chk{width:14px;height:14px;margin:0;accent-color:var(--gold-dark);cursor:pointer}
 
@@ -266,9 +271,15 @@ button { cursor:pointer; font-family:inherit }
           <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem"><span class="k" style="flex-shrink:0">Total SP</span><span class="v" id="sp-mage-sptot">&mdash;</span></div>
           <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.62rem;line-height:1.35"><span class="k" style="flex-shrink:0;align-self:flex-start">Spell hit</span><span class="v" id="sp-mage-hit" style="text-align:right">&mdash;</span></div>
         </div>
+        <div class="sp-kv row-warrior"><span class="k">Attack Power</span><input type="text" class="sp-inp sp-inp-text" id="inp-war-ap" inputmode="numeric" autocomplete="off" value="2000" title="Attack power from gear (Improved Berserker Stance applied in totals)"></div>
+        <div class="sp-kv row-warrior"><span class="k">Hit rating</span><input type="text" class="sp-inp sp-inp-text" id="inp-war-hit" inputmode="numeric" autocomplete="off" value="0" title="Melee hit rating (~15.77 per 1% vs +3 levels; plus Prescision)"></div>
+        <div class="sp-kv row-warrior" style="flex-direction:column;align-items:stretch;gap:4px;padding-top:2px">
+          <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem"><span class="k">AWD (2H)</span><span class="v" id="sp-war-awd">&mdash;</span></div>
+          <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.62rem;line-height:1.35"><span class="k" style="flex-shrink:0;align-self:flex-start">Melee hit</span><span class="v" id="sp-war-meleehit" style="text-align:right">&mdash;</span></div>
+        </div>
       </div>
-      <div class="sp-sect-hdr hide-for-mage">Weapon</div>
-      <table class="sp-tbl hide-for-mage" id="sp-weapon-tbl">
+      <div class="sp-sect-hdr hide-for-mage hide-for-warrior">Weapon</div>
+      <table class="sp-tbl hide-for-mage hide-for-warrior" id="sp-weapon-tbl">
         <thead><tr><th>Wpn</th><th>Spd</th><th>Low</th><th>High</th><th class="th-dag">Dag</th></tr></thead>
         <tbody>
           <tr>
@@ -287,8 +298,8 @@ button { cursor:pointer; font-family:inherit }
           </tr>
         </tbody>
       </table>
-      <div class="sp-sect-hdr rogue-derv hide-for-mage">Weapon damage</div>
-      <table class="sp-tbl rogue-derv hide-for-mage">
+      <div class="sp-sect-hdr rogue-derv hide-for-mage hide-for-warrior">Weapon damage</div>
+      <table class="sp-tbl rogue-derv hide-for-mage hide-for-warrior">
         <thead><tr><th></th><th>AWD</th><th>NWD</th></tr></thead>
         <tbody>
           <tr><td class="sn">MH</td><td id="sp-val-mh-awd">&mdash;</td><td id="sp-val-mh-nwd">&mdash;</td></tr>
@@ -1455,9 +1466,11 @@ function renderStatPanel(){
   if(panel){
     panel.classList.toggle('rogue-panel',currentClass==='rogue');
     panel.classList.toggle('mage-panel',currentClass==='mage');
+    panel.classList.toggle('warrior-panel',currentClass==='warrior');
   }
   if(currentClass==='rogue'){calcRogueStats();return;}
   if(currentClass==='mage'){calcMageStats();return;}
+  if(currentClass==='warrior'){calcWarriorStats();return;}
   const col=document.getElementById('sp-dmg-col');if(col)col.textContent='Damage';
   ['sp-ap','sp-crit','sp-hit-nr','sp-mh-spd-disp','sp-mh-lo-disp','sp-mh-hi-disp','sp-oh-spd-disp','sp-oh-lo-disp','sp-oh-hi-disp']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='\u2014';});
@@ -1739,6 +1752,106 @@ function calcMageStats(){
   bindMageListeners();
   if(!mageLocalHydrated){loadMageInputsLocal();mageLocalHydrated=true;}
   scheduleMageDamageFetch();
+}
+
+// ── WARRIOR DAMAGE (POST /api/warrior-damage) ──
+const WARRIOR_INPUTS_LS='epochdb-warrior-inputs-v1';
+let warriorFetchTimer=null;
+let warriorListenersBound=false;
+let warriorLocalHydrated=false;
+function parseWarriorStatInput(id){
+  const raw=document.getElementById(id)?.value??'';
+  const n=parseFloat(String(raw).replace(/[^0-9.-]/g,''));
+  return Number.isFinite(n)?Math.max(0,n):0;
+}
+function collectWarriorTalentsForApi(){
+  const out={};
+  CLASS_DATA.warrior.trees.forEach((tree,ti)=>{
+    tree.talents.forEach((tal,idx)=>{
+      const r=pointsSpent[ti][idx]||0;
+      if(r>0)out[tal.name]=r;
+    });
+  });
+  return out;
+}
+function saveWarriorInputsLocal(){
+  try{
+    localStorage.setItem(WARRIOR_INPUTS_LS,JSON.stringify({
+      ap:document.getElementById('inp-war-ap')?.value??'',
+      hit:document.getElementById('inp-war-hit')?.value??'',
+    }));
+  }catch(e){/* ignore */}
+}
+function loadWarriorInputsLocal(){
+  try{
+    const raw=localStorage.getItem(WARRIOR_INPUTS_LS);
+    if(!raw)return;
+    const o=JSON.parse(raw);
+    const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&v!=='')el.value=v;};
+    set('inp-war-ap',o.ap);
+    set('inp-war-hit',o.hit);
+  }catch(e){/* ignore */}
+}
+function bindWarriorListeners(){
+  if(warriorListenersBound)return;
+  warriorListenersBound=true;
+  const on=()=>{saveWarriorInputsLocal();scheduleWarriorDamageFetch();};
+  ['inp-war-ap','inp-war-hit'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.addEventListener('input',on);el.addEventListener('change',on);}
+  });
+}
+function scheduleWarriorDamageFetch(){
+  if(currentClass!=='warrior')return;
+  clearTimeout(warriorFetchTimer);
+  warriorFetchTimer=setTimeout(()=>fetchWarriorDamage(),200);
+}
+function formatWarriorDmg(row){
+  if(!row)return'\u2014';
+  const a=row.avg.toFixed(0);
+  const c=row.crit!=null?row.crit.toFixed(0):'\u2014';
+  return`${a} / ${c}`;
+}
+async function fetchWarriorDamage(){
+  bindWarriorListeners();
+  const g=id=>document.getElementById(id);
+  const col=g('sp-dmg-col');if(col)col.textContent='Avg / Crit';
+  const payload={
+    attackPower:parseWarriorStatInput('inp-war-ap'),
+    hitRating:parseWarriorStatInput('inp-war-hit'),
+    talents:collectWarriorTalentsForApi(),
+  };
+  try{
+    const res=await fetch('/api/warrior-damage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok)throw new Error(String(res.status));
+    const data=await res.json();
+    const st=data.stats;
+    if(st){
+      if(g('sp-war-awd'))g('sp-war-awd').textContent=st.awd!=null?st.awd.toFixed(1):'\u2014';
+      if(g('sp-war-meleehit')){
+        const hg=st.hitFromGearPercent!=null?st.hitFromGearPercent.toFixed(1):'0.0';
+        const tot=st.meleeHitPercent!=null?st.meleeHitPercent.toFixed(1):'0.0';
+        g('sp-war-meleehit').innerHTML=`Gear ${hg}%<br>Total ${tot}%`;
+      }
+    }
+    const map={};
+    (data.abilities||[]).forEach(a=>{map[a.name]=a;});
+    const tbody=g('sp-ability-rows');
+    if(tbody)tbody.innerHTML=CLASS_ABILITIES.warrior.map(name=>{
+      const row=map[name];
+      return`<tr><td class="sn">${name}</td><td>${formatWarriorDmg(row)}</td></tr>`;
+    }).join('');
+  }catch(err){
+    console.error('warrior-damage',err);
+    ['sp-war-awd','sp-war-meleehit'].forEach(id=>{const el=g(id);if(el){el.innerHTML='';el.textContent='\u2014';}});
+    const tbody=g('sp-ability-rows');
+    if(tbody)tbody.innerHTML='<tr><td colspan="2" class="sp-empty">Could not reach damage API</td></tr>';
+  }
+}
+function calcWarriorStats(){
+  bindWarriorListeners();
+  if(!warriorLocalHydrated){loadWarriorInputsLocal();warriorLocalHydrated=true;}
+  scheduleWarriorDamageFetch();
 }
 
 init();

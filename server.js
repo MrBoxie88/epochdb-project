@@ -1231,6 +1231,100 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
         });
 
         // ═══════════════════════════════════════════════════════════════
+        // 7d. WARRIOR DAMAGE (AP + hit rating; default 2H weapon model)
+        // ═══════════════════════════════════════════════════════════════
+        const WARRIOR_MELEE_HIT_RATING_PER_PCT = 15.77;
+
+        function computeWarriorDamage(body) {
+            const apBase = Math.max(0, Number(body.attackPower) || 0);
+            const hitRating = Math.max(0, Number(body.hitRating) || 0);
+            const t = body.talents || {};
+            const rank = (name) => Math.max(0, Number(t[name]) || 0);
+
+            const improvedBerserker = rank('Improved Berserker Stance');
+            const ap = apBase * (1 + 0.02 * Math.min(improvedBerserker, 5));
+
+            const mhSpd = 3.6;
+            const mhMid = (90 + 168) / 2;
+            const awd = (ap / 14) * mhSpd + mhMid;
+
+            const twoHanded = rank('Two-Handed Weapon Specialization');
+            const twoHMod = 1 + 0.01 * Math.min(twoHanded, 5);
+            const impale = rank('Impale');
+            const bloodFrenzy = rank('Blood Frenzy');
+            const impRend = rank('Improved Rend');
+            const impTC = rank('Improved Thunder Clap');
+            const prescision = rank('Prescision');
+            const ohSpec = rank('One-Handed Weapon Specialization');
+
+            const bfMod = 1 + 0.02 * Math.min(bloodFrenzy, 2);
+            const phys2h = bfMod * twoHMod;
+            const ohDmgMod = 1 + 0.02 * Math.min(ohSpec, 5);
+
+            const tcImpMul = impTC <= 0 ? 1 : impTC === 1 ? 1.4 : impTC === 2 ? 1.7 : 2.0;
+
+            const heroic = (awd + 176) * phys2h;
+            const rend = ((awd * 0.35) + ap * 0.05) * (1 + 0.25 * Math.min(impRend, 3)) * bfMod;
+            const overpower = (awd + 45) * phys2h;
+            const thunderClap = (180 + ap * 0.1) * tcImpMul * phys2h;
+            const slam = (awd * 1.1 + 140) * phys2h;
+            const mortalStrike = (awd * 1.1 + 88) * phys2h;
+            const whirlwind = awd * phys2h;
+            const execute = Math.min(4500, 200 + Math.max(0, ap - 20) * 4.5) * bfMod;
+            const bloodthirst = ap * 0.45 * bfMod;
+            const berserkerStrike = ap * 0.4 * bfMod;
+            const awd1h = awd * 0.88;
+            const shieldSlam = (230 + ap * 0.06) * ohDmgMod * bfMod;
+            const devastate = (awd1h * 0.5 + 75) * ohDmgMod * bfMod;
+
+            const critMult = 2 * (1 + 0.1 * Math.min(impale, 2));
+
+            const hitFromGearPct = hitRating / WARRIOR_MELEE_HIT_RATING_PER_PCT;
+            const meleeHitPct = hitFromGearPct + 1 * Math.min(prescision, 3);
+
+            const addAbi = (name, avg) => ({
+                name,
+                avg,
+                crit: avg * critMult,
+            });
+
+            const abilities = [
+                addAbi('Heroic Strike', heroic),
+                addAbi('Rend', rend),
+                addAbi('Overpower', overpower),
+                addAbi('Thunder Clap', thunderClap),
+                addAbi('Slam', slam),
+                addAbi('Mortal Strike', mortalStrike),
+                addAbi('Whirlwind', whirlwind),
+                addAbi('Execute', execute),
+                addAbi('Berserker Strike', berserkerStrike),
+                addAbi('Shield Slam', shieldSlam),
+                addAbi('Devastate', devastate),
+            ];
+
+            const stats = {
+                awd,
+                attackPowerBase: apBase,
+                attackPowerEffective: ap,
+                hitRating,
+                hitFromGearPercent: hitFromGearPct,
+                meleeHitPercent: meleeHitPct,
+            };
+
+            return { abilities, stats };
+        }
+
+        app.post('/api/warrior-damage', (req, res) => {
+            try {
+                const out = computeWarriorDamage(req.body || {});
+                res.json(out);
+            } catch (err) {
+                console.error('[warrior-damage]', err);
+                res.status(500).json({ error: 'Warrior damage calculation failed' });
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════
         // 8. SPA FALLBACK — serve index.html for all non-API routes
         // ═══════════════════════════════════════════════════════════════
 app.get('*', (req, res) => {
