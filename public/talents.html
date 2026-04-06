@@ -185,7 +185,8 @@ button { cursor:pointer; font-family:inherit }
 #stat-panel .row-nonrogue{display:flex}
 #stat-panel.rogue-panel .row-rogue{display:flex}
 #stat-panel.rogue-panel .row-nonrogue{display:none}
-#stat-panel:not(.rogue-panel) .th-dag,#stat-panel:not(.rogue-panel) .td-dag{display:none}
+#stat-panel:not(.rogue-panel):not(.warrior-panel) .th-dag,#stat-panel:not(.rogue-panel):not(.warrior-panel) .td-dag{display:none}
+#stat-panel.warrior-panel #sp-war-weapon-tbl .td-dag{width:2rem;padding:2px}
 #stat-panel:not(.rogue-panel) .rogue-only-inp{display:none!important}
 #stat-panel:not(.rogue-panel) .rogue-derv{display:none!important}
 #stat-panel.rogue-panel .gear-mdash{display:none!important}
