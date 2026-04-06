@@ -201,6 +201,8 @@ button { cursor:pointer; font-family:inherit }
 #stat-panel.mage-panel .row-warrior,#stat-panel.rogue-panel .row-warrior{display:none!important}
 .sp-inp-text{flex:1;min-width:0;max-width:100%;text-align:left;padding:5px 8px}
 .sp-chk{width:14px;height:14px;margin:0;accent-color:var(--gold-dark);cursor:pointer}
+.warrior-only{display:none}
+#stat-panel.warrior-panel .warrior-only{display:revert}
 
 @media(max-width:768px) {
   .trees-wrap { gap:8px; flex-wrap:nowrap }
@@ -274,7 +276,8 @@ button { cursor:pointer; font-family:inherit }
         <div class="sp-kv row-warrior"><span class="k">Attack Power</span><input type="text" class="sp-inp sp-inp-text" id="inp-war-ap" inputmode="numeric" autocomplete="off" value="2000" title="Attack power from gear (Improved Berserker Stance applied in totals)"></div>
         <div class="sp-kv row-warrior"><span class="k">Hit rating</span><input type="text" class="sp-inp sp-inp-text" id="inp-war-hit" inputmode="numeric" autocomplete="off" value="0" title="Melee hit rating (~15.77 per 1% vs +3 levels; plus Prescision)"></div>
         <div class="sp-kv row-warrior" style="flex-direction:column;align-items:stretch;gap:4px;padding-top:2px">
-          <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem"><span class="k">AWD (2H)</span><span class="v" id="sp-war-awd">&mdash;</span></div>
+          <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem"><span class="k">MH AWD</span><span class="v" id="sp-war-awd">&mdash;</span></div>
+          <div id="sp-war-oh-awd-row" style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem"><span class="k">OH AWD</span><span class="v" id="sp-war-oh-awd">&mdash;</span></div>
           <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.62rem;line-height:1.35"><span class="k" style="flex-shrink:0;align-self:flex-start">Melee hit</span><span class="v" id="sp-war-meleehit" style="text-align:right">&mdash;</span></div>
         </div>
       </div>
@@ -295,6 +298,26 @@ button { cursor:pointer; font-family:inherit }
             <td><input type="number" class="sp-inp rogue-only-inp" id="inp-oh-lo" min="0" step="1" value="49"><span class="gear-mdash" id="sp-oh-lo-disp">&mdash;</span></td>
             <td><input type="number" class="sp-inp rogue-only-inp" id="inp-oh-hi" min="0" step="1" value="92"><span class="gear-mdash" id="sp-oh-hi-disp">&mdash;</span></td>
             <td class="td-dag" style="text-align:center"><input type="checkbox" class="sp-chk" id="chk-oh-dagger" title="Off hand uses dagger normalized speed (1.7)"></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="sp-sect-hdr warrior-only">Weapon</div>
+      <table class="sp-tbl warrior-only" id="sp-war-weapon-tbl">
+        <thead><tr><th>Wpn</th><th>Spd</th><th>Low</th><th>High</th><th class="th-dag">2H</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>MH</td>
+            <td><input type="number" class="sp-inp" id="inp-war-mh-spd" min="0.1" step="0.1" value="3.6"></td>
+            <td><input type="number" class="sp-inp" id="inp-war-mh-lo" min="0" step="1" value="90"></td>
+            <td><input type="number" class="sp-inp" id="inp-war-mh-hi" min="0" step="1" value="168"></td>
+            <td class="td-dag" style="text-align:center"><input type="checkbox" class="sp-chk" id="chk-war-2h" title="Two-handed weapon (hides off-hand)"></td>
+          </tr>
+          <tr id="sp-war-oh-row">
+            <td>OH</td>
+            <td><input type="number" class="sp-inp" id="inp-war-oh-spd" min="0.1" step="0.1" value="2.6"></td>
+            <td><input type="number" class="sp-inp" id="inp-war-oh-lo" min="0" step="1" value="100"></td>
+            <td><input type="number" class="sp-inp" id="inp-war-oh-hi" min="0" step="1" value="180"></td>
+            <td class="td-dag"></td>
           </tr>
         </tbody>
       </table>
@@ -1774,11 +1797,25 @@ function collectWarriorTalentsForApi(){
   });
   return out;
 }
+function applyWarrior2hToggle(){
+  const is2h=!!document.getElementById('chk-war-2h')?.checked;
+  const ohRow=document.getElementById('sp-war-oh-row');
+  const ohAwd=document.getElementById('sp-war-oh-awd-row');
+  if(ohRow)ohRow.style.display=is2h?'none':'';
+  if(ohAwd)ohAwd.style.display=is2h?'none':'';
+}
 function saveWarriorInputsLocal(){
   try{
     localStorage.setItem(WARRIOR_INPUTS_LS,JSON.stringify({
       ap:document.getElementById('inp-war-ap')?.value??'',
       hit:document.getElementById('inp-war-hit')?.value??'',
+      mhSpd:document.getElementById('inp-war-mh-spd')?.value??'',
+      mhLo:document.getElementById('inp-war-mh-lo')?.value??'',
+      mhHi:document.getElementById('inp-war-mh-hi')?.value??'',
+      ohSpd:document.getElementById('inp-war-oh-spd')?.value??'',
+      ohLo:document.getElementById('inp-war-oh-lo')?.value??'',
+      ohHi:document.getElementById('inp-war-oh-hi')?.value??'',
+      twoH:!!document.getElementById('chk-war-2h')?.checked,
     }));
   }catch(e){/* ignore */}
 }
@@ -1790,13 +1827,17 @@ function loadWarriorInputsLocal(){
     const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&v!=='')el.value=v;};
     set('inp-war-ap',o.ap);
     set('inp-war-hit',o.hit);
+    set('inp-war-mh-spd',o.mhSpd); set('inp-war-mh-lo',o.mhLo); set('inp-war-mh-hi',o.mhHi);
+    set('inp-war-oh-spd',o.ohSpd); set('inp-war-oh-lo',o.ohLo); set('inp-war-oh-hi',o.ohHi);
+    const chk=document.getElementById('chk-war-2h');if(chk&&o.twoH!=null)chk.checked=!!o.twoH;
+    applyWarrior2hToggle();
   }catch(e){/* ignore */}
 }
 function bindWarriorListeners(){
   if(warriorListenersBound)return;
   warriorListenersBound=true;
-  const on=()=>{saveWarriorInputsLocal();scheduleWarriorDamageFetch();};
-  ['inp-war-ap','inp-war-hit'].forEach(id=>{
+  const on=()=>{saveWarriorInputsLocal();scheduleWarriorDamageFetch();applyWarrior2hToggle();};
+  ['inp-war-ap','inp-war-hit','inp-war-mh-spd','inp-war-mh-lo','inp-war-mh-hi','inp-war-oh-spd','inp-war-oh-lo','inp-war-oh-hi','chk-war-2h'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){el.addEventListener('input',on);el.addEventListener('change',on);}
   });
@@ -1819,6 +1860,9 @@ async function fetchWarriorDamage(){
   const payload={
     attackPower:parseWarriorStatInput('inp-war-ap'),
     hitRating:parseWarriorStatInput('inp-war-hit'),
+    mh:{speed:parseWarriorStatInput('inp-war-mh-spd')||3.6,low:parseWarriorStatInput('inp-war-mh-lo')||90,high:parseWarriorStatInput('inp-war-mh-hi')||168},
+    oh:{speed:parseWarriorStatInput('inp-war-oh-spd')||2.6,low:parseWarriorStatInput('inp-war-oh-lo')||100,high:parseWarriorStatInput('inp-war-oh-hi')||180},
+    twoHanded:!!document.getElementById('chk-war-2h')?.checked,
     talents:collectWarriorTalentsForApi(),
   };
   try{
@@ -1828,6 +1872,7 @@ async function fetchWarriorDamage(){
     const st=data.stats;
     if(st){
       if(g('sp-war-awd'))g('sp-war-awd').textContent=st.awd!=null?st.awd.toFixed(1):'\u2014';
+      if(g('sp-war-oh-awd'))g('sp-war-oh-awd').textContent=st.ohawd!=null?st.ohawd.toFixed(1):'\u2014';
       if(g('sp-war-meleehit')){
         const hg=st.hitFromGearPercent!=null?st.hitFromGearPercent.toFixed(1):'0.0';
         const tot=st.meleeHitPercent!=null?st.meleeHitPercent.toFixed(1):'0.0';
@@ -1843,7 +1888,7 @@ async function fetchWarriorDamage(){
     }).join('');
   }catch(err){
     console.error('warrior-damage',err);
-    ['sp-war-awd','sp-war-meleehit'].forEach(id=>{const el=g(id);if(el){el.innerHTML='';el.textContent='\u2014';}});
+    ['sp-war-awd','sp-war-oh-awd','sp-war-meleehit'].forEach(id=>{const el=g(id);if(el){el.innerHTML='';el.textContent='\u2014';}});
     const tbody=g('sp-ability-rows');
     if(tbody)tbody.innerHTML='<tr><td colspan="2" class="sp-empty">Could not reach damage API</td></tr>';
   }

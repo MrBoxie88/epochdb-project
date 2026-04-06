@@ -1244,9 +1244,15 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
             const improvedBerserker = rank('Improved Berserker Stance');
             const ap = apBase * (1 + 0.02 * Math.min(improvedBerserker, 5));
 
-            const mhSpd = 3.6;
-            const mhMid = (90 + 168) / 2;
-            const awd = (ap / 14) * mhSpd + mhMid;
+            const mhSpd = Math.max(0.1, Number(body.mh?.speed) || 3.6);
+            const mhLo  = Math.max(0, Number(body.mh?.low)   || 90);
+            const mhHi  = Math.max(0, Number(body.mh?.high)  || 168);
+            const awd   = (ap / 14) * mhSpd + (mhLo + mhHi) / 2;
+            const twoH  = !!body.twoHanded;
+            const ohSpd = Math.max(0.1, Number(body.oh?.speed) || 2.6);
+            const ohLo  = Math.max(0, Number(body.oh?.low)   || 100);
+            const ohHi  = Math.max(0, Number(body.oh?.high)  || 180);
+            const ohawd = twoH ? null : (ap / 14) * ohSpd + (ohLo + ohHi) / 2;
 
             const twoHanded = rank('Two-Handed Weapon Specialization');
             const twoHMod = 1 + 0.01 * Math.min(twoHanded, 5);
@@ -1273,7 +1279,7 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
             const execute = Math.min(4500, 200 + Math.max(0, ap - 20) * 4.5) * bfMod;
             const bloodthirst = ap * 0.45 * bfMod;
             const berserkerStrike = ap * 0.4 * bfMod;
-            const awd1h = awd * 0.88;
+            const awd1h = awd;
             const shieldSlam = (230 + ap * 0.06) * ohDmgMod * bfMod;
             const devastate = (awd1h * 0.5 + 75) * ohDmgMod * bfMod;
 
@@ -1304,6 +1310,7 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
 
             const stats = {
                 awd,
+                ohawd,
                 attackPowerBase: apBase,
                 attackPowerEffective: ap,
                 hitRating,
