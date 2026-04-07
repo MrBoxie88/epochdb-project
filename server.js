@@ -1332,6 +1332,94 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
         });
 
         // ═══════════════════════════════════════════════════════════════
+        // 7e. WARLOCK SPELL DAMAGE (spell power + talent modifiers)
+        // ═══════════════════════════════════════════════════════════════
+        const WARLOCK_SPELL_HIT_RATING_PER_PCT = 12.615;
+
+        function computeWarlockDamage(body) {
+            const spGear = Math.max(0, Number(body.spellPower) || 0);
+            const critPct = Math.max(0, Number(body.critPercent) || 0);
+            const hitRating = Math.max(0, Number(body.hitRating) || 0);
+            const t = body.talents || {};
+            const rank = (name) => Math.max(0, Number(t[name]) || 0);
+
+            const suppression   = rank('Suppression');        // 2% hit/rank → up to 10%
+            const shadowMastery = rank('Shadow Mastery');     // 2% shadow dmg/rank → up to 10%
+            const ruin          = rank('Ruin');               // +100% crit damage for Destruction
+            const emberstorm    = rank('Emberstorm');         // 2% fire dmg/rank → up to 10%
+            const contagion     = rank('Contagion');          // 1% DoT dmg/rank → up to 5%
+            const shadowAndFlame = rank('Shadow and Flame');  // +4% Shadow Bolt SP coeff/rank
+
+            const hitFromGearPct = hitRating / WARLOCK_SPELL_HIT_RATING_PER_PCT;
+            const totalHitPct    = hitFromGearPct + suppression * 2;
+
+            const shadowMod = 1 + (shadowMastery * 2) / 100;
+            const fireMod   = 1 + (emberstorm   * 2) / 100;
+            const dotMod    = 1 + contagion / 100;
+
+            // Destruction spells: 3× on crit with Ruin, else 2×
+            const destCritMult = ruin >= 1 ? 3.0 : 2.0;
+
+            // Shadow Bolt rank 9: 482–539 base, coeff 0.857 + Shadow and Flame bonus
+            const sbCoef       = 0.857 + 0.04 * Math.min(shadowAndFlame, 5);
+            const shadowBoltAvg = ((482 + 539) / 2 + sbCoef * spGear) * shadowMod;
+
+            // Corruption rank 8: 172 total DoT over 18 s, coeff 0.936 — DoTs cannot crit
+            const corruptionAvg = (172 + 0.936 * spGear) * shadowMod * dotMod;
+
+            // Immolate rank 9: 327 initial + 510 DoT over 15 s, coeffs 0.143 + 0.65
+            const immolateInitial = (327 + 0.143 * spGear) * fireMod;
+            const immolateDot     = (510 + 0.65  * spGear) * fireMod * dotMod;
+            const immolateTotal   = immolateInitial + immolateDot;
+
+            // Drain Life rank 7: 750 total (5 ticks × 150), coeff 0.5 — channeled, no crit
+            const drainLifeAvg = (750 + 0.5 * spGear) * shadowMod;
+
+            // Searing Pain rank 8: 143–165, coeff 0.429
+            const searingPainAvg = ((143 + 165) / 2 + 0.429 * spGear) * fireMod;
+
+            // Conflagrate: 447–553, coeff 0.429
+            const conflagrateAvg = ((447 + 553) / 2 + 0.429 * spGear) * fireMod;
+
+            // Unstable Affliction rank 3: 1050 DoT over 18 s, coeff 1.0 — DoT, no crit
+            const uaAvg = (1050 + 1.0 * spGear) * shadowMod * dotMod;
+
+            // Incinerate rank 2: 444–514, coeff 0.714
+            const incinerateAvg = ((444 + 514) / 2 + 0.714 * spGear) * fireMod;
+
+            const abilities = [
+                { name: 'Shadow Bolt',         avg: shadowBoltAvg,  crit: shadowBoltAvg * destCritMult },
+                { name: 'Corruption',          avg: corruptionAvg,  crit: null },
+                { name: 'Immolate',            avg: immolateTotal,  crit: immolateInitial * destCritMult },
+                { name: 'Drain Life',          avg: drainLifeAvg,   crit: null },
+                { name: 'Searing Pain',        avg: searingPainAvg, crit: searingPainAvg * destCritMult },
+                { name: 'Conflagrate',         avg: conflagrateAvg, crit: conflagrateAvg * destCritMult },
+                { name: 'Unstable Affliction', avg: uaAvg,          crit: null },
+                { name: 'Incinerate',          avg: incinerateAvg,  crit: incinerateAvg * destCritMult },
+            ];
+
+            const stats = {
+                spellPower: spGear,
+                critPercent: critPct,
+                hitRating,
+                hitFromGearPercent: hitFromGearPct,
+                totalHitPercent: totalHitPct,
+            };
+
+            return { abilities, stats };
+        }
+
+        app.post('/api/warlock-damage', (req, res) => {
+            try {
+                const out = computeWarlockDamage(req.body || {});
+                res.json(out);
+            } catch (err) {
+                console.error('[warlock-damage]', err);
+                res.status(500).json({ error: 'Warlock damage calculation failed' });
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════
         // 8. SPA FALLBACK — serve index.html for all non-API routes
         // ═══════════════════════════════════════════════════════════════
 app.get('*', (req, res) => {

@@ -200,6 +200,10 @@ button { cursor:pointer; font-family:inherit }
 #stat-panel.warrior-panel .row-warrior{display:flex}
 #stat-panel.warrior-panel .row-nonrogue,#stat-panel.warrior-panel .row-rogue,#stat-panel.warrior-panel .row-mage{display:none!important}
 #stat-panel.mage-panel .row-warrior,#stat-panel.rogue-panel .row-warrior{display:none!important}
+#stat-panel .row-warlock{display:none;align-items:center;gap:8px;flex-wrap:wrap}
+#stat-panel.warlock-panel .row-warlock{display:flex}
+#stat-panel.warlock-panel .row-nonrogue,#stat-panel.warlock-panel .row-rogue,#stat-panel.warlock-panel .row-mage,#stat-panel.warlock-panel .row-warrior{display:none!important}
+#stat-panel.warlock-panel .hide-for-warlock{display:none!important}
 .sp-inp-text{flex:1;min-width:0;max-width:100%;text-align:left;padding:5px 8px}
 .sp-chk{width:14px;height:14px;margin:0;accent-color:var(--gold-dark);cursor:pointer}
 .warrior-only{display:none}
@@ -281,9 +285,15 @@ button { cursor:pointer; font-family:inherit }
           <div id="sp-war-oh-awd-row" style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.65rem"><span class="k">OH AWD</span><span class="v" id="sp-war-oh-awd">&mdash;</span></div>
           <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.62rem;line-height:1.35"><span class="k" style="flex-shrink:0;align-self:flex-start">Melee hit</span><span class="v" id="sp-war-meleehit" style="text-align:right">&mdash;</span></div>
         </div>
+        <div class="sp-kv row-warlock"><span class="k">Spell Power</span><input type="text" class="sp-inp sp-inp-text" id="inp-wl-sp" inputmode="numeric" autocomplete="off" value="1000" title="Bonus spell damage from gear"></div>
+        <div class="sp-kv row-warlock"><span class="k">Crit %</span><input type="text" class="sp-inp sp-inp-text" id="inp-wl-crit" inputmode="numeric" autocomplete="off" value="5" title="Your spell crit % from gear/rating"></div>
+        <div class="sp-kv row-warlock"><span class="k">Hit rating</span><input type="text" class="sp-inp sp-inp-text" id="inp-wl-hit" inputmode="numeric" autocomplete="off" value="0" title="Spell hit rating (~12.6 per 1%; Suppression adds bonus hit)"></div>
+        <div class="sp-kv row-warlock" style="flex-direction:column;align-items:stretch;gap:4px;padding-top:2px">
+          <div style="display:flex;justify-content:space-between;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.62rem;line-height:1.35"><span class="k" style="flex-shrink:0;align-self:flex-start">Spell hit</span><span class="v" id="sp-wl-hit" style="text-align:right">&mdash;</span></div>
+        </div>
       </div>
-      <div class="sp-sect-hdr hide-for-mage hide-for-warrior">Weapon</div>
-      <table class="sp-tbl hide-for-mage hide-for-warrior" id="sp-weapon-tbl">
+      <div class="sp-sect-hdr hide-for-mage hide-for-warrior hide-for-warlock">Weapon</div>
+      <table class="sp-tbl hide-for-mage hide-for-warrior hide-for-warlock" id="sp-weapon-tbl">
         <thead><tr><th>Wpn</th><th>Spd</th><th>Low</th><th>High</th><th class="th-dag">Dag</th></tr></thead>
         <tbody>
           <tr>
@@ -322,8 +332,8 @@ button { cursor:pointer; font-family:inherit }
           </tr>
         </tbody>
       </table>
-      <div class="sp-sect-hdr rogue-derv hide-for-mage hide-for-warrior">Weapon damage</div>
-      <table class="sp-tbl rogue-derv hide-for-mage hide-for-warrior">
+      <div class="sp-sect-hdr rogue-derv hide-for-mage hide-for-warrior hide-for-warlock">Weapon damage</div>
+      <table class="sp-tbl rogue-derv hide-for-mage hide-for-warrior hide-for-warlock">
         <thead><tr><th></th><th>AWD</th><th>NWD</th></tr></thead>
         <tbody>
           <tr><td class="sn">MH</td><td id="sp-val-mh-awd">&mdash;</td><td id="sp-val-mh-nwd">&mdash;</td></tr>
@@ -1488,10 +1498,12 @@ function renderStatPanel(){
     panel.classList.toggle('rogue-panel',currentClass==='rogue');
     panel.classList.toggle('mage-panel',currentClass==='mage');
     panel.classList.toggle('warrior-panel',currentClass==='warrior');
+    panel.classList.toggle('warlock-panel',currentClass==='warlock');
   }
   if(currentClass==='rogue'){calcRogueStats();return;}
   if(currentClass==='mage'){calcMageStats();return;}
   if(currentClass==='warrior'){calcWarriorStats();return;}
+  if(currentClass==='warlock'){calcWarlockStats();return;}
   const col=document.getElementById('sp-dmg-col');if(col)col.textContent='Damage';
   ['sp-ap','sp-crit','sp-hit-nr','sp-mh-spd-disp','sp-mh-lo-disp','sp-mh-hi-disp','sp-oh-spd-disp','sp-oh-lo-disp','sp-oh-hi-disp']
     .forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='\u2014';});
@@ -1895,6 +1907,106 @@ function calcWarriorStats(){
   bindWarriorListeners();
   if(!warriorLocalHydrated){loadWarriorInputsLocal();warriorLocalHydrated=true;}
   scheduleWarriorDamageFetch();
+}
+
+// ── WARLOCK SPELL DAMAGE (POST /api/warlock-damage) ──
+const WARLOCK_INPUTS_LS='epochdb-warlock-inputs-v1';
+let warlockFetchTimer=null;
+let warlockListenersBound=false;
+let warlockLocalHydrated=false;
+function parseWarlockStatInput(id){
+  const raw=document.getElementById(id)?.value??'';
+  const n=parseFloat(String(raw).replace(/[^0-9.-]/g,''));
+  return Number.isFinite(n)?Math.max(0,n):0;
+}
+function collectWarlockTalentsForApi(){
+  const out={};
+  CLASS_DATA.warlock.trees.forEach((tree,ti)=>{
+    tree.talents.forEach((tal,idx)=>{
+      const r=pointsSpent[ti]?.[idx]||0;
+      if(r>0)out[tal.name]=r;
+    });
+  });
+  return out;
+}
+function saveWarlockInputsLocal(){
+  try{
+    localStorage.setItem(WARLOCK_INPUTS_LS,JSON.stringify({
+      sp:document.getElementById('inp-wl-sp')?.value??'',
+      crit:document.getElementById('inp-wl-crit')?.value??'',
+      hit:document.getElementById('inp-wl-hit')?.value??'',
+    }));
+  }catch(e){/* ignore */}
+}
+function loadWarlockInputsLocal(){
+  try{
+    const raw=localStorage.getItem(WARLOCK_INPUTS_LS);
+    if(!raw)return;
+    const o=JSON.parse(raw);
+    const set=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&v!=='')el.value=v;};
+    set('inp-wl-sp',o.sp);
+    set('inp-wl-crit',o.crit);
+    set('inp-wl-hit',o.hit);
+  }catch(e){/* ignore */}
+}
+function bindWarlockListeners(){
+  if(warlockListenersBound)return;
+  warlockListenersBound=true;
+  const on=()=>{saveWarlockInputsLocal();scheduleWarlockDamageFetch();};
+  ['inp-wl-sp','inp-wl-crit','inp-wl-hit'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.addEventListener('input',on);el.addEventListener('change',on);}
+  });
+}
+function scheduleWarlockDamageFetch(){
+  if(currentClass!=='warlock')return;
+  clearTimeout(warlockFetchTimer);
+  warlockFetchTimer=setTimeout(()=>fetchWarlockDamage(),200);
+}
+function formatWarlockDmg(row){
+  if(!row)return'\u2014';
+  const a=row.avg.toFixed(0);
+  const c=row.crit!=null?row.crit.toFixed(0):'\u2014';
+  return`${a} / ${c}`;
+}
+async function fetchWarlockDamage(){
+  bindWarlockListeners();
+  const g=id=>document.getElementById(id);
+  const col=g('sp-dmg-col');if(col)col.textContent='Avg / Crit';
+  const payload={
+    spellPower:parseWarlockStatInput('inp-wl-sp'),
+    critPercent:parseWarlockStatInput('inp-wl-crit'),
+    hitRating:parseWarlockStatInput('inp-wl-hit'),
+    talents:collectWarlockTalentsForApi(),
+  };
+  try{
+    const res=await fetch('/api/warlock-damage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!res.ok)throw new Error(String(res.status));
+    const data=await res.json();
+    const st=data.stats;
+    if(st&&g('sp-wl-hit')){
+      const hg=st.hitFromGearPercent!=null?st.hitFromGearPercent.toFixed(1):'0.0';
+      const tot=st.totalHitPercent!=null?st.totalHitPercent.toFixed(1):'0.0';
+      g('sp-wl-hit').innerHTML=`Gear ${hg}%<br>Total ${tot}%`;
+    }
+    const map={};
+    (data.abilities||[]).forEach(a=>{map[a.name]=a;});
+    const tbody=g('sp-ability-rows');
+    if(tbody)tbody.innerHTML=CLASS_ABILITIES.warlock.map(name=>{
+      const row=map[name];
+      return`<tr><td class="sn">${name}</td><td>${formatWarlockDmg(row)}</td></tr>`;
+    }).join('');
+  }catch(err){
+    console.error('warlock-damage',err);
+    const wlhit=g('sp-wl-hit');if(wlhit){wlhit.innerHTML='';wlhit.textContent='\u2014';}
+    const tbody=g('sp-ability-rows');
+    if(tbody)tbody.innerHTML='<tr><td colspan="2" class="sp-empty">Could not reach damage API</td></tr>';
+  }
+}
+function calcWarlockStats(){
+  bindWarlockListeners();
+  if(!warlockLocalHydrated){loadWarlockInputsLocal();warlockLocalHydrated=true;}
+  scheduleWarlockDamageFetch();
 }
 
 init();
