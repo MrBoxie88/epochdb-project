@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel — EpochDB</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
+:root {
+  --gold:#c8a84b; --gold-light:#e8cc7a; --gold-dark:#8a6f2e; --gold-bg:rgba(200,168,75,0.06);
+  --red:#8b1a1a; --red-bright:#c0392b;
+  --bg-deep:#0a0a0c; --bg-panel:#0f0f14; --bg-card:#131318; --bg-hover:#1a1a24;
+  --border:#252530; --border-gold:#3a2e10;
+  --text:#c8c0a8; --text-dim:#6a6458; --text-bright:#e8dfc8;
+  --green:#1eff00; --green-soft:#6abf6a;
+}
+html { font-size:13px }
+body { background:var(--bg-deep); color:var(--text); font-family:'Crimson Text',Georgia,serif; min-height:100vh; overflow-x:hidden }
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; opacity:.4 }
+a { color:var(--gold); text-decoration:none }
+a:hover { color:var(--gold-light); text-decoration:underline }
+button { cursor:pointer; font-family:inherit }
+::-webkit-scrollbar { width:5px; height:5px }
+::-webkit-scrollbar-track { background:var(--bg-deep) }
+::-webkit-scrollbar-thumb { background:var(--border-gold); border-radius:2px }
+
+/* ── TOPBAR ── */
+#topbar { background:linear-gradient(180deg,#0d0d10 0%,rgba(10,10,12,.95) 100%); border-bottom:1px solid var(--border-gold); padding:0 1.5rem; display:flex; align-items:center; gap:1rem; position:sticky; top:0; z-index:200; backdrop-filter:blur(14px); height:52px }
+.logo { display:flex; align-items:center; gap:.7rem; flex-shrink:0; cursor:pointer; text-decoration:none }
+.logo:hover { text-decoration:none }
+.logo-icon { width:36px; height:36px }
+.logo-icon svg { width:100%; height:100% }
+.logo-text { font-family:'Cinzel',serif; font-weight:900; font-size:1.15rem; letter-spacing:.15em; color:var(--gold); text-shadow:0 0 18px rgba(200,168,75,.4); line-height:1 }
+.logo-sub { font-family:'Cinzel',serif; font-size:.55rem; letter-spacing:.3em; color:var(--text-dim); margin-top:2px }
+#topnav { display:flex; gap:.1rem; margin-left:auto; align-items:center; flex-shrink:0 }
+.tnav-btn { font-family:'Cinzel',serif; font-size:.6rem; letter-spacing:.12em; color:var(--text-dim); background:none; border:none; padding:.4rem .75rem; transition:color .15s; text-transform:uppercase; text-decoration:none }
+.tnav-btn:hover, .tnav-btn.active { color:var(--gold); text-decoration:none }
+
+/* ── MAIN NAV ── */
+#mainnav { background:var(--bg-panel); border-bottom:1px solid var(--border); display:flex; padding:0 1.5rem; gap:0; overflow-x:auto; position:relative; z-index:1 }
+.mnav-tab { font-family:'Cinzel',serif; font-size:.62rem; letter-spacing:.14em; color:var(--text-dim); background:none; border:none; border-bottom:2px solid transparent; padding:.65rem 1rem; text-transform:uppercase; transition:all .15s; white-space:nowrap; margin-bottom:-1px; text-decoration:none; display:inline-block }
+.mnav-tab:hover { color:var(--text); text-decoration:none }
+.mnav-tab.active { color:var(--gold); border-bottom-color:var(--gold) }
+
+/* ── PAGE ── */
+#page { max-width:1200px; margin:0 auto; padding:1.5rem; position:relative; z-index:1 }
+
+/* ── LOGIN CARD ── */
+#login-screen { max-width:400px; margin:4rem auto; background:var(--bg-panel); border:1px solid var(--border-gold); padding:2rem }
+#login-screen h2 { font-family:'Cinzel',serif; font-size:1rem; color:var(--gold); letter-spacing:.15em; text-align:center; margin-bottom:1.5rem }
+.form-row { display:flex; flex-direction:column; gap:.3rem; margin-bottom:1rem }
+.form-row label { font-family:'Cinzel',serif; font-size:.6rem; letter-spacing:.1em; color:var(--text-dim); text-transform:uppercase }
+.form-inp { background:var(--bg-card); border:1px solid var(--border); color:var(--text-bright); padding:.55rem .75rem; font-family:'Share Tech Mono',monospace; font-size:.85rem; width:100%; outline:none }
+.form-inp:focus { border-color:var(--gold-dark) }
+.login-err { color:var(--red-bright); font-size:.82rem; text-align:center; margin-bottom:.8rem; min-height:1.2em }
+.btn-primary { width:100%; background:linear-gradient(135deg,var(--red),#6b1212); border:1px solid var(--border-gold); color:var(--gold); font-family:'Cinzel',serif; font-size:.65rem; letter-spacing:.14em; padding:.65rem; text-transform:uppercase; transition:all .15s }
+.btn-primary:hover { background:linear-gradient(135deg,var(--gold-dark),var(--gold)); color:var(--bg-deep) }
+
+/* ── ADMIN PANEL ── */
+#admin-panel { display:none }
+.admin-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:.8rem }
+.admin-header h1 { font-family:'Cinzel',serif; font-size:1.1rem; color:var(--gold); letter-spacing:.12em }
+.admin-badge { font-family:'Share Tech Mono',monospace; font-size:.7rem; color:var(--green-soft); background:rgba(106,191,106,.08); border:1px solid rgba(106,191,106,.2); padding:.25rem .6rem }
+.btn-sm { background:var(--bg-card); color:var(--text-dim); border:1px solid var(--border); padding:.3rem .75rem; font-family:'Cinzel',serif; font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; transition:all .15s }
+.btn-sm:hover { border-color:var(--gold-dark); color:var(--gold) }
+.btn-danger { border-color:#5a1a1a; color:#c0392b }
+.btn-danger:hover { background:rgba(192,57,43,.15); border-color:#c0392b; color:#e74c3c }
+.btn-logout { border-color:var(--border-gold); color:var(--gold-dark) }
+.btn-logout:hover { background:rgba(200,168,75,.1); color:var(--gold) }
+
+/* ── TABS ── */
+.tab-bar { display:flex; border-bottom:1px solid var(--border); margin-bottom:1.5rem }
+.tab-btn { font-family:'Cinzel',serif; font-size:.65rem; letter-spacing:.12em; color:var(--text-dim); background:none; border:none; border-bottom:2px solid transparent; padding:.6rem 1.2rem; text-transform:uppercase; transition:all .15s; margin-bottom:-1px }
+.tab-btn.active { color:var(--gold); border-bottom-color:var(--gold) }
+.tab-pane { display:none }
+.tab-pane.active { display:block }
+
+/* ── FILTERS ── */
+.filter-row { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem; align-items:center }
+.filter-inp { background:var(--bg-card); border:1px solid var(--border); color:var(--text-bright); padding:.4rem .65rem; font-family:'Share Tech Mono',monospace; font-size:.78rem; outline:none; min-width:140px }
+.filter-inp:focus { border-color:var(--gold-dark) }
+.filter-select { background:var(--bg-card); border:1px solid var(--border); color:var(--text-bright); padding:.4rem .55rem; font-family:'Share Tech Mono',monospace; font-size:.78rem; outline:none }
+
+/* ── TABLE ── */
+.admin-table-wrap { overflow-x:auto; border:1px solid var(--border) }
+.admin-tbl { width:100%; border-collapse:collapse; font-family:'Share Tech Mono',monospace; font-size:.72rem }
+.admin-tbl th { background:var(--bg-card); color:var(--text-dim); padding:.45rem .75rem; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; font-weight:normal; font-family:'Cinzel',serif; font-size:.58rem; letter-spacing:.1em; text-transform:uppercase }
+.admin-tbl td { padding:.4rem .75rem; border-bottom:1px solid var(--border); color:var(--text); vertical-align:top }
+.admin-tbl tr:last-child td { border-bottom:none }
+.admin-tbl tr:hover td { background:var(--bg-hover) }
+.td-type { color:var(--text-dim); font-size:.68rem }
+.td-name { color:var(--text-bright) }
+.td-id { color:var(--text-dim) }
+.td-comment { max-width:340px; word-break:break-word; white-space:pre-wrap; line-height:1.4 }
+.td-date { color:var(--text-dim); font-size:.68rem; white-space:nowrap }
+.td-author { color:var(--gold-light) }
+.empty-row td { text-align:center; color:var(--text-dim); font-style:italic; padding:1.5rem }
+
+/* ── PAGINATION ── */
+.pager { display:flex; align-items:center; gap:.5rem; margin-top:.8rem; justify-content:flex-end; flex-wrap:wrap }
+.pager-info { font-family:'Share Tech Mono',monospace; font-size:.7rem; color:var(--text-dim); flex:1 }
+
+/* ── COMMENT FORM ── */
+.comment-form { background:var(--bg-panel); border:1px solid var(--border); padding:1rem; margin-bottom:1.2rem }
+.comment-form h3 { font-family:'Cinzel',serif; font-size:.68rem; color:var(--gold); letter-spacing:.12em; text-transform:uppercase; margin-bottom:.75rem }
+.cf-row { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:.6rem }
+.cf-inp { background:var(--bg-card); border:1px solid var(--border); color:var(--text-bright); padding:.4rem .65rem; font-family:'Share Tech Mono',monospace; font-size:.78rem; outline:none }
+.cf-inp:focus { border-color:var(--gold-dark) }
+.cf-textarea { width:100%; background:var(--bg-card); border:1px solid var(--border); color:var(--text-bright); padding:.5rem .65rem; font-family:'Crimson Text',serif; font-size:.9rem; resize:vertical; min-height:72px; outline:none; margin-bottom:.6rem }
+.cf-textarea:focus { border-color:var(--gold-dark) }
+.cf-err { color:var(--red-bright); font-size:.78rem; margin-bottom:.4rem; min-height:1em }
+.cf-ok { color:var(--green-soft); font-size:.78rem; margin-bottom:.4rem; min-height:1em }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:1.5rem; right:1.5rem; background:var(--bg-panel); border:1px solid var(--border-gold); border-left:3px solid var(--gold); padding:.7rem 1.1rem; font-size:.88rem; color:var(--text-bright); z-index:600; box-shadow:0 4px 20px rgba(0,0,0,.5); animation:slideIn .25s ease }
+@keyframes slideIn { from{transform:translateX(110%);opacity:0} to{transform:none;opacity:1} }
+
+/* ── CONFIRM DIALOG ── */
+.confirm-overlay { position:fixed; inset:0; background:rgba(0,0,0,.8); z-index:10000; display:none; align-items:center; justify-content:center; backdrop-filter:blur(4px) }
+.confirm-overlay.open { display:flex }
+.confirm-box { background:var(--bg-panel); border:1px solid var(--border-gold); width:90%; max-width:380px; box-shadow:0 0 60px rgba(200,168,75,.1) }
+.confirm-hdr { background:linear-gradient(135deg,rgba(139,26,26,.4),rgba(200,168,75,.06)); border-bottom:1px solid var(--border-gold); padding:.8rem 1.1rem; font-family:'Cinzel',serif; font-size:.75rem; color:var(--gold); letter-spacing:.1em }
+.confirm-body { padding:1rem 1.1rem; font-size:.9rem; color:var(--text) }
+.confirm-name { color:var(--text-bright); font-weight:600 }
+.confirm-footer { padding:.75rem 1.1rem; display:flex; gap:.6rem; justify-content:flex-end; border-top:1px solid var(--border) }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <a class="logo" href="/">
+    <div class="logo-icon">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="18" stroke="#c8a84b" stroke-width="1.5" opacity=".4"/>
+        <path d="M20 4L20 36M4 20L36 20" stroke="#c8a84b" stroke-width="1" opacity=".25"/>
+        <path d="M20 8L24 14L30 14L25 18L27 25L20 21L13 25L15 18L10 14L16 14Z" fill="#c8a84b" opacity=".85"/>
+        <circle cx="20" cy="20" r="3" fill="#8b1a1a"/>
+      </svg>
+    </div>
+    <div><div class="logo-text">EPOCHDB</div><div class="logo-sub">Project Epoch Database</div></div>
+  </a>
+  <div id="topnav">
+    <a class="tnav-btn" href="/npcs.html">NPCs</a>
+    <a class="tnav-btn" href="/items.html">Items</a>
+    <a class="tnav-btn" href="/quests.html">Quests</a>
+    <a class="tnav-btn" href="/loot.html">Loot</a>
+    <a class="tnav-btn" href="/talents.html">Talents</a>
+    <a class="tnav-btn active" href="/admin.html">Admin</a>
+  </div>
+</div>
+
+<div id="mainnav">
+  <a class="mnav-tab" href="/">Home</a>
+  <a class="mnav-tab" href="/npcs.html">NPCs &amp; Mobs</a>
+  <a class="mnav-tab" href="/items.html">Items</a>
+  <a class="mnav-tab" href="/quests.html">Quests</a>
+  <a class="mnav-tab" href="/loot.html">Loot Tables</a>
+  <a class="mnav-tab" href="/talents.html">Talent Calculator</a>
+  <a class="mnav-tab active" href="/admin.html">Admin Panel</a>
+</div>
+
+<div id="page">
+
+  <!-- ── LOGIN SCREEN ── -->
+  <div id="login-screen">
+    <h2>⚔ ADMIN LOGIN</h2>
+    <div id="login-err" class="login-err"></div>
+    <div class="form-row">
+      <label>Email</label>
+      <input class="form-inp" type="email" id="inp-email" placeholder="admin@example.com" autocomplete="username">
+    </div>
+    <div class="form-row">
+      <label>Password</label>
+      <input class="form-inp" type="password" id="inp-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" id="btn-login" onclick="doLogin()">Sign In</button>
+  </div>
+
+  <!-- ── ADMIN PANEL ── -->
+  <div id="admin-panel">
+    <div class="admin-header">
+      <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap">
+        <h1>⚔ ADMIN PANEL</h1>
+        <span class="admin-badge" id="admin-name-badge">…</span>
+      </div>
+      <button class="btn-sm btn-logout" onclick="doLogout()">⏻ Logout</button>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab('records',this)">📦 Records</button>
+      <button class="tab-btn" onclick="switchTab('comments',this)">💬 Comments</button>
+      <button class="tab-btn" onclick="switchTab('post',this)">✏ Post Comment</button>
+    </div>
+
+    <!-- ─── RECORDS TAB ─── -->
+    <div id="tab-records" class="tab-pane active">
+      <div class="filter-row">
+        <input class="filter-inp" id="rec-q" placeholder="Search name…" oninput="schedRecords()" style="flex:1;min-width:180px">
+        <select class="filter-select" id="rec-type" onchange="loadRecords(1)">
+          <option value="">All types</option>
+          <option value="item">Items</option>
+          <option value="npc">NPCs</option>
+          <option value="quest">Quests</option>
+          <option value="loot">Loot</option>
+          <option value="vendor">Vendors</option>
+        </select>
+        <button class="btn-sm" onclick="loadRecords(1)">🔍 Search</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-tbl">
+          <thead><tr><th>Type</th><th>Name</th><th>ID</th><th>Actions</th></tr></thead>
+          <tbody id="rec-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <span class="pager-info" id="rec-pager-info"></span>
+        <button class="btn-sm" id="rec-prev" onclick="loadRecords(recPage-1)">‹ Prev</button>
+        <button class="btn-sm" id="rec-next" onclick="loadRecords(recPage+1)">Next ›</button>
+      </div>
+    </div>
+
+    <!-- ─── COMMENTS TAB ─── -->
+    <div id="tab-comments" class="tab-pane">
+      <div class="filter-row">
+        <select class="filter-select" id="cmt-type" onchange="loadComments(1)">
+          <option value="">All types</option>
+          <option value="item">Items</option>
+          <option value="npc">NPCs</option>
+          <option value="quest">Quests</option>
+          <option value="loot">Loot</option>
+        </select>
+        <input class="filter-inp" id="cmt-rid" placeholder="Record ID (optional)" oninput="schedComments()" style="min-width:180px">
+        <button class="btn-sm" onclick="loadComments(1)">🔍 Filter</button>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-tbl">
+          <thead><tr><th>Type / Record ID</th><th>Author</th><th>Class</th><th>Comment</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody id="cmt-tbody"></tbody>
+        </table>
+      </div>
+      <div class="pager">
+        <span class="pager-info" id="cmt-pager-info"></span>
+        <button class="btn-sm" id="cmt-prev" onclick="loadComments(cmtPage-1)">‹ Prev</button>
+        <button class="btn-sm" id="cmt-next" onclick="loadComments(cmtPage+1)">Next ›</button>
+      </div>
+    </div>
+
+    <!-- ─── POST COMMENT TAB ─── -->
+    <div id="tab-post" class="tab-pane">
+      <div class="comment-form">
+        <h3>Post a Comment</h3>
+        <div class="cf-row">
+          <select class="cf-inp filter-select" id="cf-type" style="min-width:120px">
+            <option value="item">Item</option>
+            <option value="npc">NPC</option>
+            <option value="quest">Quest</option>
+            <option value="loot">Loot</option>
+          </select>
+          <input class="cf-inp" id="cf-rid" placeholder="Record ID" style="flex:1;min-width:160px">
+          <input class="cf-inp" id="cf-cls" placeholder="Class (e.g. Warrior)" style="min-width:140px">
+        </div>
+        <textarea class="cf-textarea" id="cf-text" placeholder="Write your comment…"></textarea>
+        <div id="cf-err" class="cf-err"></div>
+        <div id="cf-ok" class="cf-ok"></div>
+        <button class="btn-sm" style="border-color:var(--border-gold);color:var(--gold-dark)" onclick="postComment()">⚔ Post Comment</button>
+      </div>
+    </div>
+
+  </div><!-- /admin-panel -->
+</div>
+
+<!-- ── CONFIRM DIALOG ── -->
+<div id="confirm-overlay" class="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-box">
+    <div class="confirm-hdr">⚠ Confirm Delete</div>
+    <div class="confirm-body" id="confirm-msg">Are you sure?</div>
+    <div class="confirm-footer">
+      <button class="btn-sm" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-sm btn-danger" id="confirm-ok-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TOKEN_KEY = 'epochdb-admin-token';
+let adminToken = null;
+let recPage = 1, recPages = 1;
+let cmtPage = 1, cmtPages = 1;
+let recSchedTimer = null, cmtSchedTimer = null;
+
+// ── AUTH ──────────────────────────────────────────────────────
+function parseJwt(token) {
+  try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+}
+
+async function doLogin() {
+  const email = document.getElementById('inp-email').value.trim();
+  const pw = document.getElementById('inp-password').value;
+  const errEl = document.getElementById('login-err');
+  errEl.textContent = '';
+  if (!email || !pw) { errEl.textContent = 'Email and password required.'; return; }
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pw, captchaToken: '' })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Login failed.'; return; }
+    const payload = parseJwt(data.token);
+    if (!payload || !payload.isAdmin) { errEl.textContent = 'This account does not have admin access.'; return; }
+    adminToken = data.token;
+    sessionStorage.setItem(TOKEN_KEY, adminToken);
+    showPanel(payload);
+  } catch (e) {
+    errEl.textContent = 'Network error.';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+function doLogout() {
+  adminToken = null;
+  sessionStorage.removeItem(TOKEN_KEY);
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'block';
+  document.getElementById('inp-password').value = '';
+  document.getElementById('login-err').textContent = '';
+}
+
+function showPanel(payload) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('admin-panel').style.display = 'block';
+  document.getElementById('admin-name-badge').textContent = '⚔ ' + (payload.name || payload.email);
+  loadRecords(1);
+}
+
+function authHeaders() {
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + adminToken };
+}
+
+// ── TABS ──────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'comments') loadComments(1);
+}
+
+// ── RECORDS ──────────────────────────────────────────────────
+function schedRecords() {
+  clearTimeout(recSchedTimer);
+  recSchedTimer = setTimeout(() => loadRecords(1), 350);
+}
+
+async function loadRecords(page) {
+  recPage = Math.max(1, page);
+  const q = document.getElementById('rec-q').value.trim();
+  const type = document.getElementById('rec-type').value;
+  const qs = new URLSearchParams({ q, type, page: recPage });
+  try {
+    const res = await fetch('/api/admin/records?' + qs, { headers: authHeaders() });
+    if (res.status === 403) { doLogout(); return; }
+    const data = await res.json();
+    recPages = data.pages || 1;
+    renderRecords(data.docs || [], data.total || 0);
+  } catch { showToast('Failed to load records'); }
+}
+
+function renderRecords(docs, total) {
+  const tbody = document.getElementById('rec-tbody');
+  if (!docs.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No records found.</td></tr>';
+  } else {
+    tbody.innerHTML = docs.map(d => `
+      <tr>
+        <td class="td-type">${esc(d.type)}</td>
+        <td class="td-name">${esc(d.name || '—')}</td>
+        <td class="td-id">${esc(d.id)}</td>
+        <td><button class="btn-sm btn-danger" onclick="confirmDeleteRecord('${esc(d.type)}','${esc(d.id)}','${esc(d.name || d.id)}')">✕ Delete</button></td>
+      </tr>`).join('');
+  }
+  const pi = document.getElementById('rec-pager-info');
+  pi.textContent = total ? `Showing page ${recPage} of ${recPages} (${total} total)` : '';
+  document.getElementById('rec-prev').disabled = recPage <= 1;
+  document.getElementById('rec-next').disabled = recPage >= recPages;
+}
+
+// ── COMMENTS ─────────────────────────────────────────────────
+function schedComments() {
+  clearTimeout(cmtSchedTimer);
+  cmtSchedTimer = setTimeout(() => loadComments(1), 350);
+}
+
+async function loadComments(page) {
+  cmtPage = Math.max(1, page);
+  const type = document.getElementById('cmt-type').value;
+  const recordId = document.getElementById('cmt-rid').value.trim();
+  const qs = new URLSearchParams({ type, recordId, page: cmtPage });
+  try {
+    const res = await fetch('/api/admin/comments?' + qs, { headers: authHeaders() });
+    if (res.status === 403) { doLogout(); return; }
+    const data = await res.json();
+    cmtPages = data.pages || 1;
+    renderComments(data.docs || [], data.total || 0);
+  } catch { showToast('Failed to load comments'); }
+}
+
+function renderComments(docs, total) {
+  const tbody = document.getElementById('cmt-tbody');
+  if (!docs.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No comments found.</td></tr>';
+  } else {
+    tbody.innerHTML = docs.map(d => {
+      const date = d.ts ? new Date(d.ts).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }) : '—';
+      return `<tr>
+        <td class="td-type">${esc(d.type)}<br><span style="color:var(--text-dim);font-size:.67rem">${esc(d.recordId)}</span></td>
+        <td class="td-author">${esc(d.author || '—')}</td>
+        <td class="td-type">${esc(d.cls || '—')}</td>
+        <td class="td-comment">${esc(d.text || '')}</td>
+        <td class="td-date">${date}</td>
+        <td><button class="btn-sm btn-danger" onclick="confirmDeleteComment('${esc(d._id)}','${esc(d.author || 'this comment')}')">✕ Delete</button></td>
+      </tr>`;
+    }).join('');
+  }
+  const pi = document.getElementById('cmt-pager-info');
+  pi.textContent = total ? `Showing page ${cmtPage} of ${cmtPages} (${total} total)` : '';
+  document.getElementById('cmt-prev').disabled = cmtPage <= 1;
+  document.getElementById('cmt-next').disabled = cmtPage >= cmtPages;
+}
+
+// ── POST COMMENT ──────────────────────────────────────────────
+async function postComment() {
+  const type = document.getElementById('cf-type').value;
+  const rid  = document.getElementById('cf-rid').value.trim();
+  const cls  = document.getElementById('cf-cls').value.trim();
+  const text = document.getElementById('cf-text').value.trim();
+  const errEl = document.getElementById('cf-err');
+  const okEl  = document.getElementById('cf-ok');
+  errEl.textContent = ''; okEl.textContent = '';
+  if (!rid)  { errEl.textContent = 'Record ID is required.'; return; }
+  if (!text) { errEl.textContent = 'Comment text is required.'; return; }
+  try {
+    const res = await fetch(`/api/comments/${type}/${rid}`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ text, cls })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Post failed.'; return; }
+    okEl.textContent = '✔ Comment posted successfully.';
+    document.getElementById('cf-text').value = '';
+    document.getElementById('cf-rid').value = '';
+  } catch {
+    errEl.textContent = 'Network error.';
+  }
+}
+
+// ── CONFIRM / DELETE ──────────────────────────────────────────
+let pendingConfirmFn = null;
+
+function openConfirm(msg, fn) {
+  document.getElementById('confirm-msg').innerHTML = msg;
+  pendingConfirmFn = fn;
+  document.getElementById('confirm-ok-btn').onclick = () => { closeConfirm(); fn(); };
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+  pendingConfirmFn = null;
+}
+
+function confirmDeleteRecord(type, id, name) {
+  openConfirm(`Delete record <span class="confirm-name">${esc(name)}</span> (${esc(type)} / ${esc(id)})?`, async () => {
+    try {
+      const res = await fetch(`/api/admin/records/${encodeURIComponent(type)}/${encodeURIComponent(id)}`, {
+        method: 'DELETE', headers: authHeaders()
+      });
+      if (!res.ok) { const d = await res.json(); showToast('Error: ' + (d.error || res.status)); return; }
+      showToast('Record deleted.');
+      loadRecords(recPage);
+    } catch { showToast('Delete failed.'); }
+  });
+}
+
+function confirmDeleteComment(id, author) {
+  openConfirm(`Delete comment by <span class="confirm-name">${esc(author)}</span>?`, async () => {
+    try {
+      const res = await fetch(`/api/admin/comments/${encodeURIComponent(id)}`, {
+        method: 'DELETE', headers: authHeaders()
+      });
+      if (!res.ok) { const d = await res.json(); showToast('Error: ' + (d.error || res.status)); return; }
+      showToast('Comment deleted.');
+      loadComments(cmtPage);
+    } catch { showToast('Delete failed.'); }
+  });
+}
+
+// ── UTILS ────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.remove(), 3000);
+}
+
+// Enter key on login form
+document.getElementById('inp-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('inp-email').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// ── INIT: restore session ─────────────────────────────────────
+(function init() {
+  const saved = sessionStorage.getItem(TOKEN_KEY);
+  if (saved) {
+    const payload = parseJwt(saved);
+    if (payload && payload.isAdmin && payload.exp * 1000 > Date.now()) {
+      adminToken = saved;
+      showPanel(payload);
+      return;
+    }
+    sessionStorage.removeItem(TOKEN_KEY);
+  }
+})();
+</script>
+</body>
+</html>

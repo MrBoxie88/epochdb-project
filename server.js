@@ -43,7 +43,8 @@ const UserSchema = new mongoose.Schema({
     verified: { type: Boolean, default: false },
     verifyToken:   { type: String, default: null },
     verifyExpires: { type: Date, default: null },
-    createdAt:     { type: Date, default: Date.now }
+    createdAt:     { type: Date, default: Date.now },
+    isAdmin:       { type: Boolean, default: false }
 });
 const User = mongoose.model('User', UserSchema);
 
@@ -200,13 +201,25 @@ app.post('/api/auth/login', async (req, res) => {
 
         if (!user.verified) return res.status(403).json({ error: 'Please verify your email first. Check your inbox.' });
 
-        const token = jwt.sign({ id: user._id, email: user.email, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
-        res.json({ token, user: { id: user._id, email: user.email, name: user.name } });
+        const token = jwt.sign({ id: user._id, email: user.email, name: user.name, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
+        res.json({ token, user: { id: user._id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
     } catch (err) {
         console.error('[AUTH] Login error:', err);
         res.status(500).json({ error: 'Login failed' });
     }
 });
+
+function adminMiddleware(req, res, next) {
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (!token) return res.status(401).json({ error: 'Login required' });
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (!decoded.isAdmin) return res.status(403).json({ error: 'Admin access required' });
+        req.user = decoded;
+        next();
+    } catch (err) { return res.status(401).json({ error: 'Invalid or expired token' }); }
+}
 
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
     try {
@@ -1420,7 +1433,96 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
         });
 
         // ═══════════════════════════════════════════════════════════════
-        // 8. SPA FALLBACK — serve index.html for all non-API routes
+        // 8. ADMIN ROUTES
+        // ═══════════════════════════════════════════════════════════════
+        const ADMIN_SECRET = process.env.ADMIN_SECRET || '';
+
+        // Promote a user to admin
+        app.post('/api/admin/promote', async (req, res) => {
+            try {
+                const { email, secret } = req.body || {};
+                if (!secret || !ADMIN_SECRET || secret !== ADMIN_SECRET)
+                    return res.status(403).json({ error: 'Invalid admin secret' });
+                const user = await User.findOneAndUpdate(
+                    { email: email.toLowerCase().trim() },
+                    { isAdmin: true },
+                    { new: true }
+                );
+                if (!user) return res.status(404).json({ error: 'User not found' });
+                res.json({ ok: true, email: user.email, isAdmin: user.isAdmin });
+            } catch (err) {
+                console.error('[admin/promote]', err);
+                res.status(500).json({ error: 'Promote failed' });
+            }
+        });
+
+        // List / search records
+        app.get('/api/admin/records', adminMiddleware, async (req, res) => {
+            try {
+                const { q = '', type = '', page = '1' } = req.query;
+                const limit = 50;
+                const skip = (Math.max(1, parseInt(page)) - 1) * limit;
+                const filter = {};
+                if (type) filter.type = type;
+                if (q) filter.name = { $regex: q, $options: 'i' };
+                const [docs, total] = await Promise.all([
+                    Record.find(filter).sort({ name: 1 }).skip(skip).limit(limit).select('type id name quality level'),
+                    Record.countDocuments(filter)
+                ]);
+                res.json({ docs, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+            } catch (err) {
+                console.error('[admin/records]', err);
+                res.status(500).json({ error: 'Query failed' });
+            }
+        });
+
+        // Delete a record
+        app.delete('/api/admin/records/:type/:id', adminMiddleware, async (req, res) => {
+            try {
+                const { type, id } = req.params;
+                const result = await Record.deleteOne({ type, id });
+                if (result.deletedCount === 0) return res.status(404).json({ error: 'Record not found' });
+                res.json({ ok: true });
+            } catch (err) {
+                console.error('[admin/records delete]', err);
+                res.status(500).json({ error: 'Delete failed' });
+            }
+        });
+
+        // List comments (admin — all, filterable)
+        app.get('/api/admin/comments', adminMiddleware, async (req, res) => {
+            try {
+                const { type = '', recordId = '', page = '1' } = req.query;
+                const limit = 50;
+                const skip = (Math.max(1, parseInt(page)) - 1) * limit;
+                const filter = {};
+                if (type) filter.type = type;
+                if (recordId) filter.recordId = recordId;
+                const [docs, total] = await Promise.all([
+                    Comment.find(filter).sort({ ts: -1 }).skip(skip).limit(limit),
+                    Comment.countDocuments(filter)
+                ]);
+                res.json({ docs, total, page: parseInt(page), pages: Math.ceil(total / limit) });
+            } catch (err) {
+                console.error('[admin/comments]', err);
+                res.status(500).json({ error: 'Query failed' });
+            }
+        });
+
+        // Delete any comment (admin — bypasses uid check)
+        app.delete('/api/admin/comments/:id', adminMiddleware, async (req, res) => {
+            try {
+                const result = await Comment.deleteOne({ _id: req.params.id });
+                if (result.deletedCount === 0) return res.status(404).json({ error: 'Comment not found' });
+                res.json({ ok: true });
+            } catch (err) {
+                console.error('[admin/comments delete]', err);
+                res.status(500).json({ error: 'Delete failed' });
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // 9. SPA FALLBACK — serve index.html for all non-API routes
         // ═══════════════════════════════════════════════════════════════
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
