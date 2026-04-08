@@ -191,6 +191,7 @@ button { cursor:pointer; font-family:inherit }
       <button class="tab-btn active" onclick="switchTab('records',this)">📦 Records</button>
       <button class="tab-btn" onclick="switchTab('comments',this)">💬 Comments</button>
       <button class="tab-btn" onclick="switchTab('post',this)">✏ Post Comment</button>
+      <button class="tab-btn" onclick="switchTab('verify',this)">✔ Verify User</button>
     </div>
 
     <!-- ─── RECORDS TAB ─── -->
@@ -264,6 +265,20 @@ button { cursor:pointer; font-family:inherit }
         <div id="cf-err" class="cf-err"></div>
         <div id="cf-ok" class="cf-ok"></div>
         <button class="btn-sm" style="border-color:var(--border-gold);color:var(--gold-dark)" onclick="postComment()">⚔ Post Comment</button>
+      </div>
+    </div>
+
+    <!-- ─── VERIFY USER TAB ─── -->
+    <div id="tab-verify" class="tab-pane">
+      <div class="comment-form">
+        <h3>Manually Verify User Account</h3>
+        <p style="font-size:.82rem;color:var(--text-dim);margin-bottom:.75rem">Use this when a user registered but never received their verification email. Enter their email address to mark the account as verified.</p>
+        <div class="cf-row">
+          <input class="cf-inp" id="verify-email" type="email" placeholder="user@example.com" style="flex:1;min-width:220px">
+          <button class="btn-sm" style="border-color:var(--border-gold);color:var(--gold-dark)" onclick="verifyUser()">✔ Verify Account</button>
+        </div>
+        <div id="verify-err" class="cf-err"></div>
+        <div id="verify-ok" class="cf-ok"></div>
       </div>
     </div>
 
@@ -498,6 +513,25 @@ function confirmDeleteComment(id, author) {
       loadComments(cmtPage);
     } catch { showToast('Delete failed.'); }
   });
+}
+
+// ── VERIFY USER ──────────────────────────────────────────────
+async function verifyUser() {
+  const email = document.getElementById('verify-email').value.trim();
+  const errEl = document.getElementById('verify-err');
+  const okEl  = document.getElementById('verify-ok');
+  errEl.textContent = ''; okEl.textContent = '';
+  if (!email) { errEl.textContent = 'Email is required.'; return; }
+  try {
+    const res = await fetch('/api/admin/verify-user', {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Verify failed.'; return; }
+    okEl.textContent = `✔ ${data.email} is now verified.`;
+    document.getElementById('verify-email').value = '';
+    showToast('User verified successfully.');
+  } catch { errEl.textContent = 'Network error.'; }
 }
 
 // ── UTILS ────────────────────────────────────────────────────

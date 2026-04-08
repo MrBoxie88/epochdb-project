@@ -1,10 +1,11 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const crypto = require('crypto');
 
 const app = express();
@@ -80,17 +81,10 @@ app.get('/api/health', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// 3b. EMAIL TRANSPORTER
+// 3b. EMAIL CLIENT (Resend — uses HTTPS, works on Render free tier)
 // ═══════════════════════════════════════════════════════════════
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false,
-    auth: {
-        user: process.env.SMTP_USER || '',
-        pass: process.env.SMTP_PASS || ''
-    }
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+if (!process.env.RESEND_API_KEY) console.warn('[MAIL] RESEND_API_KEY not set — emails will fail');
 
 // ═══════════════════════════════════════════════════════════════
 // 3c. reCAPTCHA VERIFICATION
@@ -149,8 +143,8 @@ app.post('/api/auth/register', async (req, res) => {
 
         const verifyUrl = `${BASE_URL}/api/auth/verify/${verifyToken}`;
         try {
-            await transporter.sendMail({
-                from: process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@epochdb.com',
+            const { error: mailErr } = await resend.emails.send({
+                from: process.env.SMTP_FROM || 'noreply@epochdb.net',
                 to: user.email,
                 subject: 'EpochDB — Verify your email',
                 html: `<h2>Welcome to EpochDB!</h2>
@@ -158,9 +152,11 @@ app.post('/api/auth/register', async (req, res) => {
                        <p><a href="${verifyUrl}">${verifyUrl}</a></p>
                        <p>This link expires in 24 hours.</p>`
             });
+            if (mailErr) throw new Error(mailErr.message);
             console.log(`[AUTH] Verification email sent to ${user.email}`);
         } catch (mailErr) {
             console.error('[AUTH] Email send failed:', mailErr.message);
+            console.log(`[AUTH][DEV] Manual verify URL: ${verifyUrl}`);
         }
 
         res.status(201).json({ message: 'Account created! Check your email to verify.' });
@@ -1518,6 +1514,24 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
             } catch (err) {
                 console.error('[admin/comments delete]', err);
                 res.status(500).json({ error: 'Delete failed' });
+            }
+        });
+
+        // Manually verify a user account by email (admin)
+        app.post('/api/admin/verify-user', adminMiddleware, async (req, res) => {
+            try {
+                const { email } = req.body || {};
+                if (!email) return res.status(400).json({ error: 'Email required' });
+                const user = await User.findOneAndUpdate(
+                    { email: email.toLowerCase().trim() },
+                    { verified: true, verifyToken: null, verifyExpires: null },
+                    { new: true }
+                );
+                if (!user) return res.status(404).json({ error: 'User not found' });
+                res.json({ ok: true, email: user.email, verified: user.verified });
+            } catch (err) {
+                console.error('[admin/verify-user]', err);
+                res.status(500).json({ error: 'Verify failed' });
             }
         });
 
