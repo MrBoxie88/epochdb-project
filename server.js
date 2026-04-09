@@ -330,8 +330,9 @@ function cleanSourceName(name) {
 
 function wowIconUrl(iconPath) {
     if (!iconPath || typeof iconPath !== 'string') return '';
-    // WoW GetItemInfo returns paths like "Interface\\Icons\\INV_Sword_04"
-    const name = iconPath.replace(/^Interface\\Icons\\/i, '').replace(/^Interface\/Icons\//i, '').toLowerCase();
+    // Lua SavedVariables serializes each backslash as \\; normalize to single before stripping prefix
+    const normalized = iconPath.replace(/\\\\/g, '\\');
+    const name = normalized.replace(/^Interface[\\\/]Icons[\\\/]/i, '').toLowerCase();
     if (!name) return '';
     return `https://wow.zamimg.com/images/wow/icons/medium/${name}.jpg`;
 }
@@ -505,7 +506,7 @@ function parseLuaContent(content) {
                 slotName,
                 ilvl:       getNum('ilvl', block) || 0,
                 quality:    getNum('quality', block) ?? 1,
-                icon:       wowIconUrl(getStr('icon', block)),
+                icon:       wowIconUrl(getStr('icon', block) || (extrasBlock ? getStr('icon', extrasBlock) : null)),
                 binding:    bindingStr,
                 bindType,
                 armorType,
