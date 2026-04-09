@@ -8,3 +8,4 @@ uploads/
 .vs/slnx.sqlite
 .vs/epochdb-project.slnx/FileContentIndex/7256d9f5-6303-4109-b88b-69add7c071b3.vsidx
 .vs
+/EpochDB.lua
