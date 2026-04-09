@@ -351,17 +351,21 @@ const STAT_LABELS = {
 
 function parseEntries(tableContent) {
     const entries = [];
-    const keyRe = /\["([^"]+)"\]\s*=\s*\{/g;
+    const keyRe = /(?:\["([^"]+)"\]|\[(\d+)\])\s*=\s*\{/g;
     let m;
     while ((m = keyRe.exec(tableContent)) !== null) {
-        const key = m[1];
+        const key = m[1] !== undefined ? m[1] : m[2];
         let depth = 0, i = m.index + m[0].length - 1;
         const start = i + 1;
         while (i < tableContent.length) {
             if (tableContent[i] === '{') depth++;
             else if (tableContent[i] === '}') {
                 depth--;
-                if (depth === 0) { entries.push({ key, block: tableContent.slice(start, i) }); break; }
+                if (depth === 0) {
+                    entries.push({ key, block: tableContent.slice(start, i) });
+                    keyRe.lastIndex = i + 1;
+                    break;
+                }
             }
             i++;
         }
@@ -597,10 +601,11 @@ function parseLuaContent(content) {
                     });
                 }
             }
-            const questId = getStr('questId', block) || getNum('questId', block) || null;
+            const questIdField = getStr('questId', block) ?? getNum('questId', block);
+            const questId = questIdField != null ? questIdField : (/^\d+$/.test(key) ? key : null);
             result.quests.push({
                 key,
-                questId:        questId ? String(questId) : null,
+                questId:        questId != null ? String(questId) : null,
                 name:           getStr('name', block) || key,
                 zone:           getStr('zone', block) || '',
                 coords:         getStr('coords', block) || '',
