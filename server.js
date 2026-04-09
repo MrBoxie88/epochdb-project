@@ -552,6 +552,7 @@ function parseLuaContent(content) {
                 id:         getStr('id', block) || key,
                 name:       getStr('name', block) || '',
                 quality:    getNum('quality', block) ?? 1,
+                icon:       wowIconUrl(getStr('icon', block)),
                 count:      getNum('count', block) || 1,
                 sources,
                 source:     Object.keys(sources)[0] || '',
@@ -772,11 +773,13 @@ app.post('/api/upload', async (req, res) => {
             for (const [src, cnt] of Object.entries(drop.sources)) {
                 sourceInc[`data.sources.${src.replace(/[.\$]/g, '_')}`] = cnt;
             }
+            const lootSet = { name: drop.name, quality: drop.quality, 'data.source': drop.source };
+            if (drop.icon) lootSet['data.icon'] = drop.icon;
             ops.push({
                 updateOne: {
                     filter: { type: 'loot', id: drop.id },
                     update: {
-                        $set: { name: drop.name, quality: drop.quality, 'data.source': drop.source },
+                        $set: lootSet,
                         $inc: { 'data.drops': drop.totalDrops, 'data.samples': drop.count, ...sourceInc },
                     },
                     upsert: true

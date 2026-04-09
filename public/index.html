@@ -2627,7 +2627,7 @@
             loot: {
                 title: 'Loot Tables', icon: '💰',
                 cols: [
-                    { label: 'Item', render: r => `<td class="td-name"><span class="td-icon" style="color:${QCOL[r.quality || 0]}">◆</span><a class="${QCLS[r.quality || 0]}" data-iid="${r.id}" onclick="showDetail('loot','${r.id}')">${r.name || 'Unknown'}</a></td>` },
+                    { label: 'Item', render: r => `<td class="td-name"><span class="td-icon">${iconImg((r.data || r).icon, '💰')}</span><a class="${QCLS[r.quality || 0]}" data-iid="${r.id}" onclick="showDetail('loot','${r.id}')">${r.name || 'Unknown'}</a></td>` },
                     { label: 'Source', render: r => `<td><a class="npc-name">${(r.data || r).source || '—'}</a></td>` },
                     { label: 'Quality', render: r => `<td class="${QCLS[r.quality || 0]}">${Q[r.quality || 0]}</td>` },
                     { label: 'Drop Rate', render: r => { const rate = bestLootRate(r.data || r); return `<td style="min-width:130px"><div class="rate-wrap"><div class="rate-bar"><div class="rate-fill ${(r.quality || 0) >= 5 ? 'fill-leg' : (r.quality || 0) >= 4 ? 'fill-epic' : (r.quality || 0) >= 3 ? 'fill-rare' : ''}" style="width:${Math.min(rate * 100, 100)}%"></div></div><span class="rate-text">${pct(rate)}</span></div></td>`; } },
