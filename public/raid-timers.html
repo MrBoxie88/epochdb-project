@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raid Timers — EpochDB</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
+:root {
+  --gold:#c8a84b; --gold-light:#e8cc7a; --gold-dark:#8a6f2e; --gold-bg:rgba(200,168,75,0.06);
+  --red:#8b1a1a; --red-bright:#c0392b;
+  --bg-deep:#0a0a0c; --bg-panel:#0f0f14; --bg-card:#131318; --bg-hover:#1a1a24;
+  --border:#252530; --border-gold:#3a2e10;
+  --text:#c8c0a8; --text-dim:#6a6458; --text-bright:#e8dfc8;
+  --green:#1eff00; --green-soft:#6abf6a;
+  --q0:#9d9d9d; --q1:#e8dfc8; --q2:#1eff00; --q3:#0070dd; --q4:#a335ee; --q5:#ff8000; --q6:#e6cc80;
+}
+html { font-size:13px }
+body { background:var(--bg-deep); color:var(--text); font-family:'Crimson Text',Georgia,serif; min-height:100vh; overflow-x:hidden }
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; opacity:.4 }
+a { color:var(--gold); text-decoration:none }
+a:hover { color:var(--gold-light); text-decoration:underline }
+button { cursor:pointer; font-family:inherit }
+::-webkit-scrollbar { width:5px; height:5px }
+::-webkit-scrollbar-track { background:var(--bg-deep) }
+::-webkit-scrollbar-thumb { background:var(--border-gold); border-radius:2px }
+
+/* ── TOPBAR ── */
+#topbar { background:linear-gradient(180deg,#0d0d10 0%,rgba(10,10,12,.95) 100%); border-bottom:1px solid var(--border-gold); padding:0 1.5rem; display:flex; align-items:center; gap:1rem; position:sticky; top:0; z-index:200; backdrop-filter:blur(14px); height:52px }
+.logo { display:flex; align-items:center; gap:.7rem; flex-shrink:0; text-decoration:none }
+.logo:hover { text-decoration:none }
+.logo-icon { width:36px; height:36px }
+.logo-icon svg { width:100%; height:100% }
+.logo-text { font-family:'Cinzel',serif; font-weight:900; font-size:1.15rem; letter-spacing:.15em; color:var(--gold); text-shadow:0 0 18px rgba(200,168,75,.4); line-height:1 }
+.logo-sub { font-family:'Cinzel',serif; font-size:.55rem; letter-spacing:.3em; color:var(--text-dim); margin-top:2px }
+#topnav { display:flex; gap:.1rem; margin-left:auto; align-items:center; flex-shrink:0 }
+.tnav-btn { font-family:'Cinzel',serif; font-size:.6rem; letter-spacing:.12em; color:var(--text-dim); background:none; border:none; padding:.4rem .75rem; transition:color .15s; text-transform:uppercase; text-decoration:none }
+.tnav-btn:hover, .tnav-btn.active { color:var(--gold); text-decoration:none }
+
+/* ── MAIN NAV ── */
+#mainnav { background:var(--bg-panel); border-bottom:1px solid var(--border); display:flex; padding:0 1.5rem; gap:0; overflow-x:auto; position:relative; z-index:1 }
+.mnav-tab { font-family:'Cinzel',serif; font-size:.62rem; letter-spacing:.14em; color:var(--text-dim); background:none; border:none; border-bottom:2px solid transparent; padding:.65rem 1rem; text-transform:uppercase; transition:all .15s; white-space:nowrap; margin-bottom:-1px; text-decoration:none; display:inline-block }
+.mnav-tab:hover { color:var(--text); text-decoration:none }
+.mnav-tab.active { color:var(--gold); border-bottom-color:var(--gold) }
+
+/* ── PAGE ── */
+#page { max-width:1200px; margin:0 auto; padding:1.5rem; position:relative; z-index:1 }
+
+/* ── PAGE HEADER ── */
+.page-hdr { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem }
+.page-hdr-left {}
+.page-title { font-family:'Cinzel',serif; font-size:1.4rem; font-weight:900; color:var(--gold); letter-spacing:.08em; text-shadow:0 0 20px rgba(200,168,75,.3) }
+.page-sub { font-size:.85rem; color:var(--text-dim); font-style:italic; margin-top:.25rem }
+.realm-btns { display:flex; gap:.5rem; margin-top:.6rem; flex-wrap:wrap }
+.realm-btn { font-family:'Cinzel',serif; font-size:.6rem; letter-spacing:.1em; text-transform:uppercase; background:var(--bg-card); border:1px solid var(--border); color:var(--text-dim); padding:.3rem .8rem; transition:all .15s }
+.realm-btn:hover { border-color:var(--gold-dark); color:var(--gold) }
+.realm-btn.active { background:var(--gold-dark); color:var(--gold-light); border-color:var(--gold-dark) }
+.server-clock-box { text-align:right; font-family:'Share Tech Mono',monospace }
+.server-clock-label { font-size:.72rem; color:var(--text-dim) }
+#server-clock { font-size:1.1rem; color:var(--text-bright); letter-spacing:.06em; margin-top:.15rem }
+
+/* ── INFO NOTE ── */
+.timers-note { background:var(--bg-card); border:1px solid var(--border); border-left:3px solid var(--gold-dark); padding:.6rem .9rem; font-size:.82rem; color:var(--text-dim); line-height:1.7; margin-bottom:1.5rem }
+
+/* ── SECTION TITLE ── */
+.timers-section-title { font-family:'Cinzel',serif; font-size:.62rem; letter-spacing:.28em; text-transform:uppercase; color:var(--gold-dark); border-bottom:1px solid var(--border-gold); padding-bottom:.4rem; margin:1.8rem 0 .9rem }
+.timers-section-title:first-of-type { margin-top:0 }
+
+/* ── GRID ── */
+.timers-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:10px }
+
+/* ── TIMER CARD ── */
+.timer-card { background:var(--bg-panel); border:1px solid var(--border); overflow:hidden; transition:border-color .15s }
+.timer-card:hover { border-color:var(--border-gold) }
+.timer-card-hdr { background:var(--bg-card); border-bottom:1px solid var(--border); padding:.55rem .9rem; display:flex; align-items:center; gap:.6rem }
+.timer-card-icon { font-size:1.2rem; flex-shrink:0 }
+.timer-card-name { font-family:'Cinzel',serif; font-size:.75rem; font-weight:600; color:var(--text-bright); flex:1 }
+.timer-card-size { font-family:'Share Tech Mono',monospace; font-size:.6rem; color:var(--text-dim); background:var(--bg-panel); border:1px solid var(--border); padding:1px 5px; border-radius:2px }
+.timer-card-body { padding:.7rem .9rem }
+.timer-meta-row { display:flex; justify-content:space-between; align-items:center; font-size:.82rem; margin-bottom:.35rem; color:var(--text-dim) }
+.timer-meta-row span:last-child { font-family:'Share Tech Mono',monospace; font-size:.72rem; color:var(--text) }
+
+/* ── COUNTDOWN ── */
+.timer-countdown-wrap { margin-top:.65rem; background:var(--bg-deep); border:1px solid var(--border); padding:.5rem .8rem }
+.timer-countdown-label { font-family:'Cinzel',serif; font-size:.52rem; letter-spacing:.2em; text-transform:uppercase; color:var(--text-dim); margin-bottom:.2rem }
+.timer-countdown { font-family:'Share Tech Mono',monospace; font-size:1.35rem; color:var(--gold); text-shadow:0 0 12px rgba(200,168,75,.3); letter-spacing:.06em }
+.timer-countdown.soon { color:var(--q5); text-shadow:0 0 12px rgba(255,128,0,.4) }
+.timer-countdown.open { color:var(--q2); text-shadow:0 0 12px rgba(30,255,0,.3) }
+.timer-bar-wrap { margin-top:.45rem; height:4px; background:var(--bg-card); border-radius:2px; overflow:hidden }
+.timer-bar { height:100%; border-radius:2px; background:var(--gold-dark); transition:width .5s linear }
+.timer-bar.soon { background:var(--q5) }
+.timer-bar.open { background:var(--q2) }
+
+/* ── BUTTONS ── */
+.timer-set-btn { margin-top:.6rem; font-family:'Cinzel',serif; font-size:.58rem; letter-spacing:.1em; background:var(--bg-card); border:1px solid var(--border); color:var(--text-dim); padding:.3rem .7rem; cursor:pointer; transition:all .15s; width:100% }
+.timer-set-btn:hover { border-color:var(--gold-dark); color:var(--gold) }
+.timer-reset-btn { margin-top:.35rem; font-family:'Cinzel',serif; font-size:.58rem; letter-spacing:.1em; background:transparent; border:1px solid var(--border); color:var(--text-dim); padding:.3rem .7rem; cursor:pointer; transition:all .15s; width:100% }
+.timer-reset-btn:hover { border-color:var(--red-bright); color:var(--red-bright) }
+
+/* ── WORLD BOSS ALERT ── */
+.world-boss-alert { background:rgba(139,26,26,.15); border:1px solid rgba(139,26,26,.4); border-left:3px solid var(--red-bright); padding:.5rem .8rem; font-size:.82rem; color:var(--text-dim); margin-top:.5rem; line-height:1.5 }
+
+/* ── TOAST ── */
+.toast { position:fixed; bottom:1.5rem; right:1.5rem; background:var(--bg-panel); border:1px solid var(--border-gold); border-left:3px solid var(--gold); padding:.7rem 1.1rem; font-size:.88rem; color:var(--text-bright); z-index:600; box-shadow:0 4px 20px rgba(0,0,0,.5); animation:slideIn .25s ease }
+@keyframes slideIn { from{transform:translateX(110%);opacity:0} to{transform:none;opacity:1} }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <a class="logo" href="/">
+    <div class="logo-icon">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="18" stroke="#c8a84b" stroke-width="1.5" opacity=".4"/>
+        <path d="M20 4L20 36M4 20L36 20" stroke="#c8a84b" stroke-width="1" opacity=".25"/>
+        <path d="M20 8L24 14L30 14L25 18L27 25L20 21L13 25L15 18L10 14L16 14Z" fill="#c8a84b" opacity=".85"/>
+        <circle cx="20" cy="20" r="3" fill="#8b1a1a"/>
+      </svg>
+    </div>
+    <div><div class="logo-text">EPOCHDB</div><div class="logo-sub">Project Epoch Database</div></div>
+  </a>
+  <div id="topnav">
+    <a class="tnav-btn" href="/npcs.html">NPCs</a>
+    <a class="tnav-btn" href="/items.html">Items</a>
+    <a class="tnav-btn" href="/quests.html">Quests</a>
+    <a class="tnav-btn" href="/loot.html">Loot</a>
+    <a class="tnav-btn" href="/talents.html">Talents</a>
+    <a class="tnav-btn active" href="/raid-timers.html">Timers</a>
+    <a class="tnav-btn" href="/admin.html">Admin</a>
+  </div>
+</div>
+
+<div id="mainnav">
+  <a class="mnav-tab" href="/">Home</a>
+  <a class="mnav-tab" href="/npcs.html">NPCs &amp; Mobs</a>
+  <a class="mnav-tab" href="/items.html">Items</a>
+  <a class="mnav-tab" href="/quests.html">Quests</a>
+  <a class="mnav-tab" href="/loot.html">Loot Tables</a>
+  <a class="mnav-tab" href="/talents.html">Talent Calculator</a>
+  <a class="mnav-tab active" href="/raid-timers.html">Raid Timers</a>
+  <a class="mnav-tab" href="/admin.html">Admin Panel</a>
+</div>
+
+<div id="page">
+
+  <div class="page-hdr">
+    <div class="page-hdr-left">
+      <div class="page-title">⏱ RAID TIMERS</div>
+      <div class="page-sub">Project Epoch — <span id="realm-label">Gurubashi</span> realm</div>
+      <div class="realm-btns" id="realm-btns"></div>
+    </div>
+    <div class="server-clock-box">
+      <div class="server-clock-label">Server Time (UTC)</div>
+      <div id="server-clock">—</div>
+    </div>
+  </div>
+
+  <div class="timers-note">
+    Raid resets are based on a fixed weekly <strong style="color:var(--gold)">Wednesday 09:00 UTC</strong> schedule for 7-day raids, and every <strong style="color:var(--gold)">5 days</strong> for Onyxia.
+    World boss timers are tracked personally — click <strong style="color:var(--gold)">Mark as Killed</strong> after a kill to start your countdown.
+    World bosses on Project Epoch trigger a <strong style="color:var(--red-bright)">zone-wide PvP event</strong> — cross-faction groups are disbanded and the zone becomes a battleground 5 minutes before spawn.
+  </div>
+
+  <div id="timers-root"></div>
+
+</div>
+
+<script>
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const MS = { s:1000, m:60000, h:3600000, d:86400000 };
+
+const RAIDS = [
+    {
+        id: 'onyxia',
+        name: "Onyxia's Lair",
+        icon: '🐉',
+        zone: 'Dustwallow Marsh',
+        size: '25-man',
+        tier: 'Tier 1',
+        resetMs: 5 * MS.d,
+        note: '25-player. Resets every 5 days.',
+    },
+    {
+        id: 'mc',
+        name: 'Molten Core',
+        icon: '🔥',
+        zone: 'Blackrock Mountain',
+        size: '25-man',
+        tier: 'Tier 1',
+        resetMs: 7 * MS.d,
+        note: '25-player. Weekly reset Wednesday. Bring fire resistance gear.',
+    },
+];
+
+const WORLD_BOSSES = [
+    {
+        id: 'volchan',
+        name: 'Volchan',
+        icon: '🌋',
+        zone: 'Burning Steppes',
+        type: 'World Boss',
+        spawnNote: 'Wanders Burning Steppes. 5-minute zone-wide alert before spawn. Zone goes PvP-enabled on spawn. 2-hour kill window.',
+    },
+    {
+        id: 'kazzak',
+        name: 'Lord Kazzak',
+        icon: '😈',
+        zone: 'Blasted Lands',
+        type: 'World Boss',
+        spawnNote: '5-minute zone-wide alert before spawn. Zone goes PvP-enabled on spawn. 2-hour kill window.',
+    },
+];
+
+const REALMS = ['Gurubashi', 'Kezan'];
+const LS_KEY_BASE = 'epochdb_timers_v1';
+const LS_REALM_KEY = 'epochdb_timer_realm';
+let CUR_REALM = localStorage.getItem(LS_REALM_KEY) || REALMS[0];
+
+// ── STORAGE ────────────────────────────────────────────────────────────────
+function realmKey() { return LS_KEY_BASE + '_' + CUR_REALM; }
+function loadKillTimes() { try { return JSON.parse(localStorage.getItem(realmKey()) || '{}'); } catch { return {}; } }
+function saveKillTime(id, ts) { const d = loadKillTimes(); d[id] = ts; localStorage.setItem(realmKey(), JSON.stringify(d)); }
+function clearKillTime(id) { const d = loadKillTimes(); delete d[id]; localStorage.setItem(realmKey(), JSON.stringify(d)); }
+
+// ── REALM SWITCHER ─────────────────────────────────────────────────────────
+function setRealm(r) {
+    if (!REALMS.includes(r)) return;
+    CUR_REALM = r;
+    localStorage.setItem(LS_REALM_KEY, r);
+    renderRealmBtns();
+    document.getElementById('realm-label').textContent = r;
+    render();
+    toast(`Realm switched to ${r}`);
+}
+
+function renderRealmBtns() {
+    const wrap = document.getElementById('realm-btns');
+    wrap.innerHTML = REALMS.map(r =>
+        `<button class="realm-btn${r === CUR_REALM ? ' active' : ''}" onclick="setRealm('${r}')">${r}</button>`
+    ).join('');
+}
+
+// ── MATH ───────────────────────────────────────────────────────────────────
+function msToCountdown(ms) {
+    if (ms <= 0) return { str: 'OPEN NOW', cls: 'open' };
+    const d = Math.floor(ms / MS.d);
+    const h = Math.floor((ms % MS.d) / MS.h);
+    const m = Math.floor((ms % MS.h) / MS.m);
+    const s = Math.floor((ms % MS.m) / MS.s);
+    const str = d > 0 ? `${d}d ${h}h ${m}m ${s}s` : h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
+    const cls = ms < 2 * MS.h ? 'soon' : '';
+    return { str, cls };
+}
+
+function nextRaidReset(raid) {
+    const resetMs = raid.resetMs;
+    const anchor = new Date('2026-03-29T09:00:00Z').getTime();
+    const elapsed = Date.now() - anchor;
+    const cyclesPassed = Math.floor(elapsed / resetMs);
+    const lastReset = anchor + cyclesPassed * resetMs;
+    const nextReset = lastReset + resetMs;
+    return { lastReset, nextReset, msUntil: nextReset - Date.now(), totalMs: resetMs };
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render() {
+    const kills = loadKillTimes();
+    let html = '';
+
+    // ── Raid Instances
+    html += `<div class="timers-section-title">⚔ Raid Instances</div>`;
+    html += `<div class="timers-grid">`;
+    for (const raid of RAIDS) {
+        const { msUntil, lastReset, nextReset, totalMs } = nextRaidReset(raid);
+        const { str, cls } = msToCountdown(msUntil);
+        const pct = Math.max(0, Math.min(100, ((totalMs - msUntil) / totalMs) * 100));
+        const nextDate = fmtUtc(nextReset);
+        const lastDate = fmtUtc(lastReset);
+        html += `
+        <div class="timer-card">
+            <div class="timer-card-hdr">
+                <span class="timer-card-icon">${raid.icon}</span>
+                <span class="timer-card-name">${raid.name}</span>
+                <span class="timer-card-size">${raid.size}</span>
+            </div>
+            <div class="timer-card-body">
+                <div class="timer-meta-row"><span>Zone</span><span>${raid.zone}</span></div>
+                <div class="timer-meta-row"><span>Tier</span><span style="color:var(--gold)">${raid.tier}</span></div>
+                <div class="timer-meta-row"><span>Last Reset</span><span>${lastDate}</span></div>
+                <div class="timer-meta-row"><span>Next Reset</span><span>${nextDate}</span></div>
+                <div class="timer-countdown-wrap">
+                    <div class="timer-countdown-label">Resets In</div>
+                    <div class="timer-countdown ${cls}" id="cd-${raid.id}">${str}</div>
+                    <div class="timer-bar-wrap"><div class="timer-bar ${cls}" id="bar-${raid.id}" style="width:${pct.toFixed(1)}%"></div></div>
+                </div>
+                ${raid.note ? `<div style="margin-top:.6rem;font-size:.78rem;color:var(--text-dim);font-style:italic">${raid.note}</div>` : ''}
+            </div>
+        </div>`;
+    }
+    html += `</div>`;
+
+    // ── World Bosses
+    html += `<div class="timers-section-title">🌍 World Bosses</div>`;
+    html += `<div class="timers-grid">`;
+    for (const wb of WORLD_BOSSES) {
+        const killTime = kills[wb.id] ? parseInt(kills[wb.id]) : null;
+        const respawnMs = 3 * MS.d;
+        const msUntilRespawn = killTime ? (killTime + respawnMs) - Date.now() : null;
+        let cdStr, cdCls, cdPct;
+        if (!killTime) {
+            cdStr = 'Unknown'; cdCls = ''; cdPct = 0;
+        } else if (msUntilRespawn <= 0) {
+            cdStr = 'RESPAWNED'; cdCls = 'open'; cdPct = 100;
+        } else {
+            const { str, cls } = msToCountdown(msUntilRespawn);
+            cdStr = str; cdCls = cls;
+            cdPct = Math.max(0, Math.min(100, ((respawnMs - msUntilRespawn) / respawnMs) * 100));
+        }
+        const killDateStr = killTime ? fmtUtc(killTime) : 'Not recorded';
+        html += `
+        <div class="timer-card">
+            <div class="timer-card-hdr">
+                <span class="timer-card-icon">${wb.icon}</span>
+                <span class="timer-card-name">${wb.name}</span>
+                <span class="timer-card-size" style="color:var(--red-bright);border-color:rgba(139,26,26,.5)">${wb.type}</span>
+            </div>
+            <div class="timer-card-body">
+                <div class="timer-meta-row"><span>Zone</span><span>${wb.zone}</span></div>
+                <div class="timer-meta-row"><span>Last Kill</span><span id="killdate-${wb.id}">${killDateStr}</span></div>
+                <div class="timer-countdown-wrap">
+                    <div class="timer-countdown-label">Est. Respawn In</div>
+                    <div class="timer-countdown ${cdCls}" id="cd-${wb.id}">${cdStr}</div>
+                    <div class="timer-bar-wrap"><div class="timer-bar ${cdCls}" id="bar-${wb.id}" style="width:${cdPct.toFixed(1)}%"></div></div>
+                </div>
+                <div class="world-boss-alert">⚠ PvP Event — zone goes PvP-enabled 5 min before spawn. Cross-faction groups disbanded. 2-hour kill window.</div>
+                <div style="margin-top:.5rem;font-size:.78rem;color:var(--text-dim);font-style:italic">${wb.spawnNote}</div>
+                <button class="timer-set-btn" onclick="markKilled('${wb.id}')">☠ Mark as Killed Now</button>
+                ${killTime ? `<button class="timer-reset-btn" onclick="clearKill('${wb.id}')">✕ Clear Kill Time</button>` : ''}
+            </div>
+        </div>`;
+    }
+    html += `</div>`;
+
+    document.getElementById('timers-root').innerHTML = html;
+}
+
+// ── TICK ───────────────────────────────────────────────────────────────────
+function tick() {
+    const kills = loadKillTimes();
+
+    for (const raid of RAIDS) {
+        const cdEl = document.getElementById(`cd-${raid.id}`);
+        const barEl = document.getElementById(`bar-${raid.id}`);
+        if (!cdEl) continue;
+        const { msUntil, totalMs } = nextRaidReset(raid);
+        const { str, cls } = msToCountdown(msUntil);
+        const pct = Math.max(0, Math.min(100, ((totalMs - msUntil) / totalMs) * 100));
+        cdEl.textContent = str;
+        cdEl.className = `timer-countdown ${cls}`;
+        if (barEl) { barEl.style.width = pct.toFixed(1) + '%'; barEl.className = `timer-bar ${cls}`; }
+    }
+
+    const respawnMs = 3 * MS.d;
+    for (const wb of WORLD_BOSSES) {
+        const cdEl = document.getElementById(`cd-${wb.id}`);
+        const barEl = document.getElementById(`bar-${wb.id}`);
+        if (!cdEl) continue;
+        const killTime = kills[wb.id] ? parseInt(kills[wb.id]) : null;
+        if (!killTime) { cdEl.textContent = 'Unknown'; cdEl.className = 'timer-countdown'; continue; }
+        const msLeft = (killTime + respawnMs) - Date.now();
+        if (msLeft <= 0) {
+            cdEl.textContent = 'RESPAWNED'; cdEl.className = 'timer-countdown open';
+            if (barEl) { barEl.style.width = '100%'; barEl.className = 'timer-bar open'; }
+        } else {
+            const { str, cls } = msToCountdown(msLeft);
+            cdEl.textContent = str; cdEl.className = `timer-countdown ${cls}`;
+            const pct = Math.max(0, Math.min(100, ((respawnMs - msLeft) / respawnMs) * 100));
+            if (barEl) { barEl.style.width = pct.toFixed(1) + '%'; barEl.className = `timer-bar ${cls}`; }
+        }
+    }
+
+    // Server clock
+    const clkEl = document.getElementById('server-clock');
+    if (clkEl) clkEl.textContent = new Date().toUTCString().slice(17, 25) + ' UTC';
+}
+
+// ── ACTIONS ────────────────────────────────────────────────────────────────
+function markKilled(id) {
+    saveKillTime(id, Date.now());
+    render();
+    toast(`☠ ${WORLD_BOSSES.find(w => w.id === id)?.name || id} kill recorded!`);
+}
+
+function clearKill(id) {
+    clearKillTime(id);
+    render();
+    toast('Kill time cleared.');
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function fmtUtc(ts) {
+    return new Date(ts).toUTCString().replace(' GMT', ' UTC').slice(0, -4);
+}
+
+let toastTimer = null;
+function toast(msg) {
+    const existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.remove(), 3000);
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+document.getElementById('realm-label').textContent = CUR_REALM;
+renderRealmBtns();
+render();
+tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
