@@ -742,7 +742,7 @@
 
         .home-panels {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
             gap: 12px
         }
 
@@ -1930,6 +1930,7 @@
             <button class="tnav-btn" onclick="showList('items')">Items</button>
             <button class="tnav-btn" onclick="showList('quests')">Quests</button>
             <button class="tnav-btn" onclick="showList('loot')">Loot</button>
+            <button class="tnav-btn" onclick="showList('vendors')">Vendors</button>
             <a class="tnav-btn" href="/talents.html">Talents</a>
             <a class="tnav-btn" href="/raid-timers.html">Timers</a>
             <button id="id-btn" class="tnav-btn upload-btn" onclick="onAuthClick()">Login</button>
@@ -1944,6 +1945,7 @@
         <button class="mnav-tab" onclick="showList('items')">Items</button>
         <button class="mnav-tab" onclick="showList('quests')">Quests</button>
         <button class="mnav-tab" onclick="showList('loot')">Loot Tables</button>
+        <button class="mnav-tab" onclick="showList('vendors')">Vendors</button>
         <a class="mnav-tab" href="/talents.html">Talent Calculator</a>
         <a class="mnav-tab" href="/raid-timers.html">Raid Timers</a>
     </div>
@@ -1966,6 +1968,7 @@
                 <div class="stat-item"><span class="stat-num" id="sn-items">0</span><div class="stat-label">Items</div></div>
                 <div class="stat-item"><span class="stat-num" id="sn-quests">0</span><div class="stat-label">Quests</div></div>
                 <div class="stat-item"><span class="stat-num" id="sn-loot">0</span><div class="stat-label">Loot Drops</div></div>
+                <div class="stat-item"><span class="stat-num" id="sn-vendors">0</span><div class="stat-label">Vendors</div></div>
                 <div class="stat-item"><span class="stat-num" id="sn-players">0</span><div class="stat-label">Contributors</div></div>
             </div>
             <div class="home-cats">
@@ -1973,6 +1976,7 @@
                 <div class="cat-card" onclick="showList('items')"><div class="cat-icon">⚔</div><div class="cat-name">Items</div></div>
                 <div class="cat-card" onclick="showList('quests')"><div class="cat-icon">📜</div><div class="cat-name">Quests</div></div>
                 <div class="cat-card" onclick="showList('loot')"><div class="cat-icon">💰</div><div class="cat-name">Loot Tables</div></div>
+                <div class="cat-card" onclick="showList('vendors')"><div class="cat-icon">🏪</div><div class="cat-name">Vendors</div></div>
                 <a class="cat-card" href="/talents.html" style="text-decoration:none"><div class="cat-icon">🌟</div><div class="cat-name">Talent Calculator</div><div class="cat-count">Plan Your Build</div></a>
                 <a class="cat-card" href="https://github.com/MrBoxie88/EpochDB" target="_blank" style="text-decoration:none"><div class="cat-icon">⬇</div><div class="cat-name">Get Addon</div><div class="cat-count">Download EpochDB</div></a>
             </div>
@@ -1980,6 +1984,7 @@
                 <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">☠ Most Killed</span><a onclick="showList('npcs')">See all →</a></div><div id="hp-kills"></div></div>
                 <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">💰 Recent Loot</span><a onclick="showList('loot')">See all →</a></div><div id="hp-loot"></div></div>
                 <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">📜 Popular Quests</span><a onclick="showList('quests')">See all →</a></div><div id="hp-quests"></div></div>
+                <div class="home-panel"><div class="panel-hdr"><span class="panel-hdr-title">🏪 Top Vendors</span><a onclick="showList('vendors')">See all →</a></div><div id="hp-vendors"></div></div>
             </div>
         </div>
 
@@ -2300,7 +2305,7 @@
         function show(id) { document.getElementById(id).classList.remove('hidden'); }
         function hide(id) { document.getElementById(id).classList.add('hidden'); }
         function setMnav(tab) {
-            const names = ['home', 'npcs', 'items', 'quests', 'loot'];
+            const names = ['home', 'npcs', 'items', 'quests', 'loot', 'vendors'];
             document.querySelectorAll('.mnav-tab').forEach((b, i) => b.classList.toggle('active', names[i] === tab));
         }
 
@@ -2339,10 +2344,11 @@
 
         async function renderHomePanels() {
             try {
-                const [npcs, loot, quests] = await Promise.all([
+                const [npcs, loot, quests, vendors] = await Promise.all([
                     fetch(`${API}/api/list/npcs`).then(r => r.json()),
                     fetch(`${API}/api/list/loot`).then(r => r.json()),
                     fetch(`${API}/api/list/quests`).then(r => r.json()),
+                    fetch(`${API}/api/list/vendors`).then(r => r.json()),
                 ]);
 
                 document.getElementById('hp-kills').innerHTML = npcs.slice(0, 6).map(n => {
@@ -2373,9 +2379,18 @@
                   </div>`;
                 }).join('') || '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">No data yet.</div>';
 
+                document.getElementById('hp-vendors').innerHTML = vendors.slice(0, 6).map(v => {
+                    const d = v.data || v;
+                    return `<div class="panel-row" onclick="showDetail('vendors','${v.id}')">
+                    <span class="panel-row-icon">🏪</span>
+                    <a>${v.name}</a>
+                    <span class="panel-row-meta">${fmt(d.itemCount || (d.items && d.items.length) || 0)} items</span>
+                  </div>`;
+                }).join('') || '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">No data yet.</div>';
+
             } catch (err) {
                 console.warn('Could not load home panels:', err);
-                ['hp-kills', 'hp-loot', 'hp-quests'].forEach(id => {
+                ['hp-kills', 'hp-loot', 'hp-quests', 'hp-vendors'].forEach(id => {
                     document.getElementById(id).innerHTML =
                         '<div style="padding:.8rem;color:var(--text-dim);font-style:italic;font-size:.85rem">Could not connect to server.</div>';
                 });
@@ -2462,6 +2477,18 @@
                     ]
                 }],
                 sort: ['rate', 'drops', 'name'],
+            },
+            vendors: {
+                title: 'Vendors', icon: '🏪',
+                cols: [
+                    { label: 'Name', render: r => `<td class="td-name"><span class="td-icon">🏪</span><a class="npc-name" onclick="showDetail('vendors','${r.id}')">${r.name}</a></td>` },
+                    { label: 'Zone', render: r => `<td style="color:var(--text-dim)">${(r.data || r).zone || '—'}</td>` },
+                    { label: 'Sub-Zone', render: r => `<td style="color:var(--text-dim)">${(r.data || r).subZone || '—'}</td>` },
+                    { label: 'Items', render: r => `<td class="mono" style="color:var(--gold-dark)">${(r.data || r).itemCount || 0}</td>` },
+                    { label: 'Repairs', render: r => `<td>${(r.data || r).canRepair ? '<span class="badge" style="color:var(--q2);border-color:rgba(30,255,0,.3);background:rgba(30,255,0,.06)">✔ Yes</span>' : '<span style="color:var(--text-dim);font-size:.82rem">—</span>'}</td>` },
+                ],
+                filters: [],
+                sort: ['itemCount', 'name'],
             },
         };
 
@@ -2577,7 +2604,7 @@
         // ═══════════════════════════════════════════════════════════════
         // DETAIL
         // ═══════════════════════════════════════════════════════════════
-        const LIST_NAMES = { npcs: 'NPCs & Mobs', items: 'Items', quests: 'Quests', loot: 'Loot Tables' };
+        const LIST_NAMES = { npcs: 'NPCs & Mobs', items: 'Items', quests: 'Quests', loot: 'Loot Tables', vendors: 'Vendors' };
 
         async function renderDetail(type, id) {
             // Show a loading state while we wait for the server
@@ -2616,6 +2643,7 @@
             if (type === 'items') await renderItemDetail(entry, commentsKey);
             if (type === 'quests') await renderQuestDetail(entry, commentsKey);
             if (type === 'loot') await renderLootDetail(entry, commentsKey);
+            if (type === 'vendors') await renderVendorDetail(entry, commentsKey);
         }
 
         function setTabs(tabs) {
@@ -3285,6 +3313,86 @@
             document.getElementById('detail-sidebar').innerHTML = sidebarHtml;
         }
 
+        async function renderVendorDetail(vendor, commentKey) {
+            function formatMoney(copper) {
+                if (!copper || copper <= 0) return '—';
+                const g = Math.floor(copper / 10000);
+                const s = Math.floor((copper % 10000) / 100);
+                const c = copper % 100;
+                let parts = [];
+                if (g > 0) parts.push(`<span class="quest-gold">${g}g</span>`);
+                if (s > 0) parts.push(`<span class="quest-silver">${s}s</span>`);
+                if (c > 0) parts.push(`<span class="quest-copper">${c}c</span>`);
+                return `<span class="quest-money">${parts.join(' ')}</span>`;
+            }
+
+            const items = vendor.items || [];
+
+            document.getElementById('detail-title-block').innerHTML = `
+                <div class="detail-big-icon">🏪</div>
+                <div class="detail-info">
+                  <div class="detail-name npc-name">${vendor.name}</div>
+                  <div class="detail-subtitle">${vendor.zone || 'Unknown'}${vendor.subZone ? ' · ' + vendor.subZone : ''} · ${items.length} item(s) for sale</div>
+                  <div class="detail-pills">
+                    <span class="dpill">${vendor.zone || 'Unknown'}</span>
+                    ${vendor.subZone ? `<span class="dpill">${vendor.subZone}</span>` : ''}
+                    ${vendor.canRepair ? '<span class="badge" style="color:var(--q2);border-color:rgba(30,255,0,.3);background:rgba(30,255,0,.06)">🔧 Repairs</span>' : ''}
+                    <span class="dpill gold">${items.length} items sold</span>
+                  </div>
+                </div>`;
+
+            const itemsHtml = items.length
+                ? `<div style="overflow-x:auto"><table class="drop-table">
+                    <thead><tr><th>Item</th><th>Quality</th><th>Price</th></tr></thead>
+                    <tbody>${items.map(item => `<tr ${item.id ? `onclick="showDetail('items','${item.id}')"` : ''} style="cursor:${item.id ? 'pointer' : 'default'}">
+                        <td class="td-name">
+                            <span class="td-icon">${iconImg(item.icon, '⚔')}</span>
+                            <a class="${QCLS[item.quality || 0]}" ${item.id ? `data-iid="${item.id}"` : ''}>${escapeHtml(item.name || 'Unknown')}</a>
+                        </td>
+                        <td class="${QCLS[item.quality || 0]}">${Q[item.quality || 0]}</td>
+                        <td style="font-family:'Share Tech Mono',monospace;font-size:.78rem">${item.priceCopper ? formatMoney(item.priceCopper) : '—'}</td>
+                    </tr>`).join('')}</tbody>
+                  </table></div>`
+                : `<div style="padding:1.5rem;text-align:center;color:var(--text-dim);font-style:italic;font-size:.88rem">No items data yet — visit this vendor with the addon to contribute!</div>`;
+
+            const summaryRows = [
+                ['Zone', vendor.zone || '—'],
+                ['Sub-Zone', vendor.subZone || '—'],
+                ['Items for Sale', String(items.length)],
+                ['Repairs Gear', vendor.canRepair ? 'Yes' : 'No'],
+                ['NPC ID', vendor.npcId ? String(vendor.npcId) : '—'],
+                ['Last Seen', vendor.lastSeen || '—'],
+            ];
+
+            const commentsId = idFromKey(commentKey);
+            setTabs([
+                { label: 'Summary', html: sgrid(summaryRows) },
+                { label: 'Items for Sale', count: items.length, html: itemsHtml },
+                { label: 'Comments', count: 0, html: `<div id="${commentsId}">Loading comments…</div>` },
+            ]);
+            loadComments(commentKey);
+
+            const notableItems = items.filter(i => (i.quality || 0) >= 2).slice(0, 5);
+            let sidebarHtml = `
+                <div class="sb-panel">
+                  <div class="sb-title">Vendor Info</div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Zone</span><span class="sb-row-meta">${vendor.zone || '—'}</span></div>
+                  ${vendor.subZone ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Sub-Zone</span><span class="sb-row-meta">${vendor.subZone}</span></div>` : ''}
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Items for Sale</span><span class="sb-row-meta" style="color:var(--gold)">${items.length}</span></div>
+                  <div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">Repairs Gear</span><span class="sb-row-meta" style="color:${vendor.canRepair ? 'var(--q2)' : 'var(--text-dim)'}">${vendor.canRepair ? 'Yes' : 'No'}</span></div>
+                  ${vendor.npcId ? `<div class="sb-row"><span style="color:var(--text-dim);font-size:.82rem">NPC ID</span><span class="sb-row-meta">${vendor.npcId}</span></div>` : ''}
+                </div>`;
+            if (notableItems.length) {
+                sidebarHtml += `<div class="sb-panel"><div class="sb-title">Notable Items</div>${notableItems.map(item => `
+                    <div class="sb-row" ${item.id ? `data-iid="${item.id}" onclick="showDetail('items','${item.id}')"` : ''}>
+                        <span class="sb-row-icon">${iconImg(item.icon, '⚔')}</span>
+                        <span class="${QCLS[item.quality || 0]}" style="font-size:.85rem">${escapeHtml(item.name || 'Unknown')}</span>
+                        ${item.priceCopper ? `<span class="sb-row-meta">${formatMoney(item.priceCopper)}</span>` : ''}
+                    </div>`).join('')}</div>`;
+            }
+            document.getElementById('detail-sidebar').innerHTML = sidebarHtml;
+        }
+
         function renderZoneDetail(zone, commentKey) {
             document.getElementById('detail-title-block').innerHTML = `
                 <div class="detail-big-icon">${zone.icon || '🗺'}</div>
@@ -3309,8 +3417,8 @@
         // ═══════════════════════════════════════════════════════════════
         // SEARCH
         // ═══════════════════════════════════════════════════════════════
-        const TYPE_ICONS = { npcs: '👹', items: '⚔', quests: '📜', loot: '💰' };
-        const TYPE_LABELS = { npcs: 'NPCs & Mobs', items: 'Items', quests: 'Quests', loot: 'Loot' };
+        const TYPE_ICONS = { npcs: '👹', items: '⚔', quests: '📜', loot: '💰', vendors: '🏪' };
+        const TYPE_LABELS = { npcs: 'NPCs & Mobs', items: 'Items', quests: 'Quests', loot: 'Loot', vendors: 'Vendors' };
         let searchDebounce = null;
 
         async function onSearch(v) {
@@ -3326,7 +3434,7 @@
                         const grouped = {};
                         results.forEach(r => { if (!grouped[r.type]) grouped[r.type] = []; grouped[r.type].push(r); });
                         let html = '';
-                        for (const type of ['npcs', 'items', 'quests', 'loot']) {
+                        for (const type of ['npcs', 'items', 'quests', 'loot', 'vendors']) {
                             const items = grouped[type];
                             if (!items || !items.length) continue;
                             html += `<div class="sug-group-label">${TYPE_ICONS[type] || ''} ${TYPE_LABELS[type] || cap(type)} (${items.length})</div>`;
@@ -3380,16 +3488,16 @@
             const grouped = {};
             results.forEach(r => { if (!grouped[r.type]) grouped[r.type] = []; grouped[r.type].push(r); });
             let tbodyHtml = '';
-            for (const type of ['npcs', 'items', 'quests', 'loot']) {
+            for (const type of ['npcs', 'items', 'quests', 'loot', 'vendors']) {
                 const items = grouped[type];
                 if (!items || !items.length) continue;
                 tbodyHtml += `<tr><td colspan="5" style="background:var(--bg-card);padding:.5rem .8rem;border-bottom:1px solid var(--border-gold)"><span style="font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-dark)">${TYPE_ICONS[type]} ${TYPE_LABELS[type]} (${items.length})</span></td></tr>`;
                 items.forEach(r => {
                     const d = r.data || r;
                     const qcls = (type === 'items' || type === 'loot') ? QCLS[r.quality || 0] : (type === 'npcs' ? 'npc-name' : '');
-                    const col2 = type === 'npcs' ? (d.zone || '—') : type === 'items' ? mapSlot(d.slot) : type === 'quests' ? (d.zone || '—') : (d.source || '—');
+                    const col2 = type === 'npcs' ? (d.zone || '—') : type === 'items' ? mapSlot(d.slot) : type === 'quests' ? (d.zone || '—') : type === 'vendors' ? (d.zone || '—') : (d.source || '—');
                     const col3 = r.level || '—';
-                    const col4 = type === 'items' || type === 'loot' ? `<span class="${QCLS[r.quality||0]}">${Q[r.quality||0]}</span>` : type === 'npcs' ? `<span class="badge badge-${d.type||'normal'}">${cap(d.type||'normal')}</span>` : `<span class="badge badge-${d.type||'solo'}">${cap(d.type||'solo')}</span>`;
+                    const col4 = type === 'items' || type === 'loot' ? `<span class="${QCLS[r.quality||0]}">${Q[r.quality||0]}</span>` : type === 'npcs' ? `<span class="badge badge-${d.type||'normal'}">${cap(d.type||'normal')}</span>` : type === 'vendors' ? `<span class="badge badge-normal">${d.canRepair ? 'Repairs' : 'Vendor'}</span>` : `<span class="badge badge-${d.type||'solo'}">${cap(d.type||'solo')}</span>`;
                     tbodyHtml += `<tr onclick="showDetail('${r.type}','${r.id}')" style="cursor:pointer">
                         <td class="td-name"><span class="td-icon">${TYPE_ICONS[type]}</span><a class="${qcls}">${r.name}</a></td>
                         <td style="color:var(--text-dim)">${col2}</td>
@@ -3495,11 +3603,12 @@
         // ═══════════════════════════════════════════════════════════════
         async function loadStats() {
             try {
-                const [npcs, items, quests, loot] = await Promise.all([
+                const [npcs, items, quests, loot, vendors] = await Promise.all([
                     fetch(`${API}/api/list/npcs`).then(r => r.json()),
                     fetch(`${API}/api/list/items`).then(r => r.json()),
                     fetch(`${API}/api/list/quests`).then(r => r.json()),
                     fetch(`${API}/api/list/loot`).then(r => r.json()),
+                    fetch(`${API}/api/list/vendors`).then(r => r.json()),
                 ]);
                 const totalKills = npcs.reduce((sum, n) => sum + ((n.data || n).kills || 0), 0);
                 const totalDrops = loot.reduce((sum, l) => sum + ((l.data || l).drops || 0), 0);
@@ -3507,6 +3616,7 @@
                 animCount(document.getElementById('sn-items'), items.length, 800);
                 animCount(document.getElementById('sn-quests'), quests.length, 600);
                 animCount(document.getElementById('sn-loot'), totalDrops, 1400);
+                animCount(document.getElementById('sn-vendors'), vendors.length, 900);
                 animCount(document.getElementById('sn-players'), npcs.length, 700);
             } catch (err) {
                 console.warn('Could not load stats:', err);
@@ -3630,7 +3740,7 @@
 
         initIdentity();
         const _tabParam = new URLSearchParams(location.search).get('tab');
-        if (_tabParam && ['npcs','items','quests','loot'].includes(_tabParam)) { showList(_tabParam); } else { showHome(); }
+        if (_tabParam && ['npcs','items','quests','loot','vendors'].includes(_tabParam)) { showList(_tabParam); } else { showHome(); }
         loadStats();
     </script>
 </body>
