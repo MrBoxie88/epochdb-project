@@ -179,18 +179,20 @@ const RAIDS = [
         size: '25-man',
         tier: 'Tier 1',
         resetMs: 5 * MS.d,
+        anchor: new Date('2026-04-12T09:00:00Z').getTime(), // known past reset — edit to sync
         note: '25-player. Resets every 5 days.',
     },
-    {
-        id: 'mc',
-        name: 'Molten Core',
-        icon: '🔥',
-        zone: 'Blackrock Mountain',
-        size: '25-man',
-        tier: 'Tier 1',
-        resetMs: 7 * MS.d,
-        note: '25-player. Weekly reset Wednesday. Bring fire resistance gear.',
-    },
+    // {
+    //     id: 'mc',
+    //     name: 'Molten Core',
+    //     icon: '🔥',
+    //     zone: 'Blackrock Mountain',
+    //     size: '25-man',
+    //     tier: 'Tier 1',
+    //     resetMs: 7 * MS.d,
+    //     anchor: new Date('2026-03-29T09:00:00Z').getTime(), // known past reset — edit to sync
+    //     note: '25-player. Weekly reset Wednesday. Bring fire resistance gear.',
+    // },
 ];
 
 const WORLD_BOSSES = [
@@ -223,7 +225,7 @@ function loadKillTimes() { try { return JSON.parse(localStorage.getItem(realmKey
 function saveKillTime(id, ts) { const d = loadKillTimes(); d[id] = ts; localStorage.setItem(realmKey(), JSON.stringify(d)); }
 function clearKillTime(id) { const d = loadKillTimes(); delete d[id]; localStorage.setItem(realmKey(), JSON.stringify(d)); }
 
-// ── REALM SWITCHER ─────────────────────────────────────────────────────────
+// ── REALM SWITCHER
 function setRealm(r) {
     if (!REALMS.includes(r)) return;
     CUR_REALM = r;
@@ -255,7 +257,7 @@ function msToCountdown(ms) {
 
 function nextRaidReset(raid) {
     const resetMs = raid.resetMs;
-    const anchor = new Date('2026-03-29T09:00:00Z').getTime();
+    const anchor = raid.anchor;
     const elapsed = Date.now() - anchor;
     const cyclesPassed = Math.floor(elapsed / resetMs);
     const lastReset = anchor + cyclesPassed * resetMs;
@@ -398,7 +400,7 @@ function clearKill(id) {
     toast('Kill time cleared.');
 }
 
-// ── UTILS ──────────────────────────────────────────────────────────────────
+// ── UTILS
 function fmtUtc(ts) {
     return new Date(ts).toUTCString().replace(' GMT', ' UTC').slice(0, -4);
 }
