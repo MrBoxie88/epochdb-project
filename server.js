@@ -1545,7 +1545,14 @@ app.delete('/api/comments/:type/:id/:commentId', authMiddleware, async (req, res
         });
 
         // ═══════════════════════════════════════════════════════════════
-        // 9. SPA FALLBACK — serve index.html for all non-API routes
+        // 9. CLEAN-URL ITEM PAGES
+        // ═══════════════════════════════════════════════════════════════
+app.get('/item/:id', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'item.html'));
+});
+
+        // ═══════════════════════════════════════════════════════════════
+        // 10. SPA FALLBACK — serve index.html for all non-API routes
         // ═══════════════════════════════════════════════════════════════
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

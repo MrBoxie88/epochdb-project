@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Item — EpochDB</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
+:root {
+  --gold:#c8a84b; --gold-light:#e8cc7a; --gold-dark:#8a6f2e;
+  --red:#8b1a1a; --red-bright:#c0392b;
+  --bg-deep:#0a0a0c; --bg-panel:#0f0f14; --bg-card:#131318;
+  --border:#252530; --border-gold:#3a2e10;
+  --text:#c8c0a8; --text-dim:#6a6458; --text-bright:#e8dfc8;
+  --q0:#9d9d9d; --q1:#e8dfc8; --q2:#1eff00; --q3:#0070dd; --q4:#a335ee; --q5:#ff8000; --q6:#e6cc80;
+}
+html { font-size:13px }
+body { background:var(--bg-deep); color:var(--text); font-family:'Crimson Text',Georgia,serif; min-height:100vh; overflow-x:hidden }
+a { color:var(--gold); text-decoration:none }
+a:hover { color:var(--gold-light); text-decoration:underline }
+::-webkit-scrollbar { width:5px } ::-webkit-scrollbar-track { background:var(--bg-deep) } ::-webkit-scrollbar-thumb { background:var(--border-gold) }
+
+/* ── TOPBAR ── */
+#topbar { background:linear-gradient(180deg,#0d0d10 0%,rgba(10,10,12,.95) 100%); border-bottom:1px solid var(--border-gold); padding:0 1.5rem; display:flex; align-items:center; gap:1rem; position:sticky; top:0; z-index:200; backdrop-filter:blur(14px); height:52px }
+.logo { display:flex; align-items:center; gap:.7rem; flex-shrink:0; text-decoration:none }
+.logo:hover { text-decoration:none }
+.logo-icon { width:36px; height:36px }
+.logo-icon svg { width:100%; height:100% }
+.logo-text { font-family:'Cinzel',serif; font-weight:900; font-size:1.15rem; letter-spacing:.15em; color:var(--gold); text-shadow:0 0 18px rgba(200,168,75,.4); line-height:1 }
+.logo-sub { font-family:'Cinzel',serif; font-size:.55rem; letter-spacing:.3em; color:var(--text-dim); margin-top:2px }
+#topnav { display:flex; gap:.1rem; margin-left:auto; align-items:center; flex-shrink:0 }
+.tnav-btn { font-family:'Cinzel',serif; font-size:.6rem; letter-spacing:.12em; color:var(--text-dim); background:none; border:none; padding:.4rem .75rem; transition:color .15s; text-transform:uppercase; text-decoration:none }
+.tnav-btn:hover, .tnav-btn.active { color:var(--gold); text-decoration:none }
+
+/* ── MAIN NAV ── */
+#mainnav { background:var(--bg-panel); border-bottom:1px solid var(--border); display:flex; padding:0 1.5rem; overflow-x:auto; position:relative; z-index:1 }
+.mnav-tab { font-family:'Cinzel',serif; font-size:.62rem; letter-spacing:.14em; color:var(--text-dim); background:none; border:none; border-bottom:2px solid transparent; padding:.65rem 1rem; text-transform:uppercase; transition:all .15s; white-space:nowrap; margin-bottom:-1px; text-decoration:none; display:inline-block }
+.mnav-tab:hover { color:var(--text); text-decoration:none }
+.mnav-tab.active { color:var(--gold); border-bottom-color:var(--gold) }
+
+/* ── PAGE ── */
+#page { max-width:960px; margin:0 auto; padding:1.5rem; position:relative; z-index:1 }
+
+/* ── STATES ── */
+.loading-box { text-align:center; padding:4rem 2rem; font-family:'Cinzel',serif; font-size:.75rem; letter-spacing:.2em; color:var(--text-dim) }
+.error-box { background:rgba(139,26,26,.15); border:1px solid rgba(192,57,43,.4); border-left:3px solid var(--red-bright); padding:1rem 1.2rem; color:var(--text-bright); font-size:.9rem }
+
+/* ── BACK LINK ── */
+.back-link { margin-bottom:1.2rem; font-size:.8rem }
+
+/* ── ITEM HEADER ── */
+.item-header { display:flex; align-items:flex-start; gap:1rem; margin-bottom:1.5rem }
+.item-icon { width:56px; height:56px; border:2px solid var(--border-gold); flex-shrink:0; image-rendering:pixelated }
+.item-icon-placeholder { width:56px; height:56px; border:2px solid var(--border-gold); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.8rem; background:var(--bg-card) }
+.item-name { font-family:'Cinzel',serif; font-size:1.3rem; font-weight:900; letter-spacing:.06em; line-height:1.2 }
+.item-quality-badge { font-family:'Share Tech Mono',monospace; font-size:.65rem; letter-spacing:.1em; text-transform:uppercase; margin-top:.3rem; opacity:.8 }
+.item-type-line { font-size:.82rem; color:var(--text-dim); margin-top:.2rem; font-style:italic }
+
+/* ── TOOLTIP ── */
+.item-tooltip { background:var(--bg-card); border:1px solid var(--border-gold); padding:.85rem 1rem; margin-bottom:1rem; max-width:400px }
+.tt-row { font-size:.88rem; line-height:1.7; color:var(--text) }
+.tt-binding { color:var(--text-dim) }
+.tt-slot-row { display:flex; justify-content:space-between; color:var(--text-dim) }
+.tt-dps { color:var(--text-dim); font-size:.82rem }
+.tt-stat { color:var(--q2) }
+.tt-effect { color:var(--gold) }
+.tt-setname { color:var(--q2); font-family:'Cinzel',serif; font-size:.72rem; letter-spacing:.1em }
+.tt-setbonus { color:var(--q2); font-size:.82rem }
+.tt-requires { color:var(--red-bright); font-size:.82rem }
+.tt-ilvl { color:var(--text-dim); font-size:.8rem }
+.tt-seen { color:var(--text-dim); font-size:.75rem; font-style:italic }
+.tt-id { color:var(--text-dim); font-size:.72rem; font-family:'Share Tech Mono',monospace; margin-top:.2rem; opacity:.6 }
+.tt-divider { height:1px; background:var(--border); margin:.4rem 0 }
+.tt-row-split { display:flex; justify-content:space-between }
+.tt-right { float:right }
+
+/* ── SECTIONS ── */
+.item-section { background:var(--bg-panel); border:1px solid var(--border); margin-bottom:1rem }
+.section-title { font-family:'Cinzel',serif; font-size:.6rem; letter-spacing:.24em; text-transform:uppercase; color:var(--gold-dark); border-bottom:1px solid var(--border); padding:.5rem .9rem }
+
+/* ── SOURCE TABLE ── */
+.source-table { width:100%; border-collapse:collapse; font-size:.85rem }
+.source-table th { font-family:'Cinzel',serif; font-size:.55rem; letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim); padding:.45rem .9rem; text-align:left; border-bottom:1px solid var(--border); white-space:nowrap }
+.source-table td { padding:.4rem .9rem; border-bottom:1px solid rgba(37,37,48,.6); color:var(--text) }
+.source-table tr:last-child td { border-bottom:none }
+.source-table tr:hover td { background:rgba(200,168,75,.04) }
+.source-table td:nth-child(2), .source-table td:nth-child(3), .source-table td:nth-child(4) { font-family:'Share Tech Mono',monospace; font-size:.75rem; color:var(--text-dim); text-align:right }
+.source-table th:nth-child(2), .source-table th:nth-child(3), .source-table th:nth-child(4) { text-align:right }
+
+/* ── COMMENTS ── */
+.comments-body { padding:.7rem .9rem }
+.comment { border-bottom:1px solid var(--border); padding:.6rem 0 }
+.comment:last-of-type { border-bottom:none }
+.comment-meta { display:flex; align-items:center; gap:.5rem; margin-bottom:.25rem; font-size:.75rem }
+.comment-author { font-family:'Cinzel',serif; color:var(--gold); font-size:.7rem }
+.comment-cls { font-size:.65rem; background:rgba(200,168,75,.1); border:1px solid var(--border-gold); padding:1px 5px; color:var(--text-dim) }
+.comment-date { color:var(--text-dim); margin-left:auto; font-family:'Share Tech Mono',monospace; font-size:.68rem }
+.comment-text { font-size:.9rem; color:var(--text); line-height:1.6 }
+.no-comments { padding:.6rem 0; font-style:italic; color:var(--text-dim); font-size:.85rem }
+.comment-form { display:flex; flex-direction:column; gap:.5rem; padding:.7rem .9rem; border-top:1px solid var(--border) }
+.comment-input { background:var(--bg-deep); border:1px solid var(--border); color:var(--text); font-family:'Crimson Text',Georgia,serif; font-size:.9rem; padding:.5rem .7rem; resize:vertical; outline:none }
+.comment-input:focus { border-color:var(--border-gold) }
+.comment-submit { font-family:'Cinzel',serif; font-size:.58rem; letter-spacing:.1em; text-transform:uppercase; background:var(--bg-card); border:1px solid var(--border-gold); color:var(--gold); padding:.35rem .9rem; cursor:pointer; align-self:flex-end; transition:all .15s }
+.comment-submit:hover { background:var(--border-gold); color:var(--gold-light) }
+.comment-login-prompt { padding:.7rem .9rem; border-top:1px solid var(--border); font-size:.85rem; color:var(--text-dim); font-style:italic }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <a class="logo" href="/">
+    <div class="logo-icon">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="20" cy="20" r="18" stroke="#c8a84b" stroke-width="1.5" opacity=".4"/>
+        <path d="M20 4L20 36M4 20L36 20" stroke="#c8a84b" stroke-width="1" opacity=".25"/>
+        <path d="M20 8L24 14L30 14L25 18L27 25L20 21L13 25L15 18L10 14L16 14Z" fill="#c8a84b" opacity=".85"/>
+        <circle cx="20" cy="20" r="3" fill="#8b1a1a"/>
+      </svg>
+    </div>
+    <div><div class="logo-text">EPOCHDB</div><div class="logo-sub">Project Epoch Database</div></div>
+  </a>
+  <div id="topnav">
+    <a class="tnav-btn" href="/npcs.html">NPCs</a>
+    <a class="tnav-btn active" href="/items.html">Items</a>
+    <a class="tnav-btn" href="/quests.html">Quests</a>
+    <a class="tnav-btn" href="/loot.html">Loot</a>
+    <a class="tnav-btn" href="/vendors.html">Vendors</a>
+    <a class="tnav-btn" href="/talents.html">Talents</a>
+    <a class="tnav-btn" href="/raid-timers.html">Timers</a>
+  </div>
+</div>
+
+<div id="mainnav">
+  <a class="mnav-tab" href="/">Home</a>
+  <a class="mnav-tab" href="/npcs.html">NPCs &amp; Mobs</a>
+  <a class="mnav-tab active" href="/items.html">Items</a>
+  <a class="mnav-tab" href="/quests.html">Quests</a>
+  <a class="mnav-tab" href="/loot.html">Loot Tables</a>
+  <a class="mnav-tab" href="/vendors.html">Vendors</a>
+  <a class="mnav-tab" href="/talents.html">Talent Calculator</a>
+  <a class="mnav-tab" href="/raid-timers.html">Raid Timers</a>
+</div>
+
+<div id="page">
+  <div id="item-root"><div class="loading-box">LOADING ITEM…</div></div>
+</div>
+
+<script>
+const Q_COLORS = ['#9d9d9d','#e8dfc8','#1eff00','#0070dd','#a335ee','#ff8000','#e6cc80'];
+const Q_NAMES  = ['Poor','Common','Uncommon','Rare','Epic','Legendary','Artifact'];
+
+function qColor(q) { return Q_COLORS[Math.max(0, Math.min(6, q ?? 1))] }
+function qName(q)  { return Q_NAMES[Math.max(0, Math.min(6, q ?? 1))] }
+function esc(s)    { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+async function init() {
+    const id = location.pathname.replace(/^\/item\/?/, '').replace(/\/$/, '');
+    if (!id) { showError('No item ID in URL.'); return; }
+
+    let record;
+    try {
+        const res = await fetch(`/api/record/items/${encodeURIComponent(id)}`);
+        if (res.status === 404) { showError(`Item <strong>${esc(id)}</strong> not found in the database yet. It will appear automatically once a player scans it with the addon.`); return; }
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        record = await res.json();
+    } catch (err) {
+        showError(`Failed to load item: ${err.message}`);
+        return;
+    }
+
+    document.title = `${record.name} — EpochDB`;
+
+    const [sourcesResult, commentsResult] = await Promise.allSettled([
+        fetch(`/api/item-sources/${encodeURIComponent(record.name)}`).then(r => r.json()),
+        fetch(`/api/comments/items/${encodeURIComponent(id)}`).then(r => r.json()),
+    ]);
+
+    const sources  = sourcesResult.status  === 'fulfilled' ? sourcesResult.value  : [];
+    const comments = commentsResult.status === 'fulfilled' ? commentsResult.value : [];
+
+    render(record, sources, comments, id);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────
+function render(record, sources, comments, id) {
+    const d = record.data || {};
+    const q = record.quality ?? 1;
+    const color = qColor(q);
+
+    const iconHtml = d.icon
+        ? `<img class="item-icon" src="${esc(d.icon)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'item-icon-placeholder',textContent:'⚔'}))">`
+        : `<div class="item-icon-placeholder">⚔</div>`;
+
+    document.getElementById('item-root').innerHTML = `
+        <div class="back-link"><a href="/items.html">← Back to Items</a></div>
+
+        <div class="item-header">
+            ${iconHtml}
+            <div>
+                <div class="item-name" style="color:${color}">${esc(record.name)}</div>
+                <div class="item-quality-badge" style="color:${color}">${qName(q)}</div>
+                ${d.type ? `<div class="item-type-line">${esc([d.type, d.subType].filter(Boolean).join(' — '))}</div>` : ''}
+            </div>
+        </div>
+
+        <div class="item-tooltip">${buildTooltip(record)}</div>
+
+        ${buildSources(sources)}
+        ${buildComments(comments, id)}
+    `;
+
+    initCommentForm(id);
+}
+
+// ── TOOLTIP ───────────────────────────────────────────────────────────────
+function buildTooltip(record) {
+    const d = record.data || {};
+    const rows = [];
+
+    if (d.binding)  rows.push(`<div class="tt-row tt-binding">${esc(d.binding)}</div>`);
+
+    const hasSlot = d.slot || d.armorType;
+    if (hasSlot) rows.push(`<div class="tt-row tt-slot-row">${d.slot ? `<span>${esc(d.slot)}</span>` : '<span></span>'}<span>${d.armorType ? esc(d.armorType) : ''}</span></div>`);
+
+    if (d.dmg) {
+        const speedPart = d.speed ? `<span class="tt-right">Speed ${esc(d.speed)}</span>` : '';
+        rows.push(`<div class="tt-row">${esc(d.dmg)}${speedPart}</div>`);
+    }
+    if (d.dps) rows.push(`<div class="tt-row tt-dps">(${esc(d.dps)} damage per second)</div>`);
+    if (d.armor) rows.push(`<div class="tt-row">${d.armor} Armor</div>`);
+
+    const stats = d.stats || [];
+    if (stats.length) {
+        rows.push(`<div class="tt-divider"></div>`);
+        stats.forEach(s => rows.push(`<div class="tt-row tt-stat">${esc(s)}</div>`));
+    }
+
+    const effects = record.effects || [];
+    if (effects.length) {
+        rows.push(`<div class="tt-divider"></div>`);
+        effects.forEach(e => rows.push(`<div class="tt-row tt-effect">${esc(e)}</div>`));
+    }
+
+    const setBonuses = d.setBonuses || [];
+    if (setBonuses.length) {
+        rows.push(`<div class="tt-divider"></div>`);
+        rows.push(`<div class="tt-row tt-setname">Set Bonuses</div>`);
+        setBonuses.forEach(b => rows.push(`<div class="tt-row tt-setbonus">${esc(b)}</div>`));
+    }
+
+    rows.push(`<div class="tt-divider"></div>`);
+
+    const requires = d.requires || [];
+    requires.forEach(r => rows.push(`<div class="tt-row tt-requires">${esc(r)}</div>`));
+
+    if (record.level) rows.push(`<div class="tt-row tt-ilvl">Item Level ${record.level}</div>`);
+    if (d.seen)       rows.push(`<div class="tt-row tt-seen">Seen by ${d.seen} player${d.seen !== 1 ? 's' : ''}</div>`);
+
+    rows.push(`<div class="tt-row tt-id">Item ID: ${esc(record.id)}</div>`);
+
+    return rows.join('');
+}
+
+// ── SOURCES ───────────────────────────────────────────────────────────────
+function buildSources(sources) {
+    const rows = [];
+    for (const s of sources) {
+        for (const [npc, drops] of Object.entries(s.sources || {})) {
+            rows.push({ npc, drops, samples: s.samples || 0 });
+        }
+    }
+    if (!rows.length) return '';
+    rows.sort((a, b) => b.drops - a.drops);
+
+    const rowsHtml = rows.map(r => {
+        const rate = r.samples ? (r.drops / r.samples * 100).toFixed(1) + '%' : '—';
+        return `<tr>
+            <td><a href="/npcs.html?search=${encodeURIComponent(r.npc)}">${esc(r.npc)}</a></td>
+            <td>${r.drops}</td>
+            <td>${r.samples}</td>
+            <td>${rate}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+        <div class="item-section">
+            <div class="section-title">Drop Sources</div>
+            <table class="source-table">
+                <thead><tr><th>Source</th><th>Drops</th><th>Samples</th><th>Rate</th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+            </table>
+        </div>`;
+}
+
+// ── COMMENTS ─────────────────────────────────────────────────────────────
+function buildComments(comments, id) {
+    const token = localStorage.getItem('epochdb_token');
+    let user = null;
+    if (token) { try { user = JSON.parse(atob(token.split('.')[1])); } catch {} }
+
+    const listHtml = comments.length
+        ? comments.map(c => `
+            <div class="comment">
+                <div class="comment-meta">
+                    <span class="comment-author">${esc(c.author || 'Anonymous')}</span>
+                    ${c.cls ? `<span class="comment-cls">${esc(c.cls)}</span>` : ''}
+                    <span class="comment-date">${new Date(c.ts).toLocaleDateString()}</span>
+                </div>
+                <div class="comment-text">${esc(c.text)}</div>
+            </div>`).join('')
+        : '<div class="no-comments">No comments yet. Be the first!</div>';
+
+    const formHtml = user
+        ? `<form class="comment-form" id="comment-form">
+               <textarea id="comment-text" class="comment-input" placeholder="Share your knowledge about this item…" rows="3" maxlength="1000"></textarea>
+               <button type="submit" class="comment-submit">Post Comment</button>
+           </form>`
+        : `<div class="comment-login-prompt"><a href="/">Log in</a> to leave a comment.</div>`;
+
+    return `
+        <div class="item-section">
+            <div class="section-title">Comments</div>
+            <div class="comments-body">
+                <div id="comments-list">${listHtml}</div>
+            </div>
+            ${formHtml}
+        </div>`;
+}
+
+function initCommentForm(id) {
+    const form = document.getElementById('comment-form');
+    if (!form) return;
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const text = document.getElementById('comment-text').value.trim();
+        if (!text) return;
+        const token = localStorage.getItem('epochdb_token');
+        const btn = form.querySelector('button[type=submit]');
+        btn.disabled = true;
+        try {
+            const res = await fetch(`/api/comments/items/${encodeURIComponent(id)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ text }),
+            });
+            if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Post failed'); }
+            document.getElementById('comment-text').value = '';
+            const updated = await fetch(`/api/comments/items/${encodeURIComponent(id)}`).then(r => r.json());
+            document.getElementById('comments-list').innerHTML = updated.map(c => `
+                <div class="comment">
+                    <div class="comment-meta">
+                        <span class="comment-author">${esc(c.author || 'Anonymous')}</span>
+                        ${c.cls ? `<span class="comment-cls">${esc(c.cls)}</span>` : ''}
+                        <span class="comment-date">${new Date(c.ts).toLocaleDateString()}</span>
+                    </div>
+                    <div class="comment-text">${esc(c.text)}</div>
+                </div>`).join('') || '<div class="no-comments">No comments yet.</div>';
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            btn.disabled = false;
+        }
+    });
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+function showError(msg) {
+    document.getElementById('item-root').innerHTML = `
+        <div class="back-link"><a href="/items.html">← Back to Items</a></div>
+        <div class="error-box">${msg}</div>`;
+}
+
+init();
+</script>
+</body>
+</html>
