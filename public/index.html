@@ -1927,10 +1927,10 @@
         </div>
         <div id="topnav">
             <button class="tnav-btn" onclick="showList('npcs')">NPCs</button>
-            <button class="tnav-btn" onclick="showList('items')">Items</button>
-            <button class="tnav-btn" onclick="showList('quests')">Quests</button>
-            <button class="tnav-btn" onclick="showList('loot')">Loot</button>
-            <button class="tnav-btn" onclick="showList('vendors')">Vendors</button>
+            <a class="tnav-btn" href="/items.html">Items</a>
+            <a class="tnav-btn" href="/quests.html">Quests</a>
+            <a class="tnav-btn" href="/loot.html">Loot</a>
+            <a class="tnav-btn" href="/vendors.html">Vendors</a>
             <a class="tnav-btn" href="/talents.html">Talents</a>
             <a class="tnav-btn" href="/raid-timers.html">Timers</a>
             <button id="id-btn" class="tnav-btn upload-btn" onclick="onAuthClick()">Login</button>
@@ -1942,10 +1942,10 @@
     <div id="mainnav">
         <button class="mnav-tab active" onclick="showHome()">Home</button>
         <button class="mnav-tab" onclick="showList('npcs')">NPCs &amp; Mobs</button>
-        <button class="mnav-tab" onclick="showList('items')">Items</button>
-        <button class="mnav-tab" onclick="showList('quests')">Quests</button>
-        <button class="mnav-tab" onclick="showList('loot')">Loot Tables</button>
-        <button class="mnav-tab" onclick="showList('vendors')">Vendors</button>
+        <a class="mnav-tab" href="/items.html">Items</a>
+        <a class="mnav-tab" href="/quests.html">Quests</a>
+        <a class="mnav-tab" href="/loot.html">Loot Tables</a>
+        <a class="mnav-tab" href="/vendors.html">Vendors</a>
         <a class="mnav-tab" href="/talents.html">Talent Calculator</a>
         <a class="mnav-tab" href="/raid-timers.html">Raid Timers</a>
     </div>
@@ -1973,10 +1973,10 @@
             </div>
             <div class="home-cats">
                 <div class="cat-card" onclick="showList('npcs')"><div class="cat-icon">👹</div><div class="cat-name">NPCs &amp; Mobs</div></div>
-                <div class="cat-card" onclick="showList('items')"><div class="cat-icon">⚔</div><div class="cat-name">Items</div></div>
-                <div class="cat-card" onclick="showList('quests')"><div class="cat-icon">📜</div><div class="cat-name">Quests</div></div>
-                <div class="cat-card" onclick="showList('loot')"><div class="cat-icon">💰</div><div class="cat-name">Loot Tables</div></div>
-                <div class="cat-card" onclick="showList('vendors')"><div class="cat-icon">🏪</div><div class="cat-name">Vendors</div></div>
+                <a class="cat-card" href="/items.html" style="text-decoration:none"><div class="cat-icon">⚔</div><div class="cat-name">Items</div></a>
+                <a class="cat-card" href="/quests.html" style="text-decoration:none"><div class="cat-icon">📜</div><div class="cat-name">Quests</div></a>
+                <a class="cat-card" href="/loot.html" style="text-decoration:none"><div class="cat-icon">💰</div><div class="cat-name">Loot Tables</div></a>
+                <a class="cat-card" href="/vendors.html" style="text-decoration:none"><div class="cat-icon">🏪</div><div class="cat-name">Vendors</div></a>
                 <a class="cat-card" href="/talents.html" style="text-decoration:none"><div class="cat-icon">🌟</div><div class="cat-name">Talent Calculator</div><div class="cat-count">Plan Your Build</div></a>
                 <a class="cat-card" href="https://github.com/MrBoxie88/EpochDB" target="_blank" style="text-decoration:none"><div class="cat-icon">⬇</div><div class="cat-name">Get Addon</div><div class="cat-count">Download EpochDB</div></a>
             </div>
@@ -3739,8 +3739,13 @@
         }
 
         initIdentity();
-        const _tabParam = new URLSearchParams(location.search).get('tab');
-        if (_tabParam && ['npcs','items','quests','loot','vendors'].includes(_tabParam)) { showList(_tabParam); } else { showHome(); }
+        const _qs = new URLSearchParams(location.search);
+        const _tabParam  = _qs.get('tab');
+        const _typeParam = _qs.get('type');
+        const _idParam   = _qs.get('id');
+        if (_typeParam && _idParam) { showDetail(_typeParam, _idParam); }
+        else if (_tabParam && ['npcs','items','quests','loot','vendors'].includes(_tabParam)) { showList(_tabParam); }
+        else { showHome(); }
         loadStats();
     </script>
 </body>
