@@ -883,7 +883,7 @@ app.get('/api/search', async (req, res) => {
 
 app.get('/api/list/:category', async (req, res) => {
     try {
-        const data = await Record.find({ type: req.params.category, name: { $exists: true, $ne: '' } }).limit(1000);
+        const data = await Record.find({ type: req.params.category, name: { $exists: true, $ne: '' } }).lean().limit(1000);
         res.json(data);
     } catch (err) {
         res.status(500).json({ error: 'Could not fetch list' });
@@ -892,7 +892,7 @@ app.get('/api/list/:category', async (req, res) => {
 
 app.get('/api/record/:type/:id', async (req, res) => {
     try {
-        const record = await Record.findOne({ type: req.params.type, id: req.params.id });
+        const record = await Record.findOne({ type: req.params.type, id: req.params.id }).lean();
         if (!record) return res.status(404).json({ error: 'Not found' });
         res.json(record);
     } catch (err) {
