@@ -62,11 +62,49 @@ if (!process.env.MONGODB_URI) {
     console.warn('WARNING: MONGODB_URI env var not set, using localhost fallback');
 }
 
+// Ensures every item sold by a vendor exists as a minimal type:'items' stub
+// so that clicking vendor items navigates to a valid detail page.
+// Uses $setOnInsert so existing richer item records are never overwritten.
+async function backfillVendorItems() {
+    try {
+        const vendors = await Record.find({ type: 'vendors', 'data.items': { $exists: true } }).lean();
+        if (!vendors.length) return;
+        const ops = [];
+        for (const vendor of vendors) {
+            for (const item of (vendor.data?.items || [])) {
+                if (!item.id || !item.name) continue;
+                ops.push({
+                    updateOne: {
+                        filter: { type: 'items', id: item.id },
+                        update: {
+                            $setOnInsert: {
+                                name: item.name,
+                                quality: item.quality ?? 1,
+                                'data.icon': item.icon || '',
+                            },
+                        },
+                        upsert: true
+                    }
+                });
+            }
+        }
+        if (ops.length) {
+            await Record.bulkWrite(ops);
+            console.log(`[STARTUP] Backfilled ${ops.length} vendor item stubs`);
+        }
+    } catch (err) {
+        console.warn('[STARTUP] Vendor item backfill failed:', err.message);
+    }
+}
+
 mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 15000,
     socketTimeoutMS: 45000,
 })
-    .then(() => console.log('Connected to MongoDB:', MONGODB_URI.replace(/\/\/.*@/, '//<credentials>@')))
+    .then(async () => {
+        console.log('Connected to MongoDB:', MONGODB_URI.replace(/\/\/.*@/, '//<credentials>@'));
+        await backfillVendorItems();
+    })
     .catch(err => console.error('DB connection error:', err.message));
 
 mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected'));
@@ -840,6 +878,23 @@ app.post('/api/upload', async (req, res) => {
                     upsert: true
                 }
             });
+            // Create a minimal item stub for each sold item so detail pages work
+            for (const item of vendor.items) {
+                if (!item.id || !item.name) continue;
+                ops.push({
+                    updateOne: {
+                        filter: { type: 'items', id: item.id },
+                        update: {
+                            $setOnInsert: {
+                                name: item.name,
+                                quality: item.quality ?? 1,
+                                'data.icon': item.icon || '',
+                            },
+                        },
+                        upsert: true
+                    }
+                });
+            }
         }
 
         if (ops.length > 0) {
