@@ -284,19 +284,23 @@
         .logo {
             display: flex;
             align-items: center;
-            gap: .7rem;
+            gap: 12px;
             flex-shrink: 0;
-            cursor: pointer
+            cursor: pointer;
+            text-decoration: none;
+            padding: 4px 0;
         }
 
         .logo-icon {
-            width: 36px;
-            height: 36px
+            width: 44px;
+            height: 44px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
         }
 
             .logo-icon svg {
                 width: 100%;
-                height: 100%
+                height: 100%;
+                display: block;
             }
 
         .effect-line {
@@ -315,22 +319,41 @@
             padding-bottom: 2px;
         }
 
-        .logo-text {
+        .logo-text-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-text, .logo-db {
             font-family: 'Cinzel',serif;
             font-weight: 900;
-            font-size: 1.15rem;
-            letter-spacing: .15em;
-            color: var(--gold);
-            text-shadow: 0 0 18px rgba(200,168,75,.4);
-            line-height: 1
+            margin: 0;
+            line-height: 0.85;
+            background: linear-gradient(to bottom, #ffebaa 0%, #d4af37 45%, #7a5a1f 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.8));
+        }
+
+        .logo-text {
+            font-size: 1.35rem;
+            letter-spacing: 0.05em;
+        }
+
+        .logo-db {
+            font-size: 1.2rem;
+            letter-spacing: 0.1em;
+            margin-top: 1px;
         }
 
         .logo-sub {
-            font-family: 'Cinzel',serif;
-            font-size: .55rem;
-            letter-spacing: .3em;
-            color: var(--text-dim);
-            margin-top: 2px
+            font-family: 'Crimson Text',serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.02em;
+            color: #bba269;
+            margin-top: 3px;
         }
 
         #search-wrap {
@@ -1920,14 +1943,41 @@
     <div id="topbar">
         <div class="logo" onclick="showHome()">
             <div class="logo-icon">
-                <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="18" stroke="#c8a84b" stroke-width="1.5" opacity=".4" />
-                    <path d="M20 4L20 36M4 20L36 20" stroke="#c8a84b" stroke-width="1" opacity=".25" />
-                    <path d="M20 8L24 14L30 14L25 18L27 25L20 21L13 25L15 18L10 14L16 14Z" fill="#c8a84b" opacity=".85" />
-                    <circle cx="20" cy="20" r="3" fill="#8b1a1a" />
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="portalGrad" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#210042" />
+                            <stop offset="60%" stop-color="#4c1b7a" />
+                            <stop offset="90%" stop-color="#00e5ff" />
+                            <stop offset="100%" stop-color="#14141c" />
+                        </radialGradient>
+                        <linearGradient id="bladeGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#2d2d3a" />
+                            <stop offset="50%" stop-color="#4e5c6b" />
+                            <stop offset="100%" stop-color="#000000" />
+                        </linearGradient>
+                    </defs>
+                    <circle cx="50" cy="50" r="42" fill="#252530" stroke="#111" stroke-width="6"/>
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#4a3e20" stroke-width="2"/>
+                    <circle cx="50" cy="50" r="32" fill="url(#portalGrad)"/>
+                    <circle cx="50" cy="50" r="32" fill="none" stroke="#00e5ff" stroke-width="2" opacity="0.5"/>
+                    <circle cx="50" cy="50" r="28" fill="none" stroke="#000" stroke-width="4" opacity="0.4"/>
+                    <path d="M 50 14 L 47 17 L 53 17 Z M 86 50 L 83 47 L 83 53 Z M 50 86 L 47 83 L 53 83 Z M 14 50 L 17 47 L 17 53 Z" fill="#d4af37"/>
+                    <circle cx="24" cy="24" r="2" fill="#d4af37"/><circle cx="76" cy="24" r="2" fill="#d4af37"/>
+                    <circle cx="24" cy="76" r="2" fill="#d4af37"/><circle cx="76" cy="76" r="2" fill="#d4af37"/>
+                    <path d="M 85 10 Q 75 0 65 15 Q 85 30 85 10" fill="#4c1b7a" opacity="0.8"/>
+                    <path d="M 80 5 Q 90 -5 95 15 Q 80 20 80 5" fill="#210042"/>
+                    <path d="M 15 85 L 85 15" stroke="#1a1a1a" stroke-width="8" stroke-linecap="round"/>
+                    <path d="M 15 85 L 85 15" stroke="#444" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M 85 15 Q 65 5 45 40 L 52 45 Q 70 20 85 15 Z" fill="url(#bladeGrad)" stroke="#00e5ff" stroke-width="1.5"/>
+                    <polygon points="85,15 88,30 75,25" fill="#111" stroke="#00e5ff" stroke-width="1"/>
                 </svg>
             </div>
-            <div><div class="logo-text">EPOCHDB</div><div class="logo-sub">Project Epoch Database</div></div>
+            <div class="logo-text-group">
+                <div class="logo-text">EPOCH</div>
+                <div class="logo-db">DB</div>
+                <div class="logo-sub">Project Epoch Database</div>
+            </div>
         </div>
         <div id="topnav">
             <a class="tnav-btn" href="/npcs.html">NPCs</a>
