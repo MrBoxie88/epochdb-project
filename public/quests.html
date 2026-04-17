@@ -25,6 +25,7 @@ button{cursor:pointer;font-family:inherit}
 ::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px}
 #topbar{background:linear-gradient(180deg,#0d0d10 0%,rgba(10,10,12,.95) 100%);border-bottom:1px solid var(--border-gold);padding:0 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:200;backdrop-filter:blur(14px);height:52px}
 .logo{display:flex;align-items:center;gap:.7rem;flex-shrink:0}
+.logo-icon{width:80px;height:80px}
 .logo-text{font-family:'Cinzel',serif;font-weight:900;font-size:1.15rem;letter-spacing:.15em;color:var(--gold);text-shadow:0 0 18px rgba(200,168,75,.4);line-height:1}
 .logo-sub{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.3em;color:var(--text-dim);margin-top:2px}
 #topnav{display:flex;gap:.1rem;margin-left:auto;align-items:center;flex-shrink:0}
@@ -81,7 +82,7 @@ td.mono{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--tex
 <body>
 
 <div id="topbar">
-  <a class="logo" href="/"><div><div class="logo-text">EPOCHDB</div><div class="logo-sub">Project Epoch Database</div></div></a>
+  <a class="logo" href="/"><div class="logo-icon"><img src="/images/Logo/Logo.png" alt="EpochDB Logo" style="width:100%;height:100%;object-fit:contain;"/></div></a>
   <div id="topnav">
     <a class="tnav-btn" href="/npcs.html">NPCs</a>
     <a class="tnav-btn" href="/items.html">Items</a>
