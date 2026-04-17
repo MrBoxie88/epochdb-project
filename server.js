@@ -641,7 +641,7 @@ function parseLuaContent(content) {
                     });
                 }
             }
-            const questIdField = getStr('questId', block) ?? getNum('questId', block);
+            const questIdField = getStr('questID', block) ?? getNum('questID', block) ?? getStr('questId', block) ?? getNum('questId', block);
             const questId = questIdField != null ? questIdField : (/^\d+$/.test(key) ? key : null);
             result.quests.push({
                 key,
