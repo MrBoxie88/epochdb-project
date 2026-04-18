@@ -209,11 +209,39 @@ button { cursor:pointer; font-family:inherit }
 .warrior-only{display:none}
 #stat-panel.warrior-panel .warrior-only{display:revert}
 
+/* ── MOBILE TREE TABS ── */
+#mobile-tree-tabs { display:none; border:1px solid var(--border-gold); margin-bottom:.5rem; overflow:hidden }
+.mtt-btn { flex:1; padding:.55rem .3rem; font-family:'Cinzel',serif; font-size:.52rem; letter-spacing:.1em; text-transform:uppercase; background:var(--bg-card); border:none; border-right:1px solid var(--border); color:var(--text-dim); transition:all .15s; cursor:pointer; line-height:1.3 }
+.mtt-btn:last-child { border-right:none }
+.mtt-btn.active { background:var(--bg-hover); color:var(--gold); border-bottom:2px solid var(--gold) }
+
 @media(max-width:768px) {
-  .trees-wrap { gap:8px; flex-wrap:nowrap }
-  .tree-panel { min-width:280px; flex:0 0 auto }
-  .talent-area { flex-wrap:nowrap; justify-content:flex-start; padding-bottom:8px }
-  #stat-panel { width:min(328px,92vw); flex-shrink:0 }
+  html { font-size:14px }
+  #topbar { height:auto; min-height:52px; padding:.4rem .8rem; flex-wrap:wrap; gap:.4rem }
+  .logo-icon { width:40px!important; height:40px!important }
+  #topnav { display:none }
+  #page { padding:.7rem .6rem }
+
+  /* talent area stacks vertically */
+  .talent-area { flex-direction:column; align-items:stretch; overflow-x:hidden; padding-bottom:1rem }
+  .trees-wrap { flex-direction:column; width:100%; overflow-x:visible; gap:0 }
+
+  /* show only active tree */
+  .tree-panel { display:none; min-width:0; width:100%; max-width:100%; flex:none }
+  .tree-panel.mobile-active { display:block }
+
+  /* tree body scrollable horizontally */
+  .tree-body { overflow-x:auto; -webkit-overflow-scrolling:touch }
+  .tree-grid-wrap { margin:0 }
+
+  /* show tab bar */
+  #mobile-tree-tabs { display:flex }
+
+  #stat-panel { width:100%; min-width:0; box-sizing:border-box }
+  #footer { padding:.8rem }
+}
+@media(min-width:769px) {
+  #mobile-tree-tabs { display:none!important }
 }
 
 /* FOOTER */
@@ -262,6 +290,7 @@ button { cursor:pointer; font-family:inherit }
   <div id="classBar" class="class-bar"></div>
   <div id="controls" class="controls"></div>
   <div class="talent-area">
+    <div id="mobile-tree-tabs"></div>
     <div id="treesWrap" class="trees-wrap"></div>
     <div id="stat-panel">
       <div class="sp-hdr">&#x1F4CA; Build Stats</div>
@@ -1140,15 +1169,27 @@ function renderTrees(){
   const cls=CLASS_DATA[currentClass];
   const wrap=document.getElementById('treesWrap');
   wrap.innerHTML='';
+  const tabBar=document.getElementById('mobile-tree-tabs');
+  if(tabBar)tabBar.innerHTML='';
   cls.trees.forEach((tree,ti)=>{
     const panel=document.createElement('div');
-    panel.className='tree-panel';
+    panel.className='tree-panel'+(ti===0?' mobile-active':'');
+    panel.setAttribute('data-tree-index',ti);
     let header=`<div class="tree-header"><div class="tree-name"><img class="tree-icon" src="${getIconUrl(tree.icon)}" onerror="this.onerror=null;this.src='${ICON_CDN}${tree.icon}.jpg'" alt="">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div>`;
     const treeBgImg=TREE_IMAGES[currentClass]?.[ti];
     const bgStyle=treeBgImg?`background-image:url('/images/talents/${treeBgImg}')`:''; 
     if(tree.talents.length===0){
       panel.innerHTML=header+`<div class="tree-body" style="${bgStyle}"><div class="coming-soon">Coming Soon</div></div>`;
-      wrap.appendChild(panel);return;
+      wrap.appendChild(panel);
+      if(tabBar){
+        const btn=document.createElement('button');
+        btn.className='mtt-btn'+(ti===0?' active':'');
+        btn.setAttribute('data-tree-index',ti);
+        btn.textContent=tree.name;
+        btn.addEventListener('click',()=>showMobileTree(ti));
+        tabBar.appendChild(btn);
+      }
+      return;
     }
     const maxRow=Math.max(...tree.talents.map(t=>t.row));
     const gridH=maxRow*80+48;
@@ -1173,6 +1214,15 @@ function renderTrees(){
     gridHTML+=`</div></div></div>`;
     panel.innerHTML=header+gridHTML;
     wrap.appendChild(panel);
+    // mobile tab button
+    if(tabBar){
+      const btn=document.createElement('button');
+      btn.className='mtt-btn'+(ti===0?' active':'');
+      btn.setAttribute('data-tree-index',ti);
+      btn.textContent=tree.name;
+      btn.addEventListener('click',()=>showMobileTree(ti));
+      tabBar.appendChild(btn);
+    }
   });
   requestAnimationFrame(drawAllArrows);
 }
@@ -2012,6 +2062,16 @@ function calcWarlockStats(){
   bindWarlockListeners();
   if(!warlockLocalHydrated){loadWarlockInputsLocal();warlockLocalHydrated=true;}
   scheduleWarlockDamageFetch();
+}
+
+function showMobileTree(ti){
+  document.querySelectorAll('.tree-panel').forEach((p,i)=>{
+    p.classList.toggle('mobile-active',i===ti);
+  });
+  document.querySelectorAll('.mtt-btn').forEach(b=>{
+    b.classList.toggle('active',parseInt(b.getAttribute('data-tree-index'))===ti);
+  });
+  requestAnimationFrame(drawAllArrows);
 }
 
 init();
