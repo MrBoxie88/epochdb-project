@@ -413,7 +413,7 @@ function parseEntries(tableContent) {
 }
 
 function parseLuaContent(content) {
-    const result = { kills: [], items: [], loot: [], quests: [], vendors: [], meta: null };
+    const result = { kills: [], items: [], loot: [], quests: [], vendors: [], fishing: [], gathering: [], meta: null };
 
     console.log(`[PARSE] Starting Lua parse`);
     console.log(`[PARSE] Content size: ${content.length} bytes`);
@@ -663,6 +663,63 @@ function parseLuaContent(content) {
         }
     }
 
+    // ── FISHING ──
+    const fishingTable = extractTable('fishing', content);
+    if (fishingTable) {
+        const fishEntries = parseEntries(fishingTable);
+        console.log(`[PARSE] Found fishing table with ${fishEntries.length} entries`);
+        for (const { key, block } of fishEntries) {
+            const zonesInner = extractTable('zones', block);
+            const zones = {};
+            if (zonesInner) {
+                const zRe = /\["([^"]+)"\]\s*=\s*(\d+)/g;
+                let zm;
+                while ((zm = zRe.exec(zonesInner)) !== null) zones[zm[1]] = parseInt(zm[2]);
+            }
+            result.fishing.push({
+                id:      getStr('id', block) || key,
+                name:    getStr('name', block) || '',
+                quality: getNum('quality', block) ?? 1,
+                icon:    wowIconUrl(getStr('icon', block)),
+                count:   getNum('count', block) || 1,
+                zones,
+            });
+        }
+    }
+
+    // ── GATHERING ──
+    const gatheringTable = extractTable('gathering', content);
+    if (gatheringTable) {
+        const gatherEntries = parseEntries(gatheringTable);
+        console.log(`[PARSE] Found gathering table with ${gatherEntries.length} entries`);
+        for (const { key, block } of gatherEntries) {
+            const zonesInner = extractTable('zones', block);
+            const zones = {};
+            if (zonesInner) {
+                const zRe = /\["([^"]+)"\]\s*=\s*(\d+)/g;
+                let zm;
+                while ((zm = zRe.exec(zonesInner)) !== null) zones[zm[1]] = parseInt(zm[2]);
+            }
+            const nodesInner = extractTable('nodes', block);
+            const nodes = {};
+            if (nodesInner) {
+                const nRe = /\["([^"]+)"\]\s*=\s*(\d+)/g;
+                let nm;
+                while ((nm = nRe.exec(nodesInner)) !== null) nodes[nm[1]] = parseInt(nm[2]);
+            }
+            result.gathering.push({
+                id:      getStr('id', block) || key,
+                name:    getStr('name', block) || '',
+                quality: getNum('quality', block) ?? 1,
+                icon:    wowIconUrl(getStr('icon', block)),
+                source:  getStr('source', block) || 'Gathering',
+                count:   getNum('count', block) || 1,
+                zones,
+                nodes,
+            });
+        }
+    }
+
     // ── VENDORS ──
     const vendorsTable = extractTable('vendors', content);
     if (vendorsTable) {
@@ -717,7 +774,7 @@ function parseLuaContent(content) {
         };
     }
 
-    console.log(`[PARSE] Complete: ${result.kills.length} kills, ${result.items.length} items, ${result.loot.length} loot, ${result.quests.length} quests, ${result.vendors.length} vendors`);
+    console.log(`[PARSE] Complete: ${result.kills.length} kills, ${result.items.length} items, ${result.loot.length} loot, ${result.quests.length} quests, ${result.vendors.length} vendors, ${result.fishing.length} fishing, ${result.gathering.length} gathering`);
     return result;
 }
 
@@ -740,9 +797,9 @@ app.post('/api/upload', async (req, res) => {
             return res.status(400).json({ error: `Failed to parse Lua file: ${parseErr.message}` });
         }
 
-        console.log(`[UPLOAD] Parse result: ${parsed.kills.length} kills, ${parsed.items.length} items, ${parsed.loot.length} loot, ${parsed.quests.length} quests, ${parsed.vendors.length} vendors`);
+        console.log(`[UPLOAD] Parse result: ${parsed.kills.length} kills, ${parsed.items.length} items, ${parsed.loot.length} loot, ${parsed.quests.length} quests, ${parsed.vendors.length} vendors, ${parsed.fishing.length} fishing, ${parsed.gathering.length} gathering`);
 
-        if (parsed.kills.length === 0 && parsed.items.length === 0 && parsed.loot.length === 0 && parsed.quests.length === 0 && parsed.vendors.length === 0) {
+        if (parsed.kills.length === 0 && parsed.items.length === 0 && parsed.loot.length === 0 && parsed.quests.length === 0 && parsed.vendors.length === 0 && parsed.fishing.length === 0 && parsed.gathering.length === 0) {
             console.warn(`[UPLOAD] Warning: No data extracted from file.`);
         }
 
@@ -799,6 +856,46 @@ app.post('/api/upload', async (req, res) => {
                 updateOne: {
                     filter: { type: 'items', id: item.id },
                     update: { $set: setFields, $inc: { 'data.seen': 1 } },
+                    upsert: true
+                }
+            });
+        }
+
+        // ── FISHING ──
+        for (const fish of parsed.fishing) {
+            if (!fish.name) continue;
+            const zoneInc = {};
+            for (const [zone, cnt] of Object.entries(fish.zones)) {
+                zoneInc[`data.zones.${zone.replace(/[.\$]/g, '_')}`] = cnt;
+            }
+            const fishSet = { name: fish.name, quality: fish.quality, 'data.source': 'Fishing', 'data.profession': 'Fishing' };
+            if (fish.icon) fishSet['data.icon'] = fish.icon;
+            ops.push({
+                updateOne: {
+                    filter: { type: 'items', id: fish.id },
+                    update: { $set: fishSet, $inc: { 'data.seen': fish.count, ...zoneInc } },
+                    upsert: true
+                }
+            });
+        }
+
+        // ── GATHERING ──
+        for (const gather of parsed.gathering) {
+            if (!gather.name) continue;
+            const zoneInc = {};
+            for (const [zone, cnt] of Object.entries(gather.zones)) {
+                zoneInc[`data.zones.${zone.replace(/[.\$]/g, '_')}`] = cnt;
+            }
+            const nodeInc = {};
+            for (const [node, cnt] of Object.entries(gather.nodes)) {
+                nodeInc[`data.nodes.${node.replace(/[.\$]/g, '_')}`] = cnt;
+            }
+            const gatherSet = { name: gather.name, quality: gather.quality, 'data.source': gather.source, 'data.profession': gather.source };
+            if (gather.icon) gatherSet['data.icon'] = gather.icon;
+            ops.push({
+                updateOne: {
+                    filter: { type: 'items', id: gather.id },
+                    update: { $set: gatherSet, $inc: { 'data.seen': gather.count, ...zoneInc, ...nodeInc } },
                     upsert: true
                 }
             });
@@ -913,6 +1010,7 @@ app.post('/api/upload', async (req, res) => {
             breakdown: {
                 kills: parsed.kills.length, items: parsed.items.length, loot: parsed.loot.length,
                 quests: parsed.quests.length, vendors: parsed.vendors.length,
+                fishing: parsed.fishing.length, gathering: parsed.gathering.length,
             }
         });
     } catch (err) {

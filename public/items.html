@@ -135,6 +135,7 @@ td.mono{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--tex
         <option value="seen">Seen</option>
         <option value="level">iLvl</option>
         <option value="name">Name</option>
+        <option value="source">Source</option>
       </select>
       <select class="list-select" id="pagesize-select" onchange="onPageSize(+this.value)">
         <option value="50">50 / page</option>
@@ -228,6 +229,25 @@ td.mono{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--tex
           <span class="fp-dot" style="background:var(--text-dim)"></span>Ranged
         </div>
       </div>
+      <div class="fp-group">
+        <div class="fp-title">Source</div>
+        <div class="fp-item active" data-field="source" data-val="" onclick="setFilter(this)">
+          <span class="fp-dot" style="background:#888"></span>All
+        </div>
+        <div class="fp-item" data-field="source" data-val="Fishing" onclick="setFilter(this)">
+          <span class="fp-dot" style="background:#0070dd"></span>Fishing
+        </div>
+        <div class="fp-item" data-field="source" data-val="Mining" onclick="setFilter(this)">
+          <span class="fp-dot" style="background:#9d8042"></span>Mining
+        </div>
+        <div class="fp-item" data-field="source" data-val="Herbalism" onclick="setFilter(this)">
+          <span class="fp-dot" style="background:#1eff00"></span>Herbalism
+        </div>
+        <div class="fp-item" data-field="source" data-val="Skinning" onclick="setFilter(this)">
+          <span class="fp-dot" style="background:#c69b3a"></span>Skinning
+        </div>
+      </div>
+    </div>
     </div>
 
     <!-- Table -->
@@ -239,6 +259,7 @@ td.mono{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--tex
             <th onclick="onSort('slot')">Slot</th>
             <th onclick="onSort('level')">iLvl</th>
             <th onclick="onSort('quality')">Quality</th>
+            <th onclick="onSort('source')">Source</th>
             <th onclick="onSort('seen')">Seen</th>
           </tr>
         </thead>
@@ -296,11 +317,14 @@ function onPageSize(n) { pageSize = n; curPage = 1; applyAndRender(); }
 function applyAndRender() {
     filtered = allItems.filter(r => {
         for (const [f, v] of Object.entries(activeFilters)) {
-            const rv = f === 'slot' ? (r.data && r.data.slot) : r[f];
+            let rv;
+            if (f === 'slot')    rv = (r.data && r.data.slot)   || '';
+            else if (f === 'source') rv = (r.data && r.data.source) || '';
+            else rv = r[f];
             if (rv !== v) return false;
         }
         if (searchQ) {
-            const hay = (r.name + ' ' + (r.data ? r.data.slot + ' ' + (r.data.type || '') : '')).toLowerCase();
+            const hay = (r.name + ' ' + (r.data ? (r.data.slot || '') + ' ' + (r.data.type || '') + ' ' + (r.data.source || '') : '')).toLowerCase();
             if (!hay.includes(searchQ)) return false;
         }
         return true;
@@ -313,6 +337,7 @@ function applyAndRender() {
             else if (sortKey === 'quality') { av = a.quality || 0; bv = b.quality || 0; }
             else if (sortKey === 'seen') { av = (a.data && a.data.seen) || 0; bv = (b.data && b.data.seen) || 0; }
             else if (sortKey === 'slot') { av = (a.data && a.data.slot) || ''; bv = (b.data && b.data.slot) || ''; }
+            else if (sortKey === 'source') { av = (a.data && a.data.source) || ''; bv = (b.data && b.data.source) || ''; }
             else { av = a.name || ''; bv = b.name || ''; }
             return typeof av === 'number' ? bv - av : String(av).localeCompare(String(bv));
         });
@@ -329,23 +354,28 @@ function renderPage() {
     const start = (curPage - 1) * pageSize;
     const rows  = filtered.slice(start, start + pageSize);
 
+    const SOURCE_COLORS = { Fishing: '#0070dd', Mining: '#9d8042', Herbalism: '#1eff00', Skinning: '#c69b3a' };
     document.getElementById('list-tbody').innerHTML = rows.length
         ? rows.map(r => {
-            const d    = r.data || {};
-            const qcls = QCLS[r.quality || 0];
-            const icon = iconImg(d.icon, '⚔');
-            const slot = d.slot || '—';
-            const ilvl = r.level || '—';
-            const seen = fmt(d.seen || 0);
+            const d      = r.data || {};
+            const qcls   = QCLS[r.quality || 0];
+            const icon   = iconImg(d.icon, '⚔');
+            const slot   = d.slot || '—';
+            const ilvl   = r.level || '—';
+            const seen   = fmt(d.seen || 0);
+            const src    = d.source || '';
+            const srcCol = SOURCE_COLORS[src] || 'var(--text-dim)';
+            const srcCell = src ? `<span style="color:${srcCol};font-size:.8rem">${src}</span>` : `<span style="color:var(--text-dim)">—</span>`;
             return `<tr onclick="window.location='/item/${encodeURIComponent(r.id)}'">
               <td class="td-name">${icon}<a class="${qcls}" href="/item/${encodeURIComponent(r.id)}" onclick="event.stopPropagation()">${r.name}</a></td>
               <td style="color:var(--text-dim)">${slot}</td>
               <td class="mono">${ilvl}</td>
               <td class="${qcls}">${Q[r.quality || 0]}</td>
+              <td>${srcCell}</td>
               <td class="mono" style="color:var(--gold-dark)">${seen}</td>
             </tr>`;
           }).join('')
-        : `<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-dim);font-style:italic">No items found — try a different filter or upload your .lua file!</td></tr>`;
+        : `<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-dim);font-style:italic">No items found — try a different filter or upload your .lua file!</td></tr>`;
 
     // Paginator
     let pag = '';

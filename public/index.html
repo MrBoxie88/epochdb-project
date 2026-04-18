@@ -2064,6 +2064,28 @@
         </div>
     </div>
 
+    <!-- DELETE REMINDER MODAL -->
+    <div class="modal-overlay" id="delete-reminder-modal">
+        <div class="modal">
+            <div class="modal-hdr">
+                <div class="modal-title">⚠ Upload Complete</div>
+                <button class="modal-close" onclick="closeDeleteReminder()">✕</button>
+            </div>
+            <div class="modal-body" style="text-align:center;padding:1.8rem 1.4rem;">
+                <div style="font-size:2.5rem;margin-bottom:1rem;">🗑️</div>
+                <div style="font-family:'Cinzel',serif;font-size:.95rem;color:var(--gold);letter-spacing:.1em;margin-bottom:.9rem;">Delete Your EpochDB.lua File</div>
+                <div style="font-size:.9rem;color:var(--text);line-height:1.8;margin-bottom:1.4rem;">
+                    Your data has been uploaded successfully!<br>
+                    Please <strong style="color:var(--gold)">delete your EpochDB.lua</strong> file before logging back in.<br>
+                    This prevents duplicate data from being uploaded on your next session.
+                </div>
+                <div style="background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--gold-dark);padding:.75rem 1rem;font-size:.82rem;color:var(--text-dim);text-align:left;margin-bottom:1.4rem;line-height:1.9;">
+                    📂 <code style="font-family:'Share Tech Mono',monospace;color:var(--gold);">WoW\WTF\Account\[NAME]\SavedVariables\EpochDB.lua</code>
+                </div>
+                <button class="modal-submit" onclick="closeDeleteReminder()">Got it!</button>
+            </div>
+        </div>
+    </div>
     <!-- AUTH MODAL -->
     <div class="modal-overlay" id="auth-modal">
         <div class="modal">
@@ -3544,7 +3566,10 @@
         // ═══════════════════════════════════════════════════════════════
         function openUpload() { document.getElementById('upload-modal').classList.add('open'); }
         function closeUpload() { document.getElementById('upload-modal').classList.remove('open'); }
+        function openDeleteReminder() { document.getElementById('delete-reminder-modal').classList.add('open'); }
+        function closeDeleteReminder() { document.getElementById('delete-reminder-modal').classList.remove('open'); }
         document.getElementById('upload-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeUpload(); });
+        document.getElementById('delete-reminder-modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeDeleteReminder(); });
         function handleDrop(e) { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag'); handleFile(e.dataTransfer.files[0]); }
         function handleFile(file) {
             if (!file) return; uploadedFile = file;
@@ -3581,8 +3606,10 @@
                         if (b.loot) parts.push(`${b.loot} loot`);
                         if (b.quests) parts.push(`${b.quests} quests`);
                         if (b.vendors) parts.push(`${b.vendors} vendors`);
+                        if (b.fishing) parts.push(`${b.fishing} fishing`);
+                        if (b.gathering) parts.push(`${b.gathering} gathering`);
                         status.textContent = `✔ Success! ${result.items} records synced (${parts.join(', ')}).`;
-                        setTimeout(closeUpload, 2500);
+                        setTimeout(() => { closeUpload(); openDeleteReminder(); }, 1500);
                     } else {
                         status.textContent = "❌ Upload failed: " + (result.error || "Unknown Error");
                         status.style.borderColor = "var(--red)";
