@@ -76,6 +76,30 @@ td.mono{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--tex
 /* FOOTER */
 #footer{display:block;width:100%;border-top:1px solid var(--border-gold);background:var(--bg-card);padding:1rem 1.5rem;text-align:center;font-size:.75rem;color:var(--text-dim);margin-top:2rem}
 #footer .footer-character{color:var(--gold);font-weight:600}
+
+/* FILTER TOGGLE (mobile only) */
+#filter-toggle{display:none;background:var(--bg-card);border:1px solid var(--border-gold);color:var(--gold);font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.1em;padding:.5rem 1rem;text-transform:uppercase;width:100%;justify-content:center;margin-bottom:.5rem;cursor:pointer}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+    html{font-size:14px}
+    #topbar{height:auto;min-height:52px;padding:.4rem .8rem;flex-wrap:wrap;gap:.4rem}
+    .logo-icon{width:40px!important;height:40px!important}
+    #topnav{display:none}
+    #page{padding:.7rem .6rem}
+    .list-header{flex-direction:column;align-items:stretch;gap:.5rem}
+    .list-controls{flex-wrap:wrap;gap:.4rem}
+    .list-search{width:100%!important}
+    .list-select{flex:1;min-width:100px}
+    .list-body{grid-template-columns:1fr}
+    .filter-panel{display:none}
+    .filter-panel.mobile-open{display:block}
+    #filter-toggle{display:flex}
+    .data-wrap{overflow-x:auto}
+    td,th{padding:.4rem .5rem;white-space:nowrap}
+    .paginator{flex-wrap:wrap;gap:2px}
+    #footer{padding:.8rem}
+}
 </style>
 </head>
 <body>
@@ -128,6 +152,7 @@ td.mono{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--tex
   </div>
 
   <div class="list-body">
+    <button id="filter-toggle" onclick="this.nextElementSibling.classList.toggle('mobile-open');this.textContent=this.nextElementSibling.classList.contains('mobile-open')?'✕ Hide Filters':'⚙ Filters'">⚙ Filters</button>
     <div class="filter-panel">
       <div class="fp-group">
         <div class="fp-title">Type</div>
