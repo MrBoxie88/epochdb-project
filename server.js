@@ -641,6 +641,7 @@ function parseLuaContent(content) {
                     });
                 }
             }
+            const isDaily      = getBool('isDaily', block) || false;
             const questIdField = getStr('questID', block) ?? getNum('questID', block) ?? getStr('questId', block) ?? getNum('questId', block);
             const questId = questIdField != null ? questIdField : (/^\d+$/.test(key) ? key : null);
             result.quests.push({
@@ -656,6 +657,7 @@ function parseLuaContent(content) {
                 rewardText:     getStr('rewardText', block) || '',
                 rewardMoney:    getNum('rewardMoney', block) || 0,
                 suggestedGroup: getNum('suggestedGroup', block) || 0,
+                isDaily,
                 rewards,
                 rewardItems,
                 requiredItems,
@@ -939,6 +941,13 @@ app.post('/api/upload', async (req, res) => {
             if (quest.rewardText)     setFields['data.rewardText']     = quest.rewardText;
             if (quest.rewardMoney)    setFields['data.rewardMoney']    = quest.rewardMoney;
             if (quest.suggestedGroup) setFields['data.suggestedGroup'] = quest.suggestedGroup;
+            const sg = quest.suggestedGroup || 0;
+            const questType = quest.isDaily ? 'daily'
+                : sg >= 10 ? 'raid'
+                : sg >= 5  ? 'dungeon'
+                : sg >= 2  ? 'elite2'
+                : 'solo';
+            setFields['data.type'] = questType;
             if (quest.rewardItems && quest.rewardItems.length)   setFields['data.rewardItems']   = quest.rewardItems;
             if (quest.requiredItems && quest.requiredItems.length) setFields['data.requiredItems'] = quest.requiredItems;
             const rewardInc = {};
