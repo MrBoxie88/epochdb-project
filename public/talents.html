@@ -235,8 +235,8 @@ button { cursor:pointer; font-family:inherit }
   .tree-panel.mobile-active { display:block }
 
   /* tree body scrollable horizontally */
-  .tree-body { overflow-x:auto; -webkit-overflow-scrolling:touch }
-  .tree-grid-wrap { margin:0 }
+  .tree-body { overflow-x:auto; -webkit-overflow-scrolling:touch; display:flex; justify-content:center }
+  .tree-grid-wrap { margin:0 auto; flex-shrink:0 }
 
   /* show tab bar */
   #mobile-tree-tabs { display:flex }
