@@ -74,7 +74,7 @@ button { cursor:pointer; font-family:inherit }
 
 /* ── TREES ── */
 .trees-wrap { display:flex; justify-content:center; align-items:flex-start; gap:12px; padding:0; flex-wrap:nowrap; flex:1; min-width:0 }
-.tree-panel { background:var(--bg-panel); border:1px solid var(--border); overflow:hidden; flex:1 1 276px; min-width:252px; max-width:380px; position:relative }
+.tree-panel { background:var(--bg-panel); border:1px solid var(--border); overflow:hidden; flex:1 1 308px; min-width:284px; max-width:420px; position:relative }
 .tree-header { text-align:center; padding:.55rem .9rem; background:var(--bg-card); border-bottom:1px solid var(--border) }
 .tree-header .tree-name { font-family:'Cinzel',serif; font-size:.7rem; letter-spacing:.18em; text-transform:uppercase; color:var(--text-bright) }
 .tree-header .tree-icon { width:20px; height:20px; vertical-align:middle; margin-right:6px; border-radius:2px; border:1px solid rgba(255,255,255,.1) }
@@ -85,12 +85,12 @@ button { cursor:pointer; font-family:inherit }
 .tree-reset-btn:hover { border-color:var(--red-bright); color:var(--red-bright) }
 .tree-body { padding:14px; position:relative; background-size:cover; background-position:center top; background-repeat:no-repeat }
 .tree-body::before { content:''; position:absolute; inset:0; background:linear-gradient(180deg,rgba(10,10,12,0.3) 0%,rgba(15,15,20,0.75) 100%); z-index:1; pointer-events:none }
-.tree-grid-wrap { position:relative; width:276px; margin:0 auto; z-index:2 }
-.tree-grid { display:grid; grid-template-columns:repeat(4,48px); grid-auto-rows:48px; column-gap:28px; row-gap:32px; width:276px; position:relative; z-index:2; }
+.tree-grid-wrap { position:relative; width:308px; margin:0 auto; z-index:2 }
+.tree-grid { display:grid; grid-template-columns:repeat(4,56px); grid-auto-rows:56px; column-gap:28px; row-gap:32px; width:308px; position:relative; z-index:2; }
 .tree-arrows { position:absolute; top:0; left:0; pointer-events:none; z-index:1; overflow:visible }
 .talent-cell { position:relative }
-.talent { width:48px; height:48px; border:none; cursor:pointer; overflow:visible; position:relative; transition:filter .2s; background:var(--bg-deep) }
-.talent img { width:100%; height:100%; display:block; position:relative; z-index:1; image-rendering:-webkit-optimize-contrast; image-rendering:crisp-edges }
+.talent { width:56px; height:56px; border:none; cursor:pointer; overflow:visible; position:relative; transition:filter .2s; background:var(--bg-deep) }
+.talent img { width:100%; height:100%; display:block; position:relative; z-index:1 }
 .talent::after { content:''; position:absolute; inset:-3px; background-image:url('/images/talents/buttonboarder.webp'); background-size:100% 100%; background-repeat:no-repeat; pointer-events:none; z-index:2 }
 .talent.locked { filter:grayscale(1) brightness(0.4); cursor:not-allowed }
 .talent.available { filter:brightness(0.85) }
@@ -1203,10 +1203,10 @@ function renderTrees(){
       return;
     }
     const maxRow=Math.max(...tree.talents.map(t=>t.row));
-    const gridH=maxRow*80+48;
+    const gridH=maxRow*88+56;
     let gridHTML=`<div class="tree-body" style="${bgStyle}"><div class="tree-grid-wrap">`;
-    gridHTML+=`<svg class="tree-arrows" viewBox="0 0 276 ${gridH}" style="width:276px;height:${gridH}px;"></svg>`;
-    gridHTML+=`<div class="tree-grid" style="grid-template-rows:repeat(${maxRow+1},48px);" data-tree="${ti}">`;
+    gridHTML+=`<svg class="tree-arrows" viewBox="0 0 308 ${gridH}" style="width:308px;height:${gridH}px;"></svg>`;
+    gridHTML+=`<div class="tree-grid" style="grid-template-rows:repeat(${maxRow+1},56px);" data-tree="${ti}">`;
     tree.talents.forEach((tal,idx)=>{
       const st=getTalentState(ti,idx);
       const rk=pointsSpent[ti][idx];
@@ -1330,9 +1330,9 @@ function onTalentClick(e,ti,idx){
 }
 
 function drawAllArrows(){
-  const COL_STRIDE=76;
-  const ROW_STRIDE=80;
-  const CELL=48;
+  const COL_STRIDE=84;
+  const ROW_STRIDE=88;
+  const CELL=56;
   const PAD=4;
   const OVERLAP=4;
   const AW=14;   // body width
