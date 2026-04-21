@@ -409,13 +409,12 @@ button { cursor:pointer; font-family:inherit }
 </div>
 
 <script>
-const ICON_CDN='https://wow.zamimg.com/images/wow/icons/enormous/';
-const ICON_CDN_FALLBACK='https://wow.zamimg.com/images/wow/icons/large/';
+const ICON_CDN='https://wow.zamimg.com/images/wow/icons/large/';
 const ICON_BASE='/images/WoW%20Vanilla_Classic%20Icon%20Pack/';
 const _IF={shield:'Armor',boots:'Armor',gauntlets:'Armor',belt:'Armor',helmet:'Armor',shoulder:'Armor',chest:'Armor',pants:'Armor',sword:'Weapons',axe:'Weapons',mace:'Weapons',weapon:'Weapons',hammer:'Weapons',spear:'Weapons',wand:'Weapons',ammo:'Weapons',staff:'Weapons',stone:'Trade'};
 function _ip(n){return n.split('_').map(s=>s.charAt(0).toUpperCase()+s.slice(1)).join('_')}
-function getIconUrl(n){if(n.startsWith('classicon_'))return'/images/talents/'+n+'.webp';return ICON_CDN+n+'.jpg';}
-function getLocalIcon(n){if(n.startsWith('classicon_'))return'/images/talents/'+n+'.webp';let f;if(n.startsWith('ability_'))f='Abilities';else if(n.startsWith('spell_')||n.startsWith('racial_'))f='Spells';else if(n.startsWith('inv_')){const p=n.split('_');f=_IF[p[1]]||(p[1]==='misc'?(p[2]==='pelt'?'Trade':p[2]==='cape'?'Armor':'Items'):'Items');}return f?ICON_BASE+f+'/'+_ip(n)+'.webp':ICON_CDN_FALLBACK+n+'.jpg';}
+function getIconUrl(n){if(n.startsWith('classicon_'))return'/images/talents/'+n+'.webp';let f;if(n.startsWith('ability_'))f='Abilities';else if(n.startsWith('spell_')||n.startsWith('racial_'))f='Spells';else if(n.startsWith('inv_')){const p=n.split('_');f=_IF[p[1]]||(p[1]==='misc'?(p[2]==='pelt'?'Trade':p[2]==='cape'?'Armor':'Items'):'Items');}return f?ICON_BASE+f+'/'+_ip(n)+'.webp':ICON_CDN+n+'.jpg';}
+function getLocalIcon(n){return ICON_CDN+n+'.jpg';}
 const MAX_POINTS=61;
 const TREE_IMAGES={
 warrior:['warrior_arms.jpg','warrior_fury.jpg','warrior_protection.jpg'],
