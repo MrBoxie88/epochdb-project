@@ -142,10 +142,14 @@ button { cursor:pointer; font-family:inherit }
 .order-item { display:flex; align-items:center; gap:.5rem; font-size:.82rem; padding:.22rem .4rem }
 .order-item:hover { background:var(--bg-hover) }
 .order-num { font-family:'Share Tech Mono',monospace; color:var(--gold-dark); min-width:28px; text-align:right; font-size:.72rem; flex-shrink:0 }
+.order-level-badge { font-family:'Share Tech Mono',monospace; color:var(--text-dim); font-size:.65rem; flex-shrink:0; min-width:44px }
 .order-tree-label { color:var(--text-dim); font-size:.75rem; flex-shrink:0; min-width:84px }
 .order-talent-name { color:var(--text-bright); flex:1 }
 .order-rank-badge { font-family:'Share Tech Mono',monospace; color:var(--green-soft); font-size:.72rem; flex-shrink:0 }
 .order-empty { color:var(--text-dim); font-style:italic; font-size:.85rem; text-align:center; padding:.8rem 0 }
+.order-level-hdr { display:flex; align-items:center; gap:.5rem; padding:.18rem .4rem; background:var(--bg-card); border-top:1px solid var(--border); border-bottom:1px solid var(--border); margin:.3rem 0 }
+.order-level-hdr-text { font-family:'Cinzel',serif; font-size:.58rem; letter-spacing:.12em; color:var(--gold); text-transform:uppercase }
+.order-level-hdr-pts { font-family:'Share Tech Mono',monospace; font-size:.58rem; color:var(--text-dim); margin-left:auto }
 
 /* ── TALENT AREA WRAPPER ── */
 .talent-area{display:flex;gap:12px;align-items:flex-start;justify-content:center;padding:0 0 2rem;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-gutter:stable}
@@ -1163,15 +1167,49 @@ function renderControls(){
     <button class="btn share-btn" onclick="openShare()">⚔ Share Build</button>`;
 }
 
+// Build ordered list of [level, pointsAtLevel] starting at level 10
+// Levels where lv % 5 === 4 (14,19,24...59) grant 2 points, rest grant 1
+function buildLevelPoints(){
+  const result=[];
+  for(let lv=10;lv<=60;lv++){
+    const pts=(lv%5===4)?2:1;
+    result.push({lv,pts});
+  }
+  return result;
+}
+
 function renderOrder(){
   const wrap=document.getElementById('order-list-wrap');
   const cls=CLASS_DATA[currentClass];
   if(orderLog.length===0){wrap.innerHTML='<div class="order-empty">No talents allocated yet. Click a talent icon to begin.</div>';return;}
+
+  // Build a flat list of [level, pointIndex(1-based)] for each talent spend
+  const levelPoints=buildLevelPoints(); // [{lv, pts}, ...]
+  // Map talent order index (0-based) to level
+  // pointIndex i (0-based) → which level bucket it falls in
+  function getLevel(pointIndex){
+    let used=0;
+    for(const {lv,pts} of levelPoints){
+      used+=pts;
+      if(pointIndex<used)return lv;
+    }
+    return 60;
+  }
+
   let html='<ol class="order-list">';
+  let lastLv=-1;
   orderLog.forEach((entry,i)=>{
     const tree=cls.trees[entry.ti];const tal=tree.talents[entry.idx];
     let rank=0;for(let j=0;j<=i;j++){if(orderLog[j].ti===entry.ti&&orderLog[j].idx===entry.idx)rank++;}
-    html+=`<li class="order-item"><span class="order-num">${i+1}.</span><span class="order-tree-label">[${tree.name}]</span><span class="order-talent-name">${tal.name}</span><span class="order-rank-badge">${rank}/${tal.maxRank}</span></li>`;
+    const lv=getLevel(i);
+    if(lv!==lastLv){
+      // count how many points this level gives
+      const lvInfo=levelPoints.find(x=>x.lv===lv);
+      const ptsLabel=lvInfo&&lvInfo.pts===2?'2 pts':'1 pt';
+      html+=`<li class="order-level-hdr"><span class="order-level-hdr-text">Level ${lv}</span><span class="order-level-hdr-pts">${ptsLabel}</span></li>`;
+      lastLv=lv;
+    }
+    html+=`<li class="order-item"><span class="order-num">${i+1}.</span><span class="order-level-badge">Lv ${lv}</span><span class="order-tree-label">[${tree.name}]</span><span class="order-talent-name">${tal.name}</span><span class="order-rank-badge">${rank}/${tal.maxRank}</span></li>`;
   });
   html+='</ol>';wrap.innerHTML=html;
 }
