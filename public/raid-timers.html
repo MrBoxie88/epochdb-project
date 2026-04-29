@@ -173,10 +173,34 @@ const LS_REALM_KEY = 'epochdb_timer_realm';
 let CUR_REALM = localStorage.getItem(LS_REALM_KEY) || REALMS[0];
 
 // ── STORAGE ────────────────────────────────────────────────────────────────
-function realmKey() { return LS_KEY_BASE + '_' + CUR_REALM; }
-function loadKillTimes() { try { return JSON.parse(localStorage.getItem(realmKey()) || '{}'); } catch { return {}; } }
-function saveKillTime(id, ts) { const d = loadKillTimes(); d[id] = ts; localStorage.setItem(realmKey(), JSON.stringify(d)); }
-function clearKillTime(id) { const d = loadKillTimes(); delete d[id]; localStorage.setItem(realmKey(), JSON.stringify(d)); }
+const TimerStore = {
+    _key(realmKey) { return LS_KEY_BASE + '_' + realmKey; },
+
+    load(realmKey) {
+        try { return JSON.parse(localStorage.getItem(this._key(realmKey)) || '{}'); } catch { return {}; }
+    },
+
+    save(realmKey, state) {
+        localStorage.setItem(this._key(realmKey), JSON.stringify(state));
+    },
+
+    markKill(realmKey, bossId, timestamp) {
+        const state = this.load(realmKey);
+        state[bossId] = timestamp;
+        this.save(realmKey, state);
+    },
+
+    clearKill(realmKey, bossId) {
+        const state = this.load(realmKey);
+        delete state[bossId];
+        this.save(realmKey, state);
+    },
+
+    /** Returns the Date of next respawn given a kill timestamp and a reset window in hours. */
+    getNextReset(bossId, killTimestamp, resetHours) {
+        return new Date(killTimestamp + resetHours * MS.h);
+    },
+};
 
 // ── REALM SWITCHER
 function setRealm(r) {
@@ -220,7 +244,7 @@ function nextRaidReset(raid) {
 
 // ── RENDER ─────────────────────────────────────────────────────────────────
 function render() {
-    const kills = loadKillTimes();
+    const kills = TimerStore.load(CUR_REALM);
     let html = '';
 
     // ── Raid Instances
@@ -261,7 +285,7 @@ function render() {
     for (const wb of WORLD_BOSSES) {
         const killTime = kills[wb.id] ? parseInt(kills[wb.id]) : null;
         const respawnMs = 3 * MS.d;
-        const msUntilRespawn = killTime ? (killTime + respawnMs) - Date.now() : null;
+        const msUntilRespawn = killTime ? TimerStore.getNextReset(wb.id, killTime, 72).getTime() - Date.now() : null;
         let cdStr, cdCls, cdPct;
         if (!killTime) {
             cdStr = 'Unknown'; cdCls = ''; cdPct = 0;
@@ -302,7 +326,7 @@ function render() {
 
 // ── TICK ───────────────────────────────────────────────────────────────────
 function tick() {
-    const kills = loadKillTimes();
+    const kills = TimerStore.load(CUR_REALM);
 
     for (const raid of RAIDS) {
         const cdEl = document.getElementById(`cd-${raid.id}`);
@@ -323,7 +347,7 @@ function tick() {
         if (!cdEl) continue;
         const killTime = kills[wb.id] ? parseInt(kills[wb.id]) : null;
         if (!killTime) { cdEl.textContent = 'Unknown'; cdEl.className = 'timer-countdown'; continue; }
-        const msLeft = (killTime + respawnMs) - Date.now();
+        const msLeft = TimerStore.getNextReset(wb.id, killTime, 72).getTime() - Date.now();
         if (msLeft <= 0) {
             cdEl.textContent = 'RESPAWNED'; cdEl.className = 'timer-countdown open';
             if (barEl) { barEl.style.width = '100%'; barEl.className = 'timer-bar open'; }
@@ -342,13 +366,13 @@ function tick() {
 
 // ── ACTIONS ────────────────────────────────────────────────────────────────
 function markKilled(id) {
-    saveKillTime(id, Date.now());
+    TimerStore.markKill(CUR_REALM, id, Date.now());
     render();
     toast(`☠ ${WORLD_BOSSES.find(w => w.id === id)?.name || id} kill recorded!`);
 }
 
 function clearKill(id) {
-    clearKillTime(id);
+    TimerStore.clearKill(CUR_REALM, id);
     render();
     toast('Kill time cleared.');
 }

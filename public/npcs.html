@@ -86,26 +86,10 @@
   </div>
 </div>
 
+<script src="utils.js"></script>
 <script src="api.js"></script>
 <script src="epoch-list.js"></script>
 <script>
-function fmt(n) { return Number(n).toLocaleString(); }
-
-function normType(t) {
-    if (!t) return 'normal';
-    const s = t.toLowerCase();
-    if (s === 'worldboss' || s === 'boss') return 'boss';
-    if (s === 'rareelite') return 'rare';
-    if (s === 'elite') return 'elite';
-    if (s === 'rare') return 'rare';
-    return 'normal';
-}
-
-function badgeHtml(t) {
-    const n = normType(t);
-    const label = n === 'boss' ? 'Boss' : n === 'elite' ? 'Elite' : n === 'rare' ? 'Rare' : 'Normal';
-    return `<span class="badge badge-${n}">${label}</span>`;
-}
 
 const _epochList = new EpochList({
     containerEl:  document.getElementById('list-tbody'),

@@ -163,18 +163,12 @@
   </div>
 </div>
 
+<script src="utils.js"></script>
 <script src="api.js"></script>
 <script src="epoch-list.js"></script>
 <script>
 const Q     = ['Poor','Common','Uncommon','Rare','Epic','Legendary','Artifact'];
-const QCLS  = ['q0','q1','q2','q3','q4','q5','q6'];
 const SOURCE_COLORS = { Fishing: '#0070dd', Mining: '#9d8042', Herbalism: '#1eff00', Skinning: '#c69b3a' };
-
-function fmt(n) { return Number(n).toLocaleString(); }
-function iconImg(url, fallback) {
-    if (!url) return `<span>${fallback || '⚔'}</span>`;
-    return `<img class="wow-icon" src="${url}" onerror="this.style.display='none'" alt="">`;
-}
 
 const _epochList = new EpochList({
     containerEl:  document.getElementById('list-tbody'),
@@ -212,8 +206,8 @@ const _epochList = new EpochList({
 
     renderRowFn(r) {
         const d      = r.data || {};
-        const qcls   = QCLS[r.quality || 0];
-        const icon   = iconImg(d.icon, '⚔');
+        const qcls   = qualityColor(r.quality || 0);
+        const icon   = iconImg(d.icon, null, r.name);
         const slot   = d.slot || '—';
         const ilvl   = r.level || '—';
         const seen   = fmt(d.seen || 0);

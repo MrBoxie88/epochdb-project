@@ -91,18 +91,13 @@
   </div>
 </div>
 
+<script src="utils.js"></script>
 <script src="api.js"></script>
 <script src="epoch-list.js"></script>
 <script>
 const Q    = ['Poor','Common','Uncommon','Rare','Epic','Legendary','Artifact'];
-const QCLS = ['q0','q1','q2','q3','q4','q5','q6'];
 
-function fmt(n) { return Number(n).toLocaleString(); }
 function pct(r) { return (r * 100).toFixed(2) + '%'; }
-function iconImg(url) {
-    if (!url) return '';
-    return `<img class="wow-icon" src="${url}" onerror="this.style.display='none'" alt="">`;
-}
 function bestRate(d) {
     const sources = d.sources || {};
     const vals    = Object.values(sources);
@@ -141,7 +136,7 @@ const _epochList = new EpochList({
     renderRowFn(r) {
         const d       = r.data || {};
         const q       = r.quality || 0;
-        const qcls    = QCLS[q];
+        const qcls    = qualityColor(q);
         const rate    = bestRate(d);
         const fillCls = q >= 5 ? 'fill-leg' : q >= 4 ? 'fill-epic' : q >= 3 ? 'fill-rare' : '';
         const detailUrl = `/?type=loot&id=${encodeURIComponent(r.id)}`;
