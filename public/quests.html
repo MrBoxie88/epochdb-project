@@ -90,6 +90,7 @@
 
 <script src="api.js"></script>
 <script>
+let allData = [], filtered = [], curPage = 1, pageSize = 50, sortKey = '', searchQ = '';
 let activeFilters = {};
 
 function fmt(n) { return Number(n).toLocaleString(); }

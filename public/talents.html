@@ -1761,7 +1761,7 @@ async function fetchRogueDamage(){
   const payload=readRogueGearPayload();
   const col=g('sp-dmg-col');if(col)col.textContent='Avg / Crit';
   try{
-    const data=await fetchRogueDamage(payload);
+    const data=await postRogueDamage(payload);
     if(g('sp-val-mh-awd'))g('sp-val-mh-awd').textContent=data.awd.toFixed(1);
     if(g('sp-val-mh-nwd'))g('sp-val-mh-nwd').textContent=data.nwd.toFixed(1);
     if(g('sp-val-oh-awd'))g('sp-val-oh-awd').textContent=data.ohawd.toFixed(1);
@@ -1886,7 +1886,7 @@ async function fetchMageDamage(){
     talents:collectMageTalentsForApi(),
   };
   try{
-    const data=await fetchMageDamage(payload);
+    const data=await postMageDamage(payload);
     const st=data.stats;
     if(st){
       if(g('sp-mage-effint'))g('sp-mage-effint').textContent=st.intellectEffective!=null?st.intellectEffective.toFixed(0):'\u2014';
@@ -2009,7 +2009,7 @@ async function fetchWarriorDamage(){
     talents:collectWarriorTalentsForApi(),
   };
   try{
-    const data=await fetchWarriorDamage(payload);
+    const data=await postWarriorDamage(payload);
     const st=data.stats;
     if(st){
       if(g('sp-war-awd'))g('sp-war-awd').textContent=st.awd!=null?st.awd.toFixed(1):'\u2014';
@@ -2111,7 +2111,7 @@ async function fetchWarlockDamage(){
     talents:collectWarlockTalentsForApi(),
   };
   try{
-    const data=await fetchWarlockDamage(payload);
+    const data=await postWarlockDamage(payload);
     const st=data.stats;
     if(st&&g('sp-wl-hit')){
       const hg=st.hitFromGearPercent!=null?st.hitFromGearPercent.toFixed(1):'0.0';

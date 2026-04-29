@@ -145,7 +145,7 @@ function verifyUser(email, headers) {
 
 // ── Talent damage API helpers ──────────────────────────────────────────────
 
-function fetchRogueDamage(payload) {
+function postRogueDamage(payload) {
     return apiFetch('/api/rogue-damage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -153,7 +153,7 @@ function fetchRogueDamage(payload) {
     });
 }
 
-function fetchMageDamage(payload) {
+function postMageDamage(payload) {
     return apiFetch('/api/mage-damage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -161,7 +161,7 @@ function fetchMageDamage(payload) {
     });
 }
 
-function fetchWarriorDamage(payload) {
+function postWarriorDamage(payload) {
     return apiFetch('/api/warrior-damage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -169,7 +169,7 @@ function fetchWarriorDamage(payload) {
     });
 }
 
-function fetchWarlockDamage(payload) {
+function postWarlockDamage(payload) {
     return apiFetch('/api/warlock-damage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
