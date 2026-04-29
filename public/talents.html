@@ -1125,7 +1125,7 @@ function renderClassBar(){
     const btn=document.createElement('div');
     btn.className='class-btn'+(key===currentClass?' active':'');
     btn.title=cls.name;
-    btn.innerHTML=`<img src="${getIconUrl(cls.icon)}" onerror="this.style.display='none'" alt="${cls.name}">`;
+    btn.innerHTML=`<img src="${getIconUrl(cls.icon)}" onerror="if(this.src.endsWith('.webp')){this.src=this.src.replace('.webp','.jpg')}else{this.style.display='none'}" alt="${cls.name}">`
     btn.onclick=()=>{currentClass=key;loadClass(key);};
     bar.appendChild(btn);
   }
@@ -1214,7 +1214,7 @@ function renderTrees(){
     const panel=document.createElement('div');
     panel.className='tree-panel'+(ti===0?' mobile-active':'');
     panel.setAttribute('data-tree-index',ti);
-    let header=`<div class="tree-header"><div class="tree-header-left"><div class="tree-name"><img class="tree-icon" src="${getIconUrl(tree.icon)}" onerror="this.style.display='none'" alt="">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div></div>`;
+    let header=`<div class="tree-header"><div class="tree-header-left"><div class="tree-name"><img class="tree-icon" src="${getIconUrl(tree.icon)}" onerror="if(this.src.endsWith('.webp')){this.src=this.src.replace('.webp','.jpg')}else{this.style.display='none'}" alt="">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div></div>`;
     const treeBgImg=TREE_IMAGES[currentClass]?.[ti];
     const bgStyle=treeBgImg?`background-image:url('/images/talents/${treeBgImg}')`:''; 
     if(tree.talents.length===0){
@@ -1249,7 +1249,7 @@ function renderTrees(){
         ontouchstart="onTalentTouchStart(event,${ti},${idx})"
         ontouchend="onTalentTouchEnd()"
         ontouchcancel="onTalentTouchEnd()">`;
-      gridHTML+=`<img src="${getIconUrl(tal.icon)}" onerror="this.style.display='none'" alt="${tal.name}">`;
+      gridHTML+=`<img src="${getIconUrl(tal.icon)}" onerror="if(this.src.endsWith('.webp')){this.src=this.src.replace('.webp','.jpg')}else{this.style.display='none'}" alt="${tal.name}">`
       gridHTML+=`<div class="talent-rank">${rk}/${tal.maxRank}</div>`;
       gridHTML+=`</div></div>`;
     });
