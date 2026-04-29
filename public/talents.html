@@ -413,7 +413,7 @@ button { cursor:pointer; font-family:inherit }
 const ICON_BASE='/images/WoW%20Vanilla_Classic%20Icon%20Pack/';
 const _IF={shield:'Armor',boots:'Armor',gauntlets:'Armor',belt:'Armor',helmet:'Armor',shoulder:'Armor',chest:'Armor',pants:'Armor',sword:'Weapons',axe:'Weapons',mace:'Weapons',weapon:'Weapons',hammer:'Weapons',spear:'Weapons',wand:'Weapons',ammo:'Weapons',staff:'Weapons',stone:'Trade'};
 function _ip(n){return n.split('_').map(s=>s.charAt(0).toUpperCase()+s.slice(1)).join('_')}
-function getIconUrl(n){if(n.startsWith('classicon_'))return'/images/talents/'+n+'.webp';let f;if(n.startsWith('ability_'))f='Abilities';else if(n.startsWith('spell_')||n.startsWith('racial_'))f='Spells';else if(n.startsWith('inv_')){const p=n.split('_');f=_IF[p[1]]||(p[1]==='misc'?(p[2]==='pelt'?'Trade':p[2]==='cape'?'Armor':'Items'):'Items');}return ICON_BASE+(f||'Icons')+'/'+n+'.webp';}
+function getIconUrl(n){if(n.startsWith('classicon_'))return'/images/talents/'+n+'.webp?v=2';let f;if(n.startsWith('ability_'))f='Abilities';else if(n.startsWith('spell_')||n.startsWith('racial_'))f='Spells';else if(n.startsWith('inv_')){const p=n.split('_');f=_IF[p[1]]||(p[1]==='misc'?(p[2]==='pelt'?'Trade':p[2]==='cape'?'Armor':'Items'):'Items');}return ICON_BASE+(f||'Icons')+'/'+n+'.webp?v=2';}
 const MAX_POINTS=61;
 const TREE_IMAGES={
 warrior:['warrior_arms.jpg','warrior_fury.jpg','warrior_protection.jpg'],
@@ -1125,7 +1125,7 @@ function renderClassBar(){
     const btn=document.createElement('div');
     btn.className='class-btn'+(key===currentClass?' active':'');
     btn.title=cls.name;
-    btn.innerHTML=`<img src="${getIconUrl(cls.icon)}" onerror="if(this.src.endsWith('.webp')){this.src=this.src.replace('.webp','.jpg')}else{this.style.display='none'}" alt="${cls.name}">`
+    btn.innerHTML=`<img src="${getIconUrl(cls.icon)}" onerror="if(this.src.includes('.webp')){this.src=this.src.replace('.webp','.jpg')}else{this.style.display='none'}" alt="${cls.name}">`
     btn.onclick=()=>{currentClass=key;loadClass(key);};
     bar.appendChild(btn);
   }
@@ -1214,7 +1214,7 @@ function renderTrees(){
     const panel=document.createElement('div');
     panel.className='tree-panel'+(ti===0?' mobile-active':'');
     panel.setAttribute('data-tree-index',ti);
-    let header=`<div class="tree-header"><div class="tree-header-left"><div class="tree-name"><img class="tree-icon" src="${getIconUrl(tree.icon)}" onerror="if(this.src.endsWith('.webp')){this.src=this.src.replace('.webp','.jpg')}else{this.style.display='none'}" alt="">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div></div>`;
+    let header=`<div class="tree-header"><div class="tree-header-left"><div class="tree-name"><img class="tree-icon" src="${getIconUrl(tree.icon)}" onerror="if(this.src.includes('.webp')){this.src=this.src.replace('.webp','.jpg')}else{this.style.display='none'}" alt="">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div></div>`;
     const treeBgImg=TREE_IMAGES[currentClass]?.[ti];
     const bgStyle=treeBgImg?`background-image:url('/images/talents/${treeBgImg}')`:''; 
     if(tree.talents.length===0){
@@ -1249,7 +1249,7 @@ function renderTrees(){
         ontouchstart="onTalentTouchStart(event,${ti},${idx})"
         ontouchend="onTalentTouchEnd()"
         ontouchcancel="onTalentTouchEnd()">`;
-      gridHTML+=`<img src="${getIconUrl(tal.icon)}" onerror="if(this.src.endsWith('.webp')){this.src=this.src.replace('.webp','.jpg')}else{this.style.display='none'}" alt="${tal.name}">`
+      gridHTML+=`<img src="${getIconUrl(tal.icon)}" onerror="if(this.src.includes('.webp')){this.src=this.src.replace('.webp','.jpg')}else{this.style.display='none'}" alt="${tal.name}">`
       gridHTML+=`<div class="talent-rank">${rk}/${tal.maxRank}</div>`;
       gridHTML+=`</div></div>`;
     });
