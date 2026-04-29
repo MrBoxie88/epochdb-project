@@ -159,8 +159,8 @@ a:hover { color:var(--gold-light); text-decoration:underline }
   <div id="item-root"><div class="loading-box">LOADING ITEM…</div></div>
 </div>
 
+<script src="api.js"></script>
 <script>
-const Q_COLORS = ['#9d9d9d','#e8dfc8','#1eff00','#0070dd','#a335ee','#ff8000','#e6cc80'];
 const Q_NAMES  = ['Poor','Common','Uncommon','Rare','Epic','Legendary','Artifact'];
 
 function qColor(q) { return Q_COLORS[Math.max(0, Math.min(6, q ?? 1))] }
@@ -174,11 +174,9 @@ async function init() {
 
     let record;
     try {
-        const res = await fetch(`/api/record/items/${encodeURIComponent(id)}`);
-        if (res.status === 404) { showError(`Item <strong>${esc(id)}</strong> not found in the database yet. It will appear automatically once a player scans it with the addon.`); return; }
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
-        record = await res.json();
+        record = await getItemRecord(id);
     } catch (err) {
+        if (err.status === 404) { showError(`Item <strong>${esc(id)}</strong> not found in the database yet. It will appear automatically once a player scans it with the addon.`); return; }
         showError(`Failed to load item: ${err.message}`);
         return;
     }
@@ -186,8 +184,8 @@ async function init() {
     document.title = `${record.name} — EpochDB`;
 
     const [sourcesResult, commentsResult] = await Promise.allSettled([
-        fetch(`/api/item-sources/${encodeURIComponent(record.name)}`).then(r => r.json()),
-        fetch(`/api/comments/items/${encodeURIComponent(id)}`).then(r => r.json()),
+        getItemSources(record.name),
+        getItemComments(id),
     ]);
 
     const sources  = sourcesResult.status  === 'fulfilled' ? sourcesResult.value  : [];
@@ -353,14 +351,9 @@ function initCommentForm(id) {
         const btn = form.querySelector('button[type=submit]');
         btn.disabled = true;
         try {
-            const res = await fetch(`/api/comments/items/${encodeURIComponent(id)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ text }),
-            });
-            if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Post failed'); }
+            await postItemComment(id, text, token);
             document.getElementById('comment-text').value = '';
-            const updated = await fetch(`/api/comments/items/${encodeURIComponent(id)}`).then(r => r.json());
+            const updated = await getItemComments(id);
             document.getElementById('comments-list').innerHTML = updated.map(c => `
                 <div class="comment">
                     <div class="comment-meta">

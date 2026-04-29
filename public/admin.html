@@ -309,8 +309,8 @@ button { cursor:pointer; font-family:inherit }
   </div>
 </div>
 
+<script src="api.js"></script>
 <script>
-const TOKEN_KEY = 'epochdb-admin-token';
 let adminToken = null;
 let recPage = 1, recPages = 1;
 let cmtPage = 1, cmtPages = 1;
@@ -330,13 +330,8 @@ async function doLogin() {
   const btn = document.getElementById('btn-login');
   btn.disabled = true; btn.textContent = 'Signing in…';
   try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pw, captchaToken: '' })
-    });
-    const data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error || 'Login failed.'; return; }
+    const data = await adminLogin(email, pw);
+    if (!data.token) { errEl.textContent = data.error || 'Login failed.'; return; }
     const payload = parseJwt(data.token);
     if (!payload || !payload.isAdmin) { errEl.textContent = 'This account does not have admin access.'; return; }
     adminToken = data.token;
@@ -390,12 +385,10 @@ async function loadRecords(page) {
   const type = document.getElementById('rec-type').value;
   const qs = new URLSearchParams({ q, type, page: recPage });
   try {
-    const res = await fetch('/api/admin/records?' + qs, { headers: authHeaders() });
-    if (res.status === 403) { doLogout(); return; }
-    const data = await res.json();
+    const data = await adminRecords(recPage, q, type, authHeaders());
     recPages = data.pages || 1;
     renderRecords(data.docs || [], data.total || 0);
-  } catch { showToast('Failed to load records'); }
+  } catch(e) { if (e.status === 403) { doLogout(); return; } showToast('Failed to load records'); }
 }
 
 function renderRecords(docs, total) {
@@ -429,12 +422,10 @@ async function loadComments(page) {
   const recordId = document.getElementById('cmt-rid').value.trim();
   const qs = new URLSearchParams({ type, recordId, page: cmtPage });
   try {
-    const res = await fetch('/api/admin/comments?' + qs, { headers: authHeaders() });
-    if (res.status === 403) { doLogout(); return; }
-    const data = await res.json();
+    const data = await adminComments(cmtPage, type, recordId, authHeaders());
     cmtPages = data.pages || 1;
     renderComments(data.docs || [], data.total || 0);
-  } catch { showToast('Failed to load comments'); }
+  } catch(e) { if (e.status === 403) { doLogout(); return; } showToast('Failed to load comments'); }
 }
 
 function renderComments(docs, total) {
@@ -472,13 +463,8 @@ async function postComment() {
   if (!rid)  { errEl.textContent = 'Record ID is required.'; return; }
   if (!text) { errEl.textContent = 'Comment text is required.'; return; }
   try {
-    const res = await fetch(`/api/comments/${type}/${rid}`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ text, cls })
-    });
-    const data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error || 'Post failed.'; return; }
+    const data = await adminPostComment(type, rid, text, cls, authHeaders());
+    if (!data) { errEl.textContent = 'Post failed.'; return; }
     okEl.textContent = '✔ Comment posted successfully.';
     document.getElementById('cf-text').value = '';
     document.getElementById('cf-rid').value = '';
@@ -504,26 +490,20 @@ function closeConfirm() {
 function confirmDeleteRecord(type, id, name) {
   openConfirm(`Delete record <span class="confirm-name">${esc(name)}</span> (${esc(type)} / ${esc(id)})?`, async () => {
     try {
-      const res = await fetch(`/api/admin/records/${encodeURIComponent(type)}/${encodeURIComponent(id)}`, {
-        method: 'DELETE', headers: authHeaders()
-      });
-      if (!res.ok) { const d = await res.json(); showToast('Error: ' + (d.error || res.status)); return; }
+      await deleteRecord(type, id, authHeaders());
       showToast('Record deleted.');
       loadRecords(recPage);
-    } catch { showToast('Delete failed.'); }
+    } catch(e) { showToast('Error: ' + e.message); }
   });
 }
 
 function confirmDeleteComment(id, author) {
   openConfirm(`Delete comment by <span class="confirm-name">${esc(author)}</span>?`, async () => {
     try {
-      const res = await fetch(`/api/admin/comments/${encodeURIComponent(id)}`, {
-        method: 'DELETE', headers: authHeaders()
-      });
-      if (!res.ok) { const d = await res.json(); showToast('Error: ' + (d.error || res.status)); return; }
+      await deleteComment(id, authHeaders());
       showToast('Comment deleted.');
       loadComments(cmtPage);
-    } catch { showToast('Delete failed.'); }
+    } catch(e) { showToast('Error: ' + e.message); }
   });
 }
 
@@ -535,11 +515,7 @@ async function verifyUser() {
   errEl.textContent = ''; okEl.textContent = '';
   if (!email) { errEl.textContent = 'Email is required.'; return; }
   try {
-    const res = await fetch('/api/admin/verify-user', {
-      method: 'POST', headers: authHeaders(), body: JSON.stringify({ email })
-    });
-    const data = await res.json();
-    if (!res.ok) { errEl.textContent = data.error || 'Verify failed.'; return; }
+    const data = await verifyUser(email, authHeaders());
     okEl.textContent = `✔ ${data.email} is now verified.`;
     document.getElementById('verify-email').value = '';
     showToast('User verified successfully.');

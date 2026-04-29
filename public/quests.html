@@ -5,129 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quests — EpochDB</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Share+Tech+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="epochdb.css">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-    --gold:#c8a84b;--gold-light:#e8cc7a;--gold-dark:#8a6f2e;--gold-bg:rgba(200,168,75,0.06);
-    --bg-deep:#0a0a0c;--bg-panel:#0f0f14;--bg-card:#131318;--bg-hover:#1a1a24;
-    --border:#252530;--border-gold:#3a2e10;
-    --text:#c8c0a8;--text-dim:#6a6458;--text-bright:#e8dfc8;
-    --q0:#9d9d9d;--q1:#e8dfc8;--q2:#1eff00;--q3:#0070dd;--q4:#a335ee;--q5:#ff8000;--q6:#e6cc80;
-    --orange-light:#e8a84a;--blue-light:#6ab4e8;
-}
-html{font-size:21px}
-body{background:var(--bg-deep);color:var(--text);font-family:'Crimson Text',Georgia,serif;min-height:100vh;overflow-x:hidden}
-a{color:var(--gold);text-decoration:none;cursor:pointer}
-a:hover{color:var(--gold-light)}
-button{cursor:pointer;font-family:inherit}
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:var(--bg-deep)}
-::-webkit-scrollbar-thumb{background:var(--border-gold);border-radius:2px}
-#topbar{background:linear-gradient(180deg,#0d0d10 0%,rgba(10,10,12,.95) 100%);border-bottom:1px solid var(--border-gold);padding:0 1.5rem;display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:200;backdrop-filter:blur(14px);height:52px}
-.logo{display:flex;align-items:center;gap:.7rem;flex-shrink:0}
-.logo-icon{width:80px;height:80px}
-.logo-text{font-family:'Cinzel',serif;font-weight:900;font-size:1.15rem;letter-spacing:.15em;color:var(--gold);text-shadow:0 0 18px rgba(200,168,75,.4);line-height:1}
-.logo-sub{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.3em;color:var(--text-dim);margin-top:2px}
-#topnav{display:flex;gap:.1rem;margin-left:auto;align-items:center;flex-shrink:0}
-.tnav-btn{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.12em;color:var(--text-dim);background:none;border:none;padding:.4rem .75rem;text-transform:uppercase;text-decoration:none;transition:color .15s}
-.tnav-btn:hover,.tnav-btn.active{color:var(--gold)}
-#mainnav{background:var(--bg-panel);border-bottom:1px solid var(--border);display:flex;padding:0 1.5rem;overflow-x:auto;position:relative;z-index:1}
-.mnav-tab{font-family:'Cinzel',serif;font-size:.62rem;letter-spacing:.14em;color:var(--text-dim);background:none;border:none;border-bottom:2px solid transparent;padding:.65rem 1rem;text-transform:uppercase;white-space:nowrap;margin-bottom:-1px;text-decoration:none;display:inline-block;transition:all .15s}
-.mnav-tab:hover{color:var(--text)}
-.mnav-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
-#page{max-width:1200px;margin:0 auto;padding:1.2rem 1.5rem;position:relative;z-index:1}
-.list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:.6rem;flex-wrap:wrap}
-.list-title{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--text-bright);display:flex;align-items:center;gap:.5rem}
-.list-count{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-dim);font-weight:400}
-.list-controls{display:flex;gap:.4rem;align-items:center}
-.list-search{background:var(--bg-card);border:1px solid var(--border);color:var(--text);font-family:'Crimson Text',serif;font-size:.9rem;padding:.35rem .6rem;outline:none;width:220px;transition:border-color .15s}
-.list-search:focus{border-color:var(--gold-dark)}
-.list-search::placeholder{color:var(--text-dim);font-style:italic}
-.list-select{background:var(--bg-card);border:1px solid var(--border);color:var(--text-dim);font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.08em;padding:.35rem .6rem;outline:none;cursor:pointer}
-.list-body{display:grid;grid-template-columns:188px 1fr;gap:12px;align-items:start}
-.filter-panel{background:var(--bg-panel);border:1px solid var(--border);overflow:hidden}
-.fp-group{border-bottom:1px solid var(--border)}
-.fp-group:last-child{border-bottom:none}
-.fp-title{font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text-dim);background:var(--bg-card);padding:.45rem .8rem;border-bottom:1px solid rgba(37,37,48,.6)}
-.fp-item{display:flex;align-items:center;gap:.5rem;padding:.42rem .8rem;font-size:.88rem;cursor:pointer;transition:background .1s;border-top:1px solid rgba(37,37,48,.3);border-left:2px solid transparent;color:var(--text-dim)}
-.fp-item:hover{background:var(--bg-hover);color:var(--text)}
-.fp-item.active{color:var(--gold);border-left-color:var(--gold);background:var(--gold-bg)}
-.fp-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
-.data-wrap{background:var(--bg-panel);border:1px solid var(--border);overflow:hidden}
-table{width:100%;border-collapse:collapse}
-thead tr{background:var(--bg-card);border-bottom:1px solid var(--border-gold)}
-th{padding:.55rem .8rem;text-align:left;font-family:'Cinzel',serif;font-size:.55rem;letter-spacing:.18em;color:var(--gold-dark);text-transform:uppercase;cursor:pointer;user-select:none;white-space:nowrap}
-th:hover{color:var(--gold)}
-tbody tr{border-bottom:1px solid rgba(37,37,48,.5);transition:background .08s;cursor:pointer}
-tbody tr:hover{background:var(--bg-hover)}
-tbody tr:last-child{border-bottom:none}
-td{padding:.55rem .8rem;font-size:.9rem;vertical-align:middle}
-td.mono{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--text-dim)}
-.td-name{display:flex;align-items:center;gap:.4rem}
-.badge{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.65rem;padding:1px 5px;border-radius:1px;border:1px solid}
+:root{--orange-light:#e8a84a;--blue-light:#6ab4e8}
 .badge-daily{color:var(--gold);border-color:var(--border-gold);background:var(--gold-bg)}
 .badge-raid{color:#e07070;border-color:rgba(204,51,51,.3);background:rgba(139,26,26,.15)}
 .badge-dungeon{color:var(--blue-light);border-color:rgba(74,143,191,.3);background:rgba(74,143,191,.08)}
 .badge-elite2{color:var(--orange-light);border-color:rgba(232,168,74,.3);background:rgba(232,168,74,.07)}
 .badge-solo{color:var(--text-dim);border-color:var(--border);background:transparent}
-.paginator{display:flex;align-items:center;justify-content:center;gap:3px;padding:.7rem;border-top:1px solid var(--border);background:var(--bg-card)}
-.pager-btn{background:var(--bg-panel);border:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:.68rem;padding:3px 7px;transition:all .1s}
-.pager-btn:hover,.pager-btn.active{background:var(--gold-dark);color:var(--gold-light);border-color:var(--gold-dark)}
-
-/* FOOTER */
-#footer{display:block;width:100%;border-top:1px solid var(--border-gold);background:var(--bg-card);padding:1rem 1.5rem;text-align:center;font-size:.75rem;color:var(--text-dim);margin-top:2rem}
-#footer .footer-character{color:var(--gold);font-weight:600}
-
-/* FILTER TOGGLE (mobile only) */
-#filter-toggle{display:none;background:var(--bg-card);border:1px solid var(--border-gold);color:var(--gold);font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.1em;padding:.5rem 1rem;text-transform:uppercase;width:100%;justify-content:center;margin-bottom:.5rem;cursor:pointer}
-
-/* RESPONSIVE */
-@media(max-width:768px){
-    html{font-size:14px}
-    #topbar{height:auto;min-height:52px;padding:.4rem .8rem;flex-wrap:wrap;gap:.4rem}
-    .logo-icon{width:40px!important;height:40px!important}
-    #topnav{display:none}
-    #page{padding:.7rem .6rem}
-    .list-header{flex-direction:column;align-items:stretch;gap:.5rem}
-    .list-controls{flex-wrap:wrap;gap:.4rem}
-    .list-search{width:100%!important}
-    .list-select{flex:1;min-width:100px}
-    .list-body{grid-template-columns:1fr}
-    .filter-panel{display:none}
-    .filter-panel.mobile-open{display:block}
-    #filter-toggle{display:flex}
-    .data-wrap{overflow-x:auto}
-    td,th{padding:.4rem .5rem;white-space:nowrap}
-    .paginator{flex-wrap:wrap;gap:2px}
-    #footer{padding:.8rem}
-}
 </style>
 </head>
 <body>
 
-<div id="topbar">
-  <a class="logo" href="/"><div class="logo-icon"><img src="/images/Logo/Logo.png" alt="EpochDB Logo" style="width:100%;height:100%;object-fit:contain;"/></div></a>
-  <div id="topnav">
-    <a class="tnav-btn" href="/npcs.html">NPCs</a>
-    <a class="tnav-btn" href="/items.html">Items</a>
-    <a class="tnav-btn active" href="/quests.html">Quests</a>
-    <a class="tnav-btn" href="/loot.html">Loot</a>
-    <a class="tnav-btn" href="/vendors.html">Vendors</a>
-    <a class="tnav-btn" href="/talents.html">Talents</a>
-    <a class="tnav-btn" href="/raid-timers.html">Timers</a>
-  </div>
-</div>
-
-<div id="mainnav">
-  <a class="mnav-tab" href="/">Home</a>
-  <a class="mnav-tab" href="/npcs.html">NPCs &amp; Mobs</a>
-  <a class="mnav-tab" href="/items.html">Items</a>
-  <a class="mnav-tab active" href="/quests.html">Quests</a>
-  <a class="mnav-tab" href="/loot.html">Loot Tables</a>
-  <a class="mnav-tab" href="/vendors.html">Vendors</a>
-  <a class="mnav-tab" href="/talents.html">Talent Calculator</a>
-  <a class="mnav-tab" href="/raid-timers.html">Raid Timers</a>
-</div>
+<div id="nav-root"></div>
+<script src="nav.js"></script>
+<script>renderNav('quests');</script>
 
 <div id="page">
   <div class="list-header">
@@ -196,8 +88,8 @@ td.mono{font-family:'Share Tech Mono',monospace;font-size:.75rem;color:var(--tex
   </div>
 </div>
 
+<script src="api.js"></script>
 <script>
-let allData = [], filtered = [], curPage = 1, pageSize = 50, sortKey = '', searchQ = '';
 let activeFilters = {};
 
 function fmt(n) { return Number(n).toLocaleString(); }
@@ -294,7 +186,7 @@ function btn(label, page, disabled) {
 function goPage(p) { curPage = p; renderPage(); window.scrollTo(0,0); }
 
 async function init() {
-    try { const res = await fetch('/api/list/quests'); allData = await res.json(); }
+    try { allData = await listQuests(); }
     catch(e) { allData = []; console.warn('Could not load quests:', e); }
     applyAndRender();
 }
