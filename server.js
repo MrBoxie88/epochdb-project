@@ -121,7 +121,7 @@ app.get('/api/health', (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // 3b. EMAIL CLIENT (Resend — uses HTTPS, works on Render free tier)
 // ═══════════════════════════════════════════════════════════════
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 if (!process.env.RESEND_API_KEY) console.warn('[MAIL] RESEND_API_KEY not set — emails will fail');
 
 // ═══════════════════════════════════════════════════════════════
@@ -181,6 +181,7 @@ app.post('/api/auth/register', async (req, res) => {
 
         const verifyUrl = `${BASE_URL}/api/auth/verify/${verifyToken}`;
         try {
+            if (!resend) throw new Error('RESEND_API_KEY not configured');
             const { error: mailErr } = await resend.emails.send({
                 from: process.env.SMTP_FROM || 'noreply@epochdb.net',
                 to: user.email,

@@ -1214,7 +1214,7 @@ function renderTrees(){
     const panel=document.createElement('div');
     panel.className='tree-panel'+(ti===0?' mobile-active':'');
     panel.setAttribute('data-tree-index',ti);
-    let header=`<div class="tree-header"><div class="tree-header-left"><div class="tree-name"><img class="tree-icon" src="${getIconUrl(tree.icon)}" onerror="this.style.display='none'" alt="">${tree.name}</div>
+    let header=`<div class="tree-header"><div class="tree-header-left"><div class="tree-name"><img class="tree-icon" src="${getIconUrl(tree.icon)}" onerror="this.style.display='none'" alt="">${tree.name}</div><div class="tree-points">${treePoints(ti)} points</div></div></div>`;
     const treeBgImg=TREE_IMAGES[currentClass]?.[ti];
     const bgStyle=treeBgImg?`background-image:url('/images/talents/${treeBgImg}')`:''; 
     if(tree.talents.length===0){
