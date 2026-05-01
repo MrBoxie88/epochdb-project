@@ -135,8 +135,7 @@ button { cursor:pointer; font-family:inherit }
 @keyframes slideIn { from{transform:translateX(110%);opacity:0} to{transform:none;opacity:1} }
 
 /* ── ORDER PANEL ── */
-#order-panel { display:none; background:var(--bg-panel); border:1px solid var(--border); border-top:none; margin-bottom:2rem; padding:.9rem 1.5rem }
-#order-panel.open { display:block }
+#order-panel { display:block; background:var(--bg-panel); border:1px solid var(--border); border-top:none; margin-bottom:2rem; padding:.9rem 1.5rem }
 .order-panel-hdr { font-family:'Cinzel',serif; font-size:.68rem; letter-spacing:.14em; color:var(--gold); text-transform:uppercase; margin-bottom:.7rem }
 .order-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.45rem 1.5rem; max-height:340px; overflow-y:auto; padding-right:4px }
 .order-row { display:flex; align-items:center; gap:.5rem }
@@ -1102,14 +1101,15 @@ const orderLogs={};
 function init(){
   const hash=location.hash.slice(1);
   if(hash){
-    const parts=hash.split('-');
+    const buildPart=hash.split('|')[0];
+    const parts=buildPart.split('-');
     if(CLASS_DATA[parts[0]]){currentClass=parts[0];}
   }
   renderClassBar();
   loadClass(currentClass);
   window.addEventListener('hashchange',()=>{
     const h=location.hash.slice(1);
-    if(h){const p=h.split('-');if(CLASS_DATA[p[0]]&&p[0]!==currentClass){currentClass=p[0];loadClass(currentClass);}}
+    if(h){const p=h.split('|')[0].split('-');if(CLASS_DATA[p[0]]&&p[0]!==currentClass){currentClass=p[0];loadClass(currentClass);}}
   });
   initSwipe();
   // tap outside tooltip to dismiss on mobile
@@ -1158,7 +1158,6 @@ function renderControls(){
     <div class="points-display">Points: <span>${tp}</span> / ${MAX_POINTS}
       &nbsp;(${cls.trees.map((t,i)=>`${t.name}: ${treePoints(i)}`).join(' / ')})</div>
     <button class="btn" onclick="resetAll()">✕ Reset All</button>
-    <button class="btn" onclick="toggleOrder()">📋 Order</button>
     <button class="btn share-btn" onclick="openShare()">⚔ Share Build</button>`;
 }
 
@@ -1565,13 +1564,16 @@ function encodeBuild(){
     s=s.replace(/0+$/,'');
     parts.push(s||'0');
   });
-  return parts.join('-');
+  let hash=parts.join('-');
+  if(orderLog.length>0)hash+='|'+orderLog.map(e=>e.ti+':'+e.idx).join(',');
+  return hash;
 }
 
 function decodeBuild(){
-  const hash=location.hash.slice(1);
-  if(!hash)return;
-  const parts=hash.split('-');
+  const raw=location.hash.slice(1);
+  if(!raw)return;
+  const [buildPart,orderPart]=raw.split('|');
+  const parts=buildPart.split('-');
   if(parts[0]!==currentClass)return;
   const cls=CLASS_DATA[currentClass];
   cls.trees.forEach((tree,ti)=>{
@@ -1581,6 +1583,13 @@ function decodeBuild(){
       pointsSpent[ti][idx]=Math.min(v,tal.maxRank);
     });
   });
+  if(orderPart){
+    orderLog.length=0;
+    orderPart.split(',').forEach(e=>{
+      const [ti,idx]=e.split(':').map(Number);
+      if(!isNaN(ti)&&!isNaN(idx))orderLog.push({ti,idx});
+    });
+  }
 }
 
 function updateUrl(){location.hash=encodeBuild();}
