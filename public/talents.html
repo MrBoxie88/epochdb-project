@@ -1565,7 +1565,7 @@ function encodeBuild(){
     parts.push(s||'0');
   });
   let hash=parts.join('-');
-  if(orderLog.length>0)hash+='|'+orderLog.map(e=>e.ti+':'+e.idx).join(',');
+  if(orderLog.length>0)hash+='|'+orderLog.map(e=>e.ti+''+e.idx.toString(36)).join('');
   return hash;
 }
 
@@ -1585,10 +1585,10 @@ function decodeBuild(){
   });
   if(orderPart){
     orderLog.length=0;
-    orderPart.split(',').forEach(e=>{
-      const [ti,idx]=e.split(':').map(Number);
+    for(let i=0;i+1<orderPart.length;i+=2){
+      const ti=parseInt(orderPart[i]);const idx=parseInt(orderPart[i+1],36);
       if(!isNaN(ti)&&!isNaN(idx))orderLog.push({ti,idx});
-    });
+    }
   }
 }
 
